@@ -43,15 +43,17 @@ class ControlBar extends StatelessWidget {
           ),
           const _Divider(),
           _Labeled(
-            label: 'Speed ${c.speed}×',
+            label: 'Speed ${c.targetRate.toString().padLeft(3)}/s',
             child: SizedBox(
-              width: 120,
+              width: 140,
               child: Slider(
-                value: c.speed.toDouble(),
-                min: 1,
-                max: 16,
-                divisions: 15,
-                onChanged: (v) => c.setSpeed(v.round()),
+                // Geometric steps: fine control at the slow end, where it matters.
+                value: c.speedIndex.toDouble(),
+                min: 0,
+                max: (LifeController.speedLevels.length - 1).toDouble(),
+                divisions: LifeController.speedLevels.length - 1,
+                label: '${c.targetRate} generations/s',
+                onChanged: (v) => c.setSpeedIndex(v.round()),
               ),
             ),
           ),

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../app/life_controller.dart';
 import 'control_bar.dart';
+import 'experiment_overlay.dart';
 import 'hud.dart';
 import 'life_canvas.dart';
 import 'theme.dart';
@@ -29,7 +30,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     super.initState();
     _ticker = createTicker((elapsed) {
       _clock.value = elapsed.inMicroseconds / 1e6;
-      widget.controller.tick();
+      widget.controller.tick(_clock.value);
     })
       ..start();
   }
@@ -50,7 +51,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         focusNode: _focus,
         autofocus: true,
         onKeyEvent: (e) {
-          if (e is KeyDownEvent && e.logicalKey == LogicalKeyboardKey.space) c.toggleRunning();
+          if (e is! KeyDownEvent || e.logicalKey != LogicalKeyboardKey.space) return;
+          // Key events bubble up from the chat box; a space typed there is text, not play/pause.
+          final focused = FocusManager.instance.primaryFocus?.context;
+          if (focused != null && (focused.widget is EditableText || focused.findAncestorWidgetOfExactType<EditableText>() != null)) return;
+          c.toggleRunning();
         },
         child: ListenableBuilder(
           listenable: c,
@@ -64,11 +69,22 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       Row(children: [
                         Text('LIFE', style: Neon.mono.copyWith(fontSize: 18, letterSpacing: 6, color: Neon.cyan, shadows: const [Shadow(color: Neon.cyan, blurRadius: 14)])),
                         Text(' with AI', style: Neon.mono.copyWith(fontSize: 18, color: Neon.magenta, shadows: const [Shadow(color: Neon.magenta, blurRadius: 14)])),
-                        const Spacer(),
-                        Hud(controller: c),
+                        const SizedBox(width: 16),
+                        // Scale the stats down rather than overflow on narrow windows.
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: FittedBox(fit: BoxFit.scaleDown, child: Hud(controller: c)),
+                          ),
+                        ),
                       ]),
                       const SizedBox(height: 12),
-                      Expanded(child: LifeCanvas(controller: c, clock: _clock, erase: _erase)),
+                      Expanded(
+                        child: Stack(children: [
+                          Positioned.fill(child: LifeCanvas(controller: c, clock: _clock, erase: _erase)),
+                          Positioned(top: 12, left: 12, child: ExperimentOverlay(controller: c)),
+                        ]),
+                      ),
                       const SizedBox(height: 12),
                       ControlBar(controller: c, erase: _erase, onEraseChanged: (v) => setState(() => _erase = v)),
                     ],

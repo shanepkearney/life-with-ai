@@ -21,6 +21,22 @@ enum BoardSize {
   String get label => '$width×$height';
 }
 
+/// One of the AI's `simulate` calls, replayed on the live board so the user
+/// can watch what Claude is testing.
+class Experiment {
+  Experiment({required this.number, required this.seed, required this.generations});
+
+  /// Playback aims to fit in about this long, whatever the length of the run.
+  static const targetSeconds = 8.0;
+
+  final int number;
+  final Grid seed;
+  final int generations;
+
+  /// Fast-forwards long runs; never slower than 15/s so short ones stay lively.
+  double get rate => (generations / targetSeconds).clamp(15, 480).toDouble();
+}
+
 /// Owns the running simulation: which engine, play/pause, speed, editing.
 /// The UI's ticker calls [tick] every frame; everything else is commands.
 class LifeController extends ChangeNotifier {
@@ -32,8 +48,30 @@ class LifeController extends ChangeNotifier {
 
   BoardSize boardSize = BoardSize.medium;
   bool running = false;
-  int speed = 1; // generations per frame
+  /// Target rates, in generations per second. A rate (not "generations per
+  /// frame") keeps the speed the same on 60 Hz and 120 Hz displays.
+  static const speedLevels = [1, 2, 4, 8, 15, 30, 60, 120, 240, 480, 960];
+  int speedIndex = 4;
+  int get targetRate => speedLevels[speedIndex];
+
+  /// Measured rate, which falls short of [targetRate] when the engine can't keep up.
   double gensPerSecond = 0;
+
+  double? _lastTick;
+  double _due = 0; // generations owed since the last step
+
+  /// The AI experiment being replayed, if any. Stays set (paused on its last
+  /// frame) after it ends, so the overlay can show the result.
+  Experiment? experiment;
+  final _experimentQueue = <Experiment>[];
+  Grid? _pendingHandOff;
+  double? _holdUntil;
+
+  /// Pause between queued experiments, so the end state of one is visible.
+  static const _holdSeconds = 0.8;
+
+  bool get experimentFinished => experiment != null && generation >= experiment!.generations;
+  double get _rate => experiment != null && !experimentFinished ? experiment!.rate : targetRate.toDouble();
 
   bool _busy = false;
   int _gensSinceSample = 0;
@@ -57,13 +95,34 @@ class LifeController extends ChangeNotifier {
   LifeEngine _create(EngineKind kind) =>
       kind == EngineKind.cpu ? CpuEngine() : GpuEngine(_shaders.lifeStep);
 
-  Future<void> tick() async {
-    if (!running || _busy) return;
+  /// Called every display frame with the ticker's clock in seconds. Steps
+  /// however many generations are due at [targetRate]: zero on most frames at
+  /// slow speeds, several per frame at fast ones.
+  Future<void> tick(double now) async {
+    final dt = _lastTick == null ? 0.0 : (now - _lastTick!).clamp(0.0, 0.1);
+    _lastTick = now;
+    if (_busy) return;
+    if (experimentFinished) {
+      await _afterExperiment(now);
+      return;
+    }
+    if (!running) return;
+    final rate = _rate;
+    _due += dt * rate;
+    // Epsilon: summing many frame-sized fractions lands a hair under whole numbers.
+    if (_due < 1 - 1e-9) return;
+    var n = (_due + 1e-9).floor().clamp(1, 32);
+    _due -= n;
+    // If the engine can't keep up, drop the backlog rather than spiral; the HUD's
+    // measured rate shows the real throughput.
+    if (_due > rate * 0.25) _due = 0;
+    // An experiment stops on exactly the generation Claude simulated.
+    if (experiment != null) n = min(n, experiment!.generations - generation);
     _busy = true;
     try {
-      await engine.step(speed);
+      await engine.step(n);
       _publish();
-      _gensSinceSample += speed;
+      _gensSinceSample += n;
       final ms = _rateClock.elapsedMilliseconds;
       if (ms >= 500) {
         gensPerSecond = _gensSinceSample * 1000 / ms;
@@ -73,6 +132,70 @@ class LifeController extends ChangeNotifier {
     } finally {
       _busy = false;
     }
+  }
+
+  /// An experiment reached its last generation: pause on it, then play the next
+  /// queued one or hand over Claude's final seed.
+  Future<void> _afterExperiment(double now) async {
+    if (running && _experimentQueue.isEmpty && _pendingHandOff == null) {
+      running = false;
+      gensPerSecond = 0;
+      notifyListeners();
+      return;
+    }
+    if (_experimentQueue.isEmpty && _pendingHandOff == null) return;
+    _holdUntil ??= now + _holdSeconds;
+    if (now < _holdUntil!) return;
+    _holdUntil = null;
+    if (_experimentQueue.isNotEmpty) {
+      await _startExperiment(_experimentQueue.removeAt(0));
+    } else {
+      final seed = _pendingHandOff!;
+      _pendingHandOff = null;
+      await _loadAndRun(seed);
+    }
+  }
+
+  // ---- AI experiments ---------------------------------------------------------
+
+  /// Replays an experiment, or queues it behind the one already playing.
+  Future<void> playExperiment(Experiment e) async {
+    if (experiment != null && !experimentFinished) {
+      _experimentQueue.add(e);
+      return;
+    }
+    await _startExperiment(e);
+  }
+
+  Future<void> _startExperiment(Experiment e) => _whileIdle(() async {
+        await engine.load(e.seed);
+        experiment = e;
+        running = true;
+        _due = 0;
+        _publish();
+      });
+
+  /// Claude finished: play its seed for real once the experiments have been shown.
+  Future<void> handOff(Grid seed) async {
+    if ((experiment != null && !experimentFinished) || _experimentQueue.isNotEmpty) {
+      _pendingHandOff = seed;
+      return;
+    }
+    await _loadAndRun(seed);
+  }
+
+  Future<void> _loadAndRun(Grid seed) async {
+    await load(seed);
+    running = true;
+    _due = 0;
+    notifyListeners();
+  }
+
+  void _cancelExperiments() {
+    experiment = null;
+    _experimentQueue.clear();
+    _pendingHandOff = null;
+    _holdUntil = null;
   }
 
   void _publish() {
@@ -87,7 +210,10 @@ class LifeController extends ChangeNotifier {
       });
 
   void toggleRunning() {
+    // Playing on from the end of an experiment is ordinary play at the user's speed.
+    if (experimentFinished) _cancelExperiments();
     running = !running;
+    _due = 0;
     _gensSinceSample = 0;
     _rateClock.reset();
     if (!running) gensPerSecond = 0;
@@ -99,8 +225,9 @@ class LifeController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setSpeed(int value) {
-    speed = value;
+  void setSpeedIndex(int index) {
+    speedIndex = index.clamp(0, speedLevels.length - 1);
+    _due = 0;
     notifyListeners();
   }
 
@@ -134,8 +261,10 @@ class LifeController extends ChangeNotifier {
 
   Future<void> clear() => load(Grid(boardSize.width, boardSize.height));
 
-  /// Replaces the board (used by reset, drawing, and the AI assistant).
+  /// Replaces the board (used by reset, drawing, and the AI assistant). Any
+  /// experiment replay stops: the board now shows something else.
   Future<void> load(Grid grid) => _whileIdle(() async {
+        _cancelExperiments();
         await engine.load(grid);
         _publish();
       });
@@ -143,6 +272,7 @@ class LifeController extends ChangeNotifier {
   // ---- Drawing --------------------------------------------------------------
 
   Future<void> beginEdit() async {
+    _cancelExperiments();
     _edit = await engine.snapshot();
   }
 
