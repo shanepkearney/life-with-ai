@@ -6,9 +6,35 @@ congregate, and an AI assistant that designs a starting pattern to produce the o
 **Live: https://shanepkearney.github.io/life-with-ai/** (bring your own Anthropic API key for
 the assistant; the simulation works without one).
 
+![A glowing four-pointed star of thunderbirds and pi-heptominoes designed by the assistant, with Claude's tool calls, reasoning and finish summary in the side panel](readme/hero-four-point-star.png)
+
+*Asked for "a symmetric bloom that slowly settles into a garden of oscillators", Claude placed
+four thunderbirds and four pi-heptominoes in 4-fold rotational symmetry and ran two experiments.
+It confirmed the bloom peaks near 1,200 cells around generation 136, then settles by
+generation ~330 into a period-2 garden, and handed the seed over. The whole run cost about $0.06.*
+
 A reimagining of [shanepkearney/life](https://github.com/shanepkearney/life), a Java/Swing
 implementation. It keeps the original's rules and toroidal (wrap-around) board, and its
 1024×768 board is one of the size presets.
+
+## Gallery
+
+**One seed, three moments.** Four R-pentominoes in 4-fold rotational symmetry erupt into a
+cross, throw off gliders, and settle into a garden of oscillators.
+
+| Generation 74 | Generation 272 | Generation 2340 |
+|---|---|---|
+| ![Four small clusters in a cross shape at generation 74](readme/bloom-1-gen74.png) | ![The cross erupting into four churning arms at generation 272](readme/bloom-2-gen272.png) | ![A wide, settled garden of oscillators at generation 2340](readme/bloom-3-gen2340.png) |
+
+| Watching Claude experiment | Another take: mirror symmetry |
+|---|---|
+| ![The experiment overlay reading EXPERIMENT 1, GEN 212 of 300, while Claude is still designing the star above](readme/experiment-replay.png) | ![A mirror-symmetric bloom: eight glowing clusters of acorns and R-pentominoes, with Claude's tool calls and summary](readme/mirror-bloom.png) |
+| The star above, mid-design: each `simulate` call replays on the board while Claude thinks about its next step. | The same prompt on another run: paired R-pentominoes and acorns in each quadrant, about $0.08. |
+
+| Hotspots on a random soup (web build) | The mirror bloom, 900 generations later |
+|---|---|
+| ![A dense random board lit as a heat map, cyan where sparse through magenta to amber where crowded](readme/hotspot-heatmap-web.png) | ![A symmetric bloom at generation 1082 with magenta cores and scattered oscillators](readme/dihedral-bloom.png) |
+| The density shader colours crowded regions from cyan through magenta to amber. | Generation 1082: the churn has thinned into a mirrored field of oscillators around four hot cores. |
 
 ## Architecture
 
