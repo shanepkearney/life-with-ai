@@ -1,12 +1,12 @@
 {
-    "name": "life_with_ai",
-    "short_name": "life_with_ai",
+    "name": "Life with AI",
+    "short_name": "Life with AI",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "Conway's Game of Life with GPU glow and an AI seeding assistant",
-    "orientation": "portrait-primary",
+    "background_color": "#05060A",
+    "theme_color": "#05060A",
+    "description": "Conway's Game of Life with GPU shader glow and an AI assistant that designs, tests and replays seeds.",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {
