@@ -3,6 +3,9 @@
 Conway's Game of Life in Flutter, with a shader-driven neon glow that heats up where cells
 congregate, and an AI assistant that designs a starting pattern to produce the outcome you describe.
 
+**Live: https://shanepkearney.github.io/life-with-ai/** (bring your own Anthropic API key for
+the assistant; the simulation works without one).
+
 A reimagining of [shanepkearney/life](https://github.com/shanepkearney/life), a Java/Swing
 implementation. It keeps the original's rules and toroidal (wrap-around) board, and its
 1024×768 board is one of the size presets.
