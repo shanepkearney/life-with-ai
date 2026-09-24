@@ -302,14 +302,14 @@ void main() {
     await tester.tap(find.text('Just play'));
     await frames(tester, 400);
     expect(find.text("This seed didn't make it"), findsNothing);
-    expect(find.text('Neon Frame'), findsNothing, reason: 'still on the Assistant tab');
+    expect(find.text('Oscillator Garden'), findsNothing, reason: 'still on the Assistant tab');
   });
 
   testWidgets("a broken link's dialog can take you to the Community tab", (tester) async {
     await start(tester, launchUri: Uri.parse('${ShareLink.site}#seed=1_512x384_1'));
     await pumpUntil(tester, () => find.text("This seed didn't make it").evaluate().isNotEmpty, reason: 'the dialog');
     await tester.tap(find.text('Explore community seeds'));
-    await pumpUntil(tester, () => find.text('Neon Frame').evaluate().isNotEmpty, reason: 'the Community tab open, seeds loaded');
+    await pumpUntil(tester, () => find.text('Oscillator Garden').evaluate().isNotEmpty, reason: 'the Community tab open, seeds loaded');
     expect(find.text("This seed didn't make it"), findsNothing);
   });
 
