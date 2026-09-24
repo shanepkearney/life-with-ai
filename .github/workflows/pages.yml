@@ -51,7 +51,7 @@ jobs:
       - run: flutter analyze
       - run: flutter test
       # The event collector (analytics/), a Cloudflare Worker: plain Node, no dependencies.
-      - run: node --test analytics/test/
+      - run: node --test analytics/test/*.test.js # the files: Node 22 no longer expands a folder
 
   integration:
     name: Integration tests (macOS app)

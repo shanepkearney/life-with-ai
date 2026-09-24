@@ -36,7 +36,7 @@ gh variable set TELEMETRY_URL --body "https://life-with-ai-events.<your-subdomai
 ## Tests
 
 ```
-node --test analytics/test/
+node --test analytics/test/*.test.js
 ```
 
 CI runs them on every push and pull request.
