@@ -36,7 +36,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: Neon.theme(),
-          home: HomePage(controller: life, notice: 'Loaded a shared seed.', saveScreenshot: save),
+          home: HomePage(controller: life, notice: const LaunchNotice('Loaded a shared seed.'), saveScreenshot: save),
         ),
       );
       await tester.pump();

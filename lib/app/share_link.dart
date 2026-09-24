@@ -55,6 +55,17 @@ abstract final class ShareLink {
   /// [s] cut to [n] characters, the last one an ellipsis when anything was cut.
   static String _shorten(String s, int n) => n >= s.length ? s : '${s.substring(0, n - 1).trimRight()}…';
 
+  /// Whether [uri] was meant to share a seed (it has a `seed=` in its
+  /// fragment), whether or not that seed is any good. Tells a broken link
+  /// apart from an ordinary visit.
+  static bool carriesSeed(Uri uri) {
+    try {
+      return Uri.splitQueryString(uri.fragment).containsKey('seed');
+    } on ArgumentError {
+      return RegExp(r'(^|&)seed=').hasMatch(uri.fragment);
+    }
+  }
+
   /// The seed (and title) in [uri]'s fragment, or null without a valid seed.
   /// Links are untrusted input: the seed is fully validated and the title is
   /// cleaned and capped. A bad title never costs you the seed.

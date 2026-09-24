@@ -158,6 +158,14 @@ void main() {
     expect(find.bySemanticsLabel('Favourites, 1 saved'), findsOneWidget);
   });
 
+  testWidgets('on a phone, a broken link\'s dialog opens the sheet on the Community tab', (tester) async {
+    await startOn(tester, const Size(393, 852), launchUri: Uri.parse('${ShareLink.site}#seed=not-a-seed&title=Oops'));
+    await pumpUntil(tester, () => find.text("This seed didn't make it").evaluate().isNotEmpty, reason: 'the dialog');
+    expect(find.text('Boxed Chaos'), findsNothing, reason: 'sheet still at rest');
+    await tester.tap(find.text('Explore community seeds'));
+    await pumpUntil(tester, () => find.text('Boxed Chaos').evaluate().isNotEmpty, reason: 'sheet open on Community');
+  });
+
   testWidgets('share links work across layouts: a desktop seed on a phone, a phone seed on desktop', (tester) async {
     final desktopSeed = Grid(512, 384);
     patternLibrary['r_pentomino']!.stampOnto(desktopSeed, 250, 180);

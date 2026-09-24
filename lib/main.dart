@@ -38,15 +38,27 @@ Future<LifeApp> bootstrap({Uri? launchUri, http.Client? httpClient, EngineKind e
   final assistant = AssistantController(life, favorites, httpClient: httpClient);
   await assistant.loadSettings();
 
-  // A share link (…/#seed=…) opens straight onto that seed, playing.
-  final shared = launchUri == null ? null : ShareLink.parse(launchUri);
-  if (shared != null) {
-    await life.playSeed(shared.seed, title: shared.title);
-    assistant.addShared(shared);
-  } else if (autoplay) {
-    life.toggleRunning();
+  // A share link (…/#seed=…) opens straight onto that seed, playing. One that
+  // can't be read, or fails to load, falls back to a normal start and says so,
+  // pointing to the Community tab instead.
+  LaunchNotice? notice;
+  if (launchUri != null && ShareLink.carriesSeed(launchUri)) {
+    notice = LaunchNotice.brokenLink;
+    final shared = ShareLink.parse(launchUri);
+    if (shared != null) {
+      try {
+        await life.playSeed(shared.seed, title: shared.title);
+        assistant.addShared(shared);
+        notice = LaunchNotice.sharedSeed;
+      } catch (e) {
+        debugPrint('Could not load the shared seed: $e');
+        if (life.running) life.toggleRunning();
+        await life.randomize();
+      }
+    }
   }
-  return LifeApp(controller: life, assistant: assistant, notice: shared != null ? 'Loaded a shared seed. Press space to pause.' : null);
+  if (autoplay && !life.running) life.toggleRunning();
+  return LifeApp(controller: life, assistant: assistant, notice: notice);
 }
 
 class LifeApp extends StatelessWidget {
@@ -56,7 +68,7 @@ class LifeApp extends StatelessWidget {
   final AssistantController assistant;
 
   /// Shown once after launch, e.g. when a share link was opened.
-  final String? notice;
+  final LaunchNotice? notice;
 
   @override
   Widget build(BuildContext context) => MaterialApp(

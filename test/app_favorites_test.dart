@@ -167,6 +167,23 @@ void main() {
       expect(fav('A bloom that settles.').linkNote, 'A bloom that settles.');
     });
 
+    test('tells a link that meant to share a seed from an ordinary visit', () {
+      for (final url in ['#seed=', '#seed=garbage', '#title=x&seed=1_512x384_10_10_bo-2bo-3o', '#seed=%%%']) {
+        expect(ShareLink.carriesSeed(Uri.parse('${ShareLink.site}$url')), isTrue, reason: url);
+      }
+      for (final url in ['', '#', '#/', '#title=seed', '#seeds=1', '?seed=1']) {
+        expect(ShareLink.carriesSeed(Uri.parse('${ShareLink.site}$url')), isFalse, reason: url);
+      }
+    });
+
+    test('broken seed links are recognised as seed links that cannot be read', () {
+      for (final fragment in ['#seed=1_512x384_1', '#seed=not-a-real-seed&title=Oops', '#seed=1_10x10_0_0_999o']) {
+        final uri = Uri.parse('${ShareLink.site}$fragment');
+        expect(ShareLink.carriesSeed(uri), isTrue, reason: fragment);
+        expect(ShareLink.parse(uri), isNull, reason: fragment);
+      }
+    });
+
     test('ignores URLs without a valid seed', () {
       for (final url in [
         'https://shanepkearney.github.io/life-with-ai/',
