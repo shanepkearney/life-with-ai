@@ -1,6 +1,16 @@
 import 'grid.dart';
 import 'seed_codec.dart';
 
+/// A pattern too big to read: [width] x [height] cells, from its header when
+/// it has one, or as far as it got otherwise. The dialog says how that
+/// compares with the boards here.
+class RleTooBig extends FormatException {
+  const RleTooBig(this.width, this.height) : super('This pattern is too big for any board here.');
+
+  final int width;
+  final int height;
+}
+
 /// A pattern read from RLE text: its live cells relative to its own top-left
 /// corner, plus the name and comments from its `#N` and `#C` lines.
 class RlePattern {
@@ -75,6 +85,9 @@ abstract final class Rle {
     final body = StringBuffer();
     var sawHeader = false;
     ({bool multiState, ({int width, int height})? torus}) header = (multiState: false, torus: null);
+    var declared = (width: 0, height: 0);
+    // The header's size when it's bigger (it's the whole pattern), else what was read.
+    RleTooBig tooBig(int w, int h) => RleTooBig(declared.width > w ? declared.width : w, declared.height > h ? declared.height : h);
     for (final raw in text.split(RegExp(r'\r?\n'))) {
       final line = raw.trim();
       if (line.isEmpty) continue;
@@ -88,6 +101,10 @@ abstract final class Rle {
       if (!sawHeader && body.isEmpty && RegExp(r'^x\s*=').hasMatch(line)) {
         sawHeader = true;
         header = _readHeader(line);
+        final size = RegExp(r'x\s*=\s*(\d+)\s*,\s*y\s*=\s*(\d+)').firstMatch(line);
+        if (size != null) declared = (width: int.tryParse(size[1]!) ?? 0, height: int.tryParse(size[2]!) ?? 0);
+        // Say so now, rather than after reading every row of a giant.
+        if (declared.width > maxSide || declared.height > maxSide) throw RleTooBig(declared.width, declared.height);
         continue;
       }
       body.write(line);
@@ -101,7 +118,7 @@ abstract final class Rle {
       final code = ch.codeUnitAt(0);
       if (code >= 0x30 && code <= 0x39) {
         run = run * 10 + (code - 0x30);
-        if (run > maxSide * maxSide) throw _tooBig;
+        if (run > maxSide * maxSide) throw tooBig(x + run, y + 1);
         continue;
       }
       if (ch == ' ' || ch == '\t') continue;
@@ -126,7 +143,7 @@ abstract final class Rle {
           _ => throw FormatException('"$ch" doesn\'t belong in RLE. A pattern is made of b, o, \$, ! and numbers.'),
         };
         if (alive) {
-          if (cells.length + n > maxLiveCells) throw _tooBig;
+          if (cells.length + n > maxLiveCells) throw tooBig(x + n, y + 1);
           for (var k = 0; k < n; k++) {
             cells.add((x + k, y));
           }
@@ -135,7 +152,7 @@ abstract final class Rle {
         }
         x += n;
       }
-      if (x > maxSide || y > maxSide) throw _tooBig;
+      if (x > maxSide || y > maxSide) throw tooBig(x, y + 1);
     }
     return finish();
   }
@@ -161,8 +178,6 @@ abstract final class Rle {
       torus: torus,
     );
   }
-
-  static const _tooBig = FormatException('This pattern is bigger than any board here ($maxSide cells on a side).');
 
   /// Accepts Conway's rule however it's written (`B3/S23`, `b3/s23`, the old
   /// `23/3`, `Life`), its marked-up forms LifeHistory and LifeSuper, and a
