@@ -5,16 +5,14 @@ import '../engine/life_engine.dart';
 import 'theme.dart';
 
 class ControlBar extends StatelessWidget {
-  const ControlBar({
-    super.key,
-    required this.controller,
-    required this.erase,
-    required this.onEraseChanged,
-  });
+  const ControlBar({super.key, required this.controller, required this.erase, required this.onEraseChanged, this.onSaveMoment});
 
   final LifeController controller;
   final bool erase;
   final ValueChanged<bool> onEraseChanged;
+
+  /// Hearts whatever is on the board right now.
+  final VoidCallback? onSaveMoment;
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +39,7 @@ class ControlBar extends StatelessWidget {
             tip: erase ? 'Drawing erases — tap to draw' : 'Drawing adds cells — tap to erase',
             onTap: () => onEraseChanged(!erase),
           ),
+          if (onSaveMoment != null) _Icon(icon: Icons.favorite_border_rounded, tip: 'Save this moment to favourites', onTap: onSaveMoment),
           const _Divider(),
           _Labeled(
             label: 'Speed ${c.targetRate.toString().padLeft(3)}/s',
@@ -61,12 +60,7 @@ class ControlBar extends StatelessWidget {
             label: 'Glow',
             child: SizedBox(
               width: 100,
-              child: Slider(
-                value: c.pipeline.glow,
-                min: 0,
-                max: 2,
-                onChanged: c.setGlow,
-              ),
+              child: Slider(value: c.pipeline.glow, min: 0, max: 2, onChanged: c.setGlow),
             ),
           ),
           const _Divider(),
@@ -80,7 +74,10 @@ class ControlBar extends StatelessWidget {
             showSelectedIcon: false,
             segments: [
               for (final k in EngineKind.values)
-                ButtonSegment(value: k, label: Text(k.label, style: const TextStyle(fontSize: 12))),
+                ButtonSegment(
+                  value: k,
+                  label: Text(k.label, style: const TextStyle(fontSize: 12)),
+                ),
             ],
             selected: {c.engineKind},
             onSelectionChanged: (s) => c.switchEngine(s.first),
@@ -111,14 +108,14 @@ class _Icon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Tooltip(
-        message: tip,
-        child: IconButton(
-          onPressed: onTap,
-          icon: Icon(icon, shadows: glow ? const [Shadow(color: Neon.cyan, blurRadius: 12)] : null),
-          color: glow ? Neon.cyan : Neon.text,
-          disabledColor: Neon.muted.withValues(alpha: 0.4),
-        ),
-      );
+    message: tip,
+    child: IconButton(
+      onPressed: onTap,
+      icon: Icon(icon, shadows: glow ? const [Shadow(color: Neon.cyan, blurRadius: 12)] : null),
+      color: glow ? Neon.cyan : Neon.text,
+      disabledColor: Neon.muted.withValues(alpha: 0.4),
+    ),
+  );
 }
 
 class _Labeled extends StatelessWidget {
@@ -129,9 +126,12 @@ class _Labeled extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [Text(label, style: Neon.mono.copyWith(color: Neon.muted)), child],
-      );
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Text(label, style: Neon.mono.copyWith(color: Neon.muted)),
+      child,
+    ],
+  );
 }
 
 class _Divider extends StatelessWidget {

@@ -27,15 +27,27 @@ abstract final class Neon {
         trackHeight: 2,
       ),
       tooltipTheme: const TooltipThemeData(waitDuration: Duration(milliseconds: 400)),
+      // Only used where there's no Toasts ancestor (a widget tested on its own).
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        width: 520,
+        backgroundColor: const Color(0xF20B0E17),
+        contentTextStyle: mono,
+        actionTextColor: magenta,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: magenta.withValues(alpha: 0.55)),
+        ),
+      ),
     );
   }
 
   static BoxDecoration panelDecoration({double radius = 14}) => BoxDecoration(
-        color: panel,
-        borderRadius: BorderRadius.circular(radius),
-        border: Border.all(color: border),
-        boxShadow: [BoxShadow(color: cyan.withValues(alpha: 0.06), blurRadius: 24)],
-      );
+    color: panel,
+    borderRadius: BorderRadius.circular(radius),
+    border: Border.all(color: border),
+    boxShadow: [BoxShadow(color: cyan.withValues(alpha: 0.06), blurRadius: 24)],
+  );
 
   static const mono = TextStyle(fontFamily: 'Menlo', fontFamilyFallback: ['monospace'], fontSize: 12, color: text);
 }

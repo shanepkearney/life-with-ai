@@ -120,6 +120,40 @@ Design choices:
 results are batched in order, thinking blocks are echoed back unchanged, roles still alternate
 on follow-ups, the turn cap holds, and the required headers and cache settings are present.
 
+## Favourites and share links
+
+Tap the heart on any of Claude's finished seeds to keep it, or the heart in the control bar to save
+the board exactly as it is at that moment (titled after its source, e.g. `A restless R-pentomino ·
+gen 340`). The heart button in the panel header opens your favourites next to the board: click one to
+play it, copy its share link, or delete it (with undo). Favourites stay on your device (localStorage
+on the web), with no account or server. Each favourite and the collection as a whole are
+size-capped, because a write over the browser's ~5 MB quota fails outright and would silently lose
+every later save.
+
+Opening a share link plays the seed and pins a **Shared with you** card to the top of the chat, with
+the same replay, heart and copy-link controls as Claude's own seeds. Opening a link never adds it to
+favourites by itself. Links carry the sender's prompt as a title, so a saved link keeps its name.
+
+A share link carries the whole seed in the URL fragment, e.g.
+`https://shanepkearney.github.io/life-with-ai/#seed=1_512x384_210_150_bo-2bo-3o&title=One%20glider`.
+The app reads the fragment itself and doesn't route on it, so the address stays as sent and a reload
+replays the seed (checked in Chrome against the production build).
+The fragment is never sent to the server, so long links can't be rejected and shared seeds stay out of
+server logs. `lib/core/seed_codec.dart` encodes the live cells' bounding box as URL-safe run-length rows:
+Claude's designs come to a few hundred characters (the hero star is 163), while a full random board
+would be over 100 KB, so only designed seeds are meant for sharing. Decoding treats every link as
+untrusted and rejects bad sizes, runs off the board and unknown characters.
+
+## Testing
+
+| Suite | Runs | Covers |
+|---|---|---|
+| `test/` (unit + widget) | `flutter test`, on Linux in CI | rules and pattern claims, GPU≡CPU parity, seed codec, favourites storage, share-link parsing of hostile input, the agent loop against scripted API replies, experiment and seed replay, the favourites UI flow, frame-rate-independent speed, layout at two window sizes |
+| `integration_test/` | `flutter test integration_test -d macos`, on a macOS runner in CI | the real app end to end: boot and play, engine hot-swap, opening share links (valid and broken), the Shared-with-you card (replay, save, survives a new chat), saving moments (exact titles, duplicates, undo, empty board), and a full assistant run (experiment replay → finish → replay → heart → recall from favourites → copy link through the real clipboard). Only the Anthropic API is scripted |
+
+`.github/workflows/pages.yml` runs both on every push and pull request. The web build is deployed
+to Pages only when both pass on `main`.
+
 ## Run
 
 ```bash

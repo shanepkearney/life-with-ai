@@ -47,7 +47,20 @@ class LifeController extends ChangeNotifier {
   late LifeEngine engine;
 
   BoardSize boardSize = BoardSize.medium;
+
+  /// What's on the board, for naming a saved moment: a seed's prompt or
+  /// share-link title, or null for random and hand-drawn boards.
+  String? boardTitle;
+  String? _pendingHandOffTitle;
+
+  /// Title for saving the board right now, e.g. "A lonely pulsar · gen 340".
+  String get momentTitle => '${boardTitle ?? 'My board'} · gen $generation';
+
+  /// The board exactly as it is now, running or not, with its title. Taken
+  /// together between steps, so a moment titled "gen 340" is generation 340.
+  Future<({Grid seed, String title})> captureMoment() => _whileIdle(() async => (seed: await engine.snapshot(), title: momentTitle));
   bool running = false;
+
   /// Target rates, in generations per second. A rate (not "generations per
   /// frame") keeps the speed the same on 60 Hz and 120 Hz displays.
   static const speedLevels = [1, 2, 4, 8, 15, 30, 60, 120, 240, 480, 960];
@@ -92,8 +105,7 @@ class LifeController extends ChangeNotifier {
     await randomize();
   }
 
-  LifeEngine _create(EngineKind kind) =>
-      kind == EngineKind.cpu ? CpuEngine() : GpuEngine(_shaders.lifeStep);
+  LifeEngine _create(EngineKind kind) => kind == EngineKind.cpu ? CpuEngine() : GpuEngine(_shaders.lifeStep);
 
   /// Called every display frame with the ticker's clock in seconds. Steps
   /// however many generations are due at [targetRate]: zero on most frames at
@@ -152,7 +164,7 @@ class LifeController extends ChangeNotifier {
     } else {
       final seed = _pendingHandOff!;
       _pendingHandOff = null;
-      await _loadAndRun(seed);
+      await _loadAndRun(seed, title: _pendingHandOffTitle);
     }
   }
 
@@ -168,24 +180,42 @@ class LifeController extends ChangeNotifier {
   }
 
   Future<void> _startExperiment(Experiment e) => _whileIdle(() async {
-        await engine.load(e.seed);
-        experiment = e;
-        running = true;
-        _due = 0;
-        _publish();
-      });
+    await engine.load(e.seed);
+    experiment = e;
+    boardTitle = "Claude's experiment ${e.number}";
+    running = true;
+    _due = 0;
+    _publish();
+  });
 
   /// Claude finished: play its seed for real once the experiments have been shown.
-  Future<void> handOff(Grid seed) async {
+  Future<void> handOff(Grid seed, {String? title}) async {
     if ((experiment != null && !experimentFinished) || _experimentQueue.isNotEmpty) {
       _pendingHandOff = seed;
+      _pendingHandOffTitle = title;
       return;
     }
-    await _loadAndRun(seed);
+    await _loadAndRun(seed, title: title);
   }
 
-  Future<void> _loadAndRun(Grid seed) async {
+  /// Starts [e] again from generation 0, replacing whatever is on the board.
+  Future<void> replayExperiment(Experiment e) async {
+    _cancelExperiments();
+    await _startExperiment(e);
+  }
+
+  /// Loads [seed] at generation 0 and plays it at the user's speed. Seeds from
+  /// favourites and share links carry their own board size; adopt it.
+  Future<void> playSeed(Grid seed, {String? title}) {
+    for (final s in BoardSize.values) {
+      if (s.width == seed.width && s.height == seed.height) boardSize = s;
+    }
+    return _loadAndRun(seed, title: title);
+  }
+
+  Future<void> _loadAndRun(Grid seed, {String? title}) async {
     await load(seed);
+    boardTitle = title;
     running = true;
     _due = 0;
     notifyListeners();
@@ -205,9 +235,9 @@ class LifeController extends ChangeNotifier {
 
   /// Advances exactly one generation while paused.
   Future<void> stepOnce() => _whileIdle(() async {
-        await engine.step(1);
-        _publish();
-      });
+    await engine.step(1);
+    _publish();
+  });
 
   void toggleRunning() {
     // Playing on from the end of an experiment is ordinary play at the user's speed.
@@ -264,15 +294,17 @@ class LifeController extends ChangeNotifier {
   /// Replaces the board (used by reset, drawing, and the AI assistant). Any
   /// experiment replay stops: the board now shows something else.
   Future<void> load(Grid grid) => _whileIdle(() async {
-        _cancelExperiments();
-        await engine.load(grid);
-        _publish();
-      });
+    _cancelExperiments();
+    boardTitle = null; // callers that know the seed's name set it after loading
+    await engine.load(grid);
+    _publish();
+  });
 
   // ---- Drawing --------------------------------------------------------------
 
   Future<void> beginEdit() async {
     _cancelExperiments();
+    boardTitle = null; // drawn on: it's the user's board now
     _edit = await engine.snapshot();
   }
 

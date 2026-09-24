@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_with_ai/app/assistant_controller.dart';
+import 'package:life_with_ai/app/favorites.dart';
 import 'package:life_with_ai/app/life_controller.dart';
 import 'package:life_with_ai/main.dart';
 import 'package:life_with_ai/render/shaders.dart';
@@ -19,7 +20,7 @@ void main() {
       await tester.runAsync(() async {
         life = LifeController(await Shaders.load());
         await life.init();
-        assistant = AssistantController(life);
+        assistant = AssistantController(life, FavoritesStore());
         await assistant.loadSettings();
       });
       await tester.pumpWidget(LifeApp(controller: life, assistant: assistant));
