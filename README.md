@@ -343,3 +343,9 @@ so it runs the same on 60 Hz and 120 Hz displays; `test/app_speed_test.dart` che
 
 Controls: space = play/pause; ← and → step while paused; **F** = full screen; **B** = Board only; Esc leaves Board
 only; drag on the board to draw (toggle the pencil to erase).
+
+## License
+
+Copyright © 2026 Shane Kearney. The code is all rights reserved: it's public to read and review, but not licensed
+for reuse ([LICENSE](LICENSE)). The community seeds are under [CC BY 4.0](community/LICENSE.md): share and reuse
+them freely, crediting each seed's author.

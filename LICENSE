@@ -1,0 +1,18 @@
+Copyright (c) 2026 Shane Kearney. All rights reserved.
+
+The source code in this repository is published so that it can be read and
+reviewed. No license is granted to copy, modify, distribute, sublicense or
+otherwise use it, except for what GitHub's Terms of Service allow for public
+repositories (viewing it and forking it on GitHub).
+
+Exceptions:
+
+- The community seeds in community/seeds/ are licensed separately, under the
+  Creative Commons Attribution 4.0 International license (CC BY 4.0). See
+  community/LICENSE.md.
+- Third-party packages and tools used by this project remain under their own
+  licenses.
+
+Contributions: by submitting a pull request, you agree that Shane Kearney may
+use, modify and distribute your contribution as part of this project. Community
+seeds are contributed under CC BY 4.0, as CONTRIBUTING.md explains.
