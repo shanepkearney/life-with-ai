@@ -195,8 +195,10 @@ on follow-ups, the turn cap holds, and the required headers and cache settings a
 
 ## Phones and small windows
 
-The layout follows the space the app has, never the device type: below 700px wide (or 500px tall,
+The layout follows the space the app has, never the device type: below 900px wide (or 500px tall,
 e.g. a landscape phone) it switches live to a phone layout; wider windows keep the desktop layout.
+So a phone or a tablet held upright gets the phone layout, while a tablet on its side and the Mac app
+(whose smallest window is 1024px wide) keep the board beside the assistant.
 The phone layout puts the board on top, a one-row control strip under it (speed, glow, engine, board
 size and clear behind ⚙), and the assistant in a bottom sheet. At rest the sheet is just its three
 tabs, **Assistant**, **Favorites** and **Community**; tapping one opens the sheet on that view, and Claude's spinner
