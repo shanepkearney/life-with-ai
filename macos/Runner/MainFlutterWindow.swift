@@ -25,7 +25,37 @@ class MainFlutterWindow: NSWindow {
     self.center()
 
     RegisterGeneratedPlugins(registry: flutterViewController)
+    registerFullScreenChannel(flutterViewController.engine.binaryMessenger)
 
     super.awakeFromNib()
+  }
+
+  /// Full screen for the app's ⛶ and Board only (lib/app/platform/full_screen_io.dart):
+  /// "isFullScreen" and "setFullScreen" from Dart, and "changed" back to it
+  /// whenever the window enters or leaves full screen, however that happened
+  /// (the green button, ⌃⌘F, Esc).
+  private var fullScreenChannel: FlutterMethodChannel?
+
+  private func registerFullScreenChannel(_ messenger: FlutterBinaryMessenger) {
+    let channel = FlutterMethodChannel(name: "life_with_ai/full_screen", binaryMessenger: messenger)
+    channel.setMethodCallHandler { [weak self] call, result in
+      guard let self else { return result(nil) }
+      switch call.method {
+      case "isFullScreen":
+        result(self.styleMask.contains(.fullScreen))
+      case "setFullScreen":
+        let wanted = (call.arguments as? Bool) ?? false
+        if wanted != self.styleMask.contains(.fullScreen) { self.toggleFullScreen(nil) }
+        result(nil)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+    fullScreenChannel = channel
+    for (name, value) in [(NSWindow.didEnterFullScreenNotification, true), (NSWindow.didExitFullScreenNotification, false)] {
+      NotificationCenter.default.addObserver(forName: name, object: self, queue: .main) { [weak self] _ in
+        self?.fullScreenChannel?.invokeMethod("changed", arguments: value)
+      }
+    }
   }
 }

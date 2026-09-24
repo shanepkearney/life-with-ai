@@ -111,6 +111,17 @@ void main() {
     expect(find.byTooltip('Get the macOS app'), mac ? findsOneWidget : findsNothing, reason: nav.userAgent);
   });
 
+  testWidgets('Board only in the browser, even where full screen is refused', (tester) async {
+    // A test's tap isn't a real user gesture, so the browser refuses full
+    // screen: Board only must fill the window anyway, and leave cleanly.
+    await start(tester);
+    await tester.tap(find.byTooltip('Board only (B)'));
+    await pumpUntil(tester, () => find.byTooltip('Leave board only (Esc)').evaluate().isNotEmpty, reason: 'Board only');
+    expect(find.byTooltip('Save a screenshot'), findsNothing);
+    await tester.tap(find.byTooltip('Leave board only (Esc)'));
+    await pumpUntil(tester, () => find.byTooltip('Save a screenshot').evaluate().isNotEmpty, reason: 'back to the app');
+  });
+
   testWidgets('a long run, then a new board: the image chains are cut on the web too', (tester) async {
     final app = await start(tester);
     final life = app.controller;

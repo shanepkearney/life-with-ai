@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'app/assistant_controller.dart';
 import 'app/favorites.dart';
 import 'app/life_controller.dart';
+import 'app/platform/full_screen.dart';
 import 'app/share_link.dart';
 import 'engine/life_engine.dart';
 import 'render/shaders.dart';
@@ -33,6 +34,7 @@ Future<LifeApp> bootstrap({
   EngineKind engine = EngineKind.gpu,
   bool autoplay = false,
   bool? offerMacDownload,
+  FullScreen? fullScreen,
 }) async {
   final life = LifeController(await Shaders.load());
   // Phones start on a portrait board sized for them: at 512 cells across, a phone gets under a pixel per cell.
@@ -64,11 +66,11 @@ Future<LifeApp> bootstrap({
     }
   }
   if (autoplay && !life.running) life.toggleRunning();
-  return LifeApp(controller: life, assistant: assistant, notice: notice, offerMacDownload: offerMacDownload);
+  return LifeApp(controller: life, assistant: assistant, notice: notice, offerMacDownload: offerMacDownload, fullScreen: fullScreen);
 }
 
 class LifeApp extends StatelessWidget {
-  const LifeApp({super.key, required this.controller, required this.assistant, this.notice, this.offerMacDownload});
+  const LifeApp({super.key, required this.controller, required this.assistant, this.notice, this.offerMacDownload, this.fullScreen});
 
   final LifeController controller;
   final AssistantController assistant;
@@ -78,6 +80,9 @@ class LifeApp extends StatelessWidget {
 
   /// Overrides where the ⬇ for the macOS app shows (by default: web, on a Mac).
   final bool? offerMacDownload;
+
+  /// Full screen for this platform, unless a test passes its own.
+  final FullScreen? fullScreen;
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -99,6 +104,7 @@ class LifeApp extends StatelessWidget {
       favorites: assistant.favorites,
       assistant: assistant,
       offerMacDownload: offerMacDownload,
+      fullScreen: fullScreen,
     ),
   );
 }

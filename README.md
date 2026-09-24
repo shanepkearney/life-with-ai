@@ -183,6 +183,19 @@ tabs, **Assistant**, **Favorites** and **Community**; tapping one opens the shee
 shows on its tab even while the sheet is closed. Phones start on a portrait 192×256 board, which
 fills a tall screen instead of letterboxing a 4:3 one.
 
+## Full screen and Board only
+
+⛶ (or **F**) puts the whole app full screen: the browser's full screen on the web, the window's own in the macOS
+app. **Board only** (the frame button beside it, or **B**) goes further: just the glowing board, edge to edge, and
+full screen too where the platform allows. Moving the mouse or tapping brings up a small playback bar (back to the
+start, step back, play or pause, step, and ✕ to leave) along with the pointer; both fade after a couple of seconds
+of stillness. A tap only wakes the bar, never draws. **Esc**, the ✕, or leaving full screen any other way (a
+browser's own Esc, the window's green button) brings the app back.
+
+To let a design run on the whole screen, pick **Fit screen** in the board size menu: a board shaped like your
+display at about two pixels a cell (756×491 on a 1512×982 MacBook), so Board only fills it with no black bars. An
+iPhone's browser can't go full screen, so there Board only simply fills the window.
+
 ## Rewind
 
 ⏮ goes back to where the run began and |◀ steps back one generation (← and → step while paused on
@@ -271,13 +284,22 @@ Every deploy is a [semantic version](https://semver.org). When a merge to `main`
 
 The biggest bump wins, and merge commits don't count (the commits they merge do). The first release is 1.0.0.
 
-The build compiles in the version and its short commit (`--dart-define=APP_VERSION` and `APP_COMMIT`), which the
-about panel shows beside the logo as e.g. `v1.3.0 · a1b2c3d`, linked to that release. Once the deploy succeeds, CI
-tags the commit `v1.3.0` and creates a GitHub Release, so a failed deploy never uses up a number. A re-run with
-nothing new since the last tag deploys again without tagging. Local builds say `dev`.
+A merge to `main` that passes all three test suites is a release, in this order:
+
+1. **Tag:** the commit is tagged `v1.3.0` first, so everything after is built from the tag.
+2. **Build:** the web app and the macOS app (`Life-with-AI.dmg`), both from the tag. Each compiles in the version
+   and its short commit (`--dart-define=APP_VERSION` and `APP_COMMIT`), which the about panel shows beside the logo
+   as e.g. `v1.3.0 · a1b2c3d`, linked to its release. Local builds say `dev`.
+3. **Deploy** the web app to Pages.
+4. **Publish** the GitHub Release: notes that link the builds (the live site and this version's DMG), with the DMG
+   attached.
+5. **Check** the live site from outside (`tool/smoke_live.sh`).
+
+If a build or the deploy fails, the tag stays: "Re-run failed jobs" retries the same version, and a full re-run
+finds the tag and publishes it once everything passes. A version number is only ever skipped, never reused.
 
 The release notes come from `tool/release_notes.dart`, not GitHub's generator, which only lists pull requests.
-It groups every commit since the last release under Features, Fixes, and Docs and maintenance (breaking changes
+They open with **Downloads** (the web app and this version's DMG), then group every commit since the last release under Features, Fixes, and Docs and maintenance (breaking changes
 first), linking each to its pull request, or to the commit itself when it went straight to `main`. A hand-written
 intro in `.github/releases/v<version>.md` goes on top when there is one, as it does for v1.0.0. To preview the
 next release's notes: `dart tool/release_notes.dart <version>`.
@@ -309,4 +331,5 @@ The board plays on load. Dev flags: `--dart-define=NO_AUTOPLAY=true` starts paus
 Speed is a rate in generations per second (1–960, geometric steps), not "generations per frame",
 so it runs the same on 60 Hz and 120 Hz displays; `test/app_speed_test.dart` checks both.
 
-Controls: space = play/pause; drag on the board to draw (toggle the pencil to erase).
+Controls: space = play/pause; ← and → step while paused; **F** = full screen; **B** = Board only; Esc leaves Board
+only; drag on the board to draw (toggle the pencil to erase).

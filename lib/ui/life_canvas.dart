@@ -3,13 +3,15 @@ import 'package:flutter/material.dart';
 import '../app/life_controller.dart';
 
 /// The board, letterboxed to its aspect ratio, painted by the glow pipeline.
-/// Dragging draws (or erases) cells.
+/// Dragging draws (or erases) cells, unless [drawable] is off (Board only,
+/// where a tap brings the controls back instead).
 class LifeCanvas extends StatelessWidget {
-  const LifeCanvas({super.key, required this.controller, required this.clock, required this.erase});
+  const LifeCanvas({super.key, required this.controller, required this.clock, required this.erase, this.drawable = true});
 
   final LifeController controller;
   final ValueNotifier<double> clock;
   final bool erase;
+  final bool drawable;
 
   @override
   Widget build(BuildContext context) {
@@ -25,6 +27,10 @@ class LifeCanvas extends StatelessWidget {
 
         void draw(Offset p) => controller.paintCell((p.dx / w * controller.width).floor(), (p.dy / h * controller.height).floor(), !erase);
 
+        final board = RepaintBoundary(
+          child: CustomPaint(size: size, painter: _GlowPainter(controller, clock)),
+        );
+        if (!drawable) return Center(child: board);
         return Center(
           child: MouseRegion(
             cursor: SystemMouseCursors.precise,
@@ -40,9 +46,7 @@ class LifeCanvas extends StatelessWidget {
                 draw(d.localPosition);
                 controller.endEdit();
               },
-              child: RepaintBoundary(
-                child: CustomPaint(size: size, painter: _GlowPainter(controller, clock)),
-              ),
+              child: board,
             ),
           ),
         );

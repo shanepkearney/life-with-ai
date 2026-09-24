@@ -86,6 +86,23 @@ void main() {
     tester.view.resetPhysicalSize();
   });
 
+  testWidgets('Board only on a phone: the bar fits, fades, and a tap brings it back', (tester) async {
+    await startOn(tester, const Size(375, 667));
+    await tester.tap(find.byTooltip('Board only (B)'));
+    await frames(tester, 300);
+    final leave = find.byTooltip('Leave board only (Esc)');
+    expect(tester.getRect(leave).right, lessThanOrEqualTo(375));
+    await frames(tester, 3000); // longer than the bar lingers
+    bool shown() => !tester.widget<IgnorePointer>(find.ancestor(of: leave, matching: find.byType(IgnorePointer)).first).ignoring;
+    expect(shown(), isFalse);
+    await tester.tapAt(const Offset(187, 300));
+    await frames(tester, 300);
+    expect(shown(), isTrue);
+    await tester.tap(leave);
+    await frames(tester, 300);
+    expect(find.byType(MobileControls), findsOneWidget);
+  });
+
   testWidgets('the about panel opens from the phone header too', (tester) async {
     await startOn(tester, const Size(375, 667));
     await tester.tap(find.byTooltip('About this app'));
