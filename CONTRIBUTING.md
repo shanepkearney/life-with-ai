@@ -43,6 +43,14 @@ Add one file to `community/seeds/`, named after the seed: `Oscillator Garden` go
 
 Everything is plain, single-line text. The app never renders it as HTML or Markdown.
 
+## Licensing
+
+- **Seeds:** by submitting a seed, you license it under
+  [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) and confirm it's yours to license. Anyone may then
+  share and reuse it, crediting you as its author (see [community/LICENSE.md](community/LICENSE.md)).
+- **Code:** the project's code is under the [MIT license](LICENSE), and code contributions are accepted under it
+  too: by submitting a code change, you license it under the MIT license.
+
 ## The check
 
 Every pull request runs `test/community_seeds_test.dart`, which checks the rules above. If it fails,
