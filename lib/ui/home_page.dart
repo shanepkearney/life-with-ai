@@ -304,7 +304,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               Row(
                 children: [
                   // The logo and ⓘ open the about panel: who made this, and Conway's rules.
-                  const LogoButton(),
+                  // It scales down before the buttons would overflow, just above the
+                  // phone breakpoint, as the phone header's logo does.
+                  const Flexible(
+                    child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: LogoButton()),
+                  ),
                   // Beside the ⓘ: getting the app belongs with "about this app".
                   ?_macDownloadButton(),
                   _screenshotButton(),

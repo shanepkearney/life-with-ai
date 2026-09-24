@@ -98,8 +98,9 @@ crowd's white-hot core, and the background. Changes show on the board as you mak
 **Reset to Neon** puts the original theme back. The choice is kept on the device.
 
 A share link carries the sender's colors, so the seed opens looking the way they saw it. The
-**Shared with you** card then offers to **Keep** those colors or go back to your own. Neon adds
-nothing to a link, a preset adds its name (`&colors=ember`), and custom colors add six hex codes.
+**Shared with you** card then offers to **Keep** those colors or go back to your own, and playing
+anything other than that seed goes back to your own too. A preset travels by name (`&colors=ember`,
+Neon included) and custom colors as six hex codes; older links without colors open in yours.
 
 | Choosing a preset: the board recolors live behind the dialog | Editing one color, by hue, saturation and brightness or by hex |
 |---|---|
@@ -195,8 +196,10 @@ on follow-ups, the turn cap holds, and the required headers and cache settings a
 
 ## Phones and small windows
 
-The layout follows the space the app has, never the device type: below 700px wide (or 500px tall,
+The layout follows the space the app has, never the device type: below 900px wide (or 500px tall,
 e.g. a landscape phone) it switches live to a phone layout; wider windows keep the desktop layout.
+So a phone or a tablet held upright gets the phone layout, while a tablet on its side and the Mac app
+(whose smallest window is 1024px wide) keep the board beside the assistant.
 The phone layout puts the board on top, a one-row control strip under it (speed, glow, engine, board
 size and clear behind ⚙), and the assistant in a bottom sheet. At rest the sheet is just its three
 tabs, **Assistant**, **Favorites** and **Community**; tapping one opens the sheet on that view, and Claude's spinner

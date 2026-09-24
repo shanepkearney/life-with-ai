@@ -134,7 +134,7 @@ void main() {
     );
 
     expect(find.text("Sender's colors"), findsNothing, reason: 'nothing to offer until the colors are showing');
-    life.showSharedPalette(BoardPalette.ember);
+    life.showSharedPalette(BoardPalette.ember, seed: seed);
     await tester.pump();
     expect(find.text("Sender's colors"), findsOneWidget);
 
@@ -143,7 +143,7 @@ void main() {
     expect((life.palette, life.ownPalette), (BoardPalette.forest, BoardPalette.forest));
     expect(find.text("Sender's colors"), findsNothing);
 
-    life.showSharedPalette(BoardPalette.ember);
+    life.showSharedPalette(BoardPalette.ember, seed: seed);
     await tester.pump();
     await tester.tap(find.text('Keep'));
     await tester.pump();

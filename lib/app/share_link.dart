@@ -9,7 +9,7 @@ typedef SharedSeed = ({Grid seed, String? title, String? note, BoardPalette? pal
 
 /// Share links carry the whole seed in the URL fragment:
 /// `…/#seed=<code>&title=<prompt>&colors=<palette>&note=<description>`.
-/// `colors` is left out for Neon, the default, so most links never have it.
+/// `colors` is left out only by callers with no palette to give (community seeds).
 ///
 /// The fragment is never sent to the server, so GitHub Pages can't reject a
 /// long link (servers refuse URLs past ~8 KB) and shared seeds stay out of
@@ -30,7 +30,7 @@ abstract final class ShareLink {
   /// under [comfortableLength], shortened with an ellipsis to fit, and is
   /// dropped when the seed (and title) already use it all.
   static String forSeed(Grid seed, {String? title, String? note, BoardPalette? palette}) {
-    final colors = palette?.wire;
+    final colors = palette?.linkForm;
     final base = _link({
       'seed': SeedCodec.encode(seed),
       if (title != null && title.trim().isNotEmpty) 'title': _clean(title),
