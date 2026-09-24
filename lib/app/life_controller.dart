@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 
 import '../core/grid.dart';
+import '../core/rle.dart';
 import '../core/timeline.dart';
 import '../engine/cpu_engine.dart';
 import '../engine/gpu_engine.dart';
@@ -44,6 +45,17 @@ class BoardSize {
   /// The size a shared seed or favorite came with: a preset if it is one.
   factory BoardSize.of(int width, int height) =>
       values.firstWhere((s) => s.width == width && s.height == height, orElse: () => BoardSize._(width, height));
+
+  /// The board a [width] x [height] pattern goes on: [current] if it fits
+  /// there, otherwise the smallest preset that holds it, or null if none does.
+  static BoardSize? holding(int width, int height, {required BoardSize current}) {
+    bool fits(BoardSize s) => width <= s.width && height <= s.height;
+    if (fits(current)) return current;
+    for (final s in desktop) {
+      if (fits(s)) return s;
+    }
+    return null;
+  }
 
   final int width;
   final int height;
@@ -278,6 +290,20 @@ class LifeController extends ChangeNotifier {
     // Keep a screen-shaped board if the seed is that size; otherwise take the seed's.
     if (seed.width != boardSize.width || seed.height != boardSize.height) boardSize = BoardSize.of(seed.width, seed.height);
     return _loadAndRun(seed, title: title);
+  }
+
+  /// Plays a pasted RLE [pattern] from generation 0, centered on the board
+  /// ([BoardSize.holding] picks which, unless the pattern names its own
+  /// torus). False when no board is big enough.
+  Future<bool> playPattern(RlePattern pattern) async {
+    final t = pattern.torus;
+    final size = t != null && pattern.width <= t.width && pattern.height <= t.height
+        ? BoardSize.of(t.width, t.height)
+        : BoardSize.holding(pattern.width, pattern.height, current: boardSize);
+    if (size == null) return false;
+    boardSize = size;
+    await _loadAndRun(pattern.centeredOn(size.width, size.height), title: pattern.name);
+    return true;
   }
 
   Future<void> _loadAndRun(Grid seed, {String? title}) async {
