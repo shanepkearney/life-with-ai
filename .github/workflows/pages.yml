@@ -1,33 +1,66 @@
-name: Deploy web app
+name: Test and deploy
 
-# Every push to main is tested, built and published to GitHub Pages.
+# Both test suites must pass before anything reaches the live site.
+# Pull requests run the tests too, but never deploy.
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  FLUTTER_VERSION: 3.41.5
+
 jobs:
-  build:
+  unit:
+    name: Unit and widget tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: 3.41.5
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
+
+  integration:
+    name: Integration tests (macOS app)
+    # The real app end to end: Metal shaders, isolate, storage, clipboard.
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter test integration_test -d macos
+
+  build:
+    name: Build web
+    needs: [unit, integration]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
       # Pages serves the site from /<repo>/, so assets must resolve under that path.
       - run: flutter build web --release --base-href /life-with-ai/
       - uses: actions/upload-pages-artifact@v3
@@ -35,8 +68,12 @@ jobs:
           path: build/web
 
   deploy:
+    name: Deploy to GitHub Pages
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
