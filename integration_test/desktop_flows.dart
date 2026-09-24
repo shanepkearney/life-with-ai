@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -12,13 +13,14 @@ import 'package:life_with_ai/core/patterns.dart';
 import 'package:life_with_ai/engine/life_engine.dart';
 import 'package:life_with_ai/main.dart';
 import 'package:life_with_ai/ui/control_bar.dart';
+import 'package:life_with_ai/ui/life_canvas.dart';
 import 'package:life_with_ai/ui/hud.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// End-to-end: the real app (real shaders, isolate, storage and clipboard) with
 /// only the Anthropic API scripted. Run with:
 ///
-///   flutter test integration_test -d macos
+///   flutter test integration_test -d macos   (runs via all_test.dart)
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -89,10 +91,16 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     await start(tester);
     await tester.pump();
-    for (final type in [ControlBar, Hud]) {
-      final box = tester.renderObject<RenderBox>(find.byType(type));
-      expect(box.getMaxIntrinsicWidth(double.infinity), lessThanOrEqualTo(box.size.width), reason: '$type would wrap');
-    }
+    // Every control sits on the same row: with centred wrapping, one row means one centre line.
+    final wrap = tester.renderObject<RenderWrap>(find.descendant(of: find.byType(ControlBar), matching: find.byType(Wrap)));
+    final rows = <double>{};
+    wrap.visitChildren((c) {
+      final b = c as RenderBox;
+      rows.add(((b.parentData! as WrapParentData).offset.dy + b.size.height / 2).roundToDouble());
+    });
+    expect(rows, hasLength(1), reason: 'the control bar wraps onto ${rows.length} rows');
+    final hud = tester.renderObject<RenderBox>(find.byType(Hud));
+    expect(hud.getMaxIntrinsicWidth(double.infinity), lessThanOrEqualTo(hud.size.width), reason: 'Hud would wrap');
   });
 
   testWidgets('messages never cover the controls, even when the controls wrap', (tester) async {
@@ -100,8 +108,13 @@ void main() {
     tester.view.physicalSize = const Size(1100, 900) * tester.view.devicePixelRatio;
     addTearDown(tester.view.resetPhysicalSize);
     await start(tester);
-    final bar = tester.renderObject<RenderBox>(find.byType(ControlBar));
-    expect(bar.getMaxIntrinsicWidth(double.infinity), greaterThan(bar.size.width), reason: 'precondition: controls wrap');
+    final wrap = tester.renderObject<RenderWrap>(find.descendant(of: find.byType(ControlBar), matching: find.byType(Wrap)));
+    final rows = <double>{};
+    wrap.visitChildren((c) {
+      final b = c as RenderBox;
+      rows.add(((b.parentData! as WrapParentData).offset.dy + b.size.height / 2).roundToDouble());
+    });
+    expect(rows.length, greaterThan(1), reason: 'precondition: controls wrap');
 
     await tester.tap(find.byTooltip('Save this moment to favourites'));
     await pumpUntil(tester, () => find.textContaining('to favourites').evaluate().isNotEmpty, reason: 'toast shown');
@@ -114,6 +127,66 @@ void main() {
     // The panel beside the board is left alone too.
     final panel = tester.getRect(find.text('Seed assistant'));
     expect(toast.right, lessThan(panel.left));
+  });
+
+  testWidgets('rewind: step back, back to the start, arrow keys, and drawing sets a new beginning', (tester) async {
+    final app = await start(tester);
+    final life = app.controller;
+    Future<int> board() async => (await life.captureMoment()).seed.stateHash;
+    final origin = await board();
+    // Taps wait for the previous step's frame, as any real click does; a tap in
+    // the same instant a step finishes can be dropped by the test harness.
+    Future<void> tapSettled(WidgetTester tester, Finder f) async {
+      await frames(tester, 150);
+      await tester.tap(f);
+    }
+    // The desktop bar wraps each IconButton in a Tooltip (the phone strip is the other way round).
+    bool enabled(String tip) => tester.widget<IconButton>(find.descendant(of: find.byTooltip(tip), matching: find.byType(IconButton))).onPressed != null;
+    expect(enabled('Back to the start'), isFalse);
+    expect(enabled('Step back one generation (←)'), isFalse);
+
+    // Five steps forward, five back: the same board as the start.
+    for (var i = 0; i < 5; i++) {
+      await tapSettled(tester, find.byTooltip('Step one generation (→)'));
+      await pumpUntil(tester, () => life.generation == i + 1, reason: 'forward ${i + 1}');
+    }
+    for (var i = 4; i >= 0; i--) {
+      await tapSettled(tester, find.byTooltip('Step back one generation (←)'));
+      await pumpUntil(tester, () => life.generation == i, reason: 'back to $i');
+    }
+    expect(await board(), origin);
+
+    // Arrow keys scrub while paused.
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await pumpUntil(tester, () => life.generation == 2, reason: 'arrow right twice');
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+    await pumpUntil(tester, () => life.generation == 1, reason: 'arrow left');
+
+    // Back to the start while running keeps it running.
+    await tapSettled(tester, find.byTooltip('Play (space)'));
+    await pumpUntil(tester, () => life.generation > 20, reason: 'running');
+    await tapSettled(tester, find.byTooltip('Back to the start'));
+    await pumpUntil(tester, () => life.generation < 5, reason: 'rewound');
+    expect(life.running, isTrue);
+    await tapSettled(tester, find.byTooltip('Pause (space)'));
+    await tester.pump();
+
+    // Drawing is a new beginning: the start is now the edited board.
+    for (var i = 0; i < 3; i++) {
+      await tapSettled(tester, find.byTooltip('Step one generation (→)'));
+      await pumpUntil(tester, () => !life.atBeginning && life.generation >= 1, reason: 'stepped');
+    }
+    final canvas = find.byType(LifeCanvas);
+    await frames(tester, 150);
+    await tester.tapAt(tester.getCenter(canvas));
+    await pumpUntil(tester, () => life.atBeginning, reason: 'the edit became the beginning');
+    final edited = await board();
+    await tapSettled(tester, find.byTooltip('Step one generation (→)'));
+    await pumpUntil(tester, () => !life.atBeginning, reason: 'step after edit');
+    await tapSettled(tester, find.byTooltip('Back to the start'));
+    await pumpUntil(tester, () => life.atBeginning, reason: 'back to the edit');
+    expect(await board(), edited);
   });
 
   testWidgets('a share link plays its seed, and its card can replay it and save it', (tester) async {
@@ -171,7 +244,7 @@ void main() {
 
     // A random board, paused at a known generation.
     for (var i = 0; i < 7; i++) {
-      await tester.tap(find.byTooltip('Step one generation'));
+      await tester.tap(find.byTooltip('Step one generation (→)'));
       await pumpUntil(tester, () => life.generation == i + 1, reason: 'step ${i + 1}');
     }
     await tester.tap(find.byTooltip('Save this moment to favourites'));
@@ -187,7 +260,7 @@ void main() {
     expect(favorites.items, hasLength(1));
 
     // Undo from a fresh save removes it again.
-    await tester.tap(find.byTooltip('Step one generation'));
+    await tester.tap(find.byTooltip('Step one generation (→)'));
     await pumpUntil(tester, () => life.generation == 8, reason: 'step 8');
     await tester.tap(find.byTooltip('Save this moment to favourites'));
     await pumpUntil(tester, () => favorites.items.length == 2, reason: 'second moment');

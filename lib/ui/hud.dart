@@ -5,9 +5,12 @@ import 'theme.dart';
 
 /// Live stats. Generations/sec is the number to watch when switching engines.
 class Hud extends StatelessWidget {
-  const Hud({super.key, required this.controller});
+  const Hud({super.key, required this.controller, this.compact = false});
 
   final LifeController controller;
+
+  /// Phones: generation and population only.
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -40,8 +43,10 @@ class Hud extends StatelessWidget {
         children: [
           stat('GEN', '${c.generation}', Neon.cyan),
           stat('POP', '${c.population}', Neon.magenta),
-          stat('GEN/S', c.running ? c.gensPerSecond.toStringAsFixed(0) : '—', Neon.amber),
-          stat('ENGINE', c.engineKind.label, Neon.text),
+          if (!compact) ...[
+            stat('GEN/S', c.running ? c.gensPerSecond.toStringAsFixed(0) : '—', Neon.amber),
+            stat('ENGINE', c.engineKind.label, Neon.text),
+          ],
         ],
       ),
     );

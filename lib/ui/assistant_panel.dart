@@ -16,8 +16,19 @@ const _examples = [
 ];
 
 class AssistantPanel extends StatefulWidget {
-  const AssistantPanel({super.key, required this.assistant});
+  const AssistantPanel({super.key, required this.assistant, this.embedded = false, this.showActions = true, this.onOpen});
   final AssistantController assistant;
+
+  /// Fill the parent (the phone layout's bottom sheet) instead of being a
+  /// fixed-width column with its own frame.
+  final bool embedded;
+
+  /// The phone sheet's open state: when false (resting) only its two tabs
+  /// show; the chat, message box and buttons wait for the sheet to open.
+  final bool showActions;
+
+  /// Opens the phone sheet (a tab tapped while it rests).
+  final VoidCallback? onOpen;
 
   @override
   State<AssistantPanel> createState() => _AssistantPanelState();
@@ -57,13 +68,14 @@ class _AssistantPanelState extends State<AssistantPanel> {
           });
         }
         return Container(
-          width: 380,
-          margin: const EdgeInsets.fromLTRB(0, 16, 16, 16),
-          decoration: Neon.panelDecoration(),
+          width: widget.embedded ? null : 380,
+          margin: widget.embedded ? null : const EdgeInsets.fromLTRB(0, 16, 16, 16),
+          decoration: widget.embedded ? null : Neon.panelDecoration(),
           child: Column(
             children: [
-              _header(a),
+              if (widget.embedded) _phoneHeader(a) else _header(a),
               const Divider(height: 1, color: Neon.border),
+              if (widget.embedded && widget.showActions && !_showFavorites) _assistantToolbar(a),
               Expanded(
                 child: _showFavorites
                     ? FavoritesView(favorites: a.favorites, life: a.life)
@@ -76,7 +88,7 @@ class _AssistantPanelState extends State<AssistantPanel> {
                         itemBuilder: (_, i) => i == a.entries.length ? const _Working() : _EntryTile(a.entries[i], assistant: a),
                       ),
               ),
-              if (!_showFavorites) ...[const Divider(height: 1, color: Neon.border), _composer(a)],
+              if (!_showFavorites && widget.showActions) ...[const Divider(height: 1, color: Neon.border), _composer(a)],
             ],
           ),
         );
@@ -113,13 +125,77 @@ class _AssistantPanelState extends State<AssistantPanel> {
           ),
         ),
         if (!_showFavorites) _favoritesButton(a),
-        if (a.usage != null && !_showFavorites)
-          Tooltip(
-            message: '${a.usage!.input} in · ${a.usage!.cacheRead} cached · ${a.usage!.output} out',
-            child: Text('≈\$${a.costUsd.toStringAsFixed(3)}', style: Neon.mono.copyWith(color: Neon.amber)),
-          ),
+        if (a.usage != null && !_showFavorites) _costMeter(a),
         IconButton(tooltip: 'New chat', onPressed: a.busy ? null : a.newChat, icon: const Icon(Icons.add_comment_rounded, size: 18)),
         IconButton(tooltip: 'Settings', onPressed: () => showApiKeyDialog(context, a), icon: const Icon(Icons.key_rounded, size: 18)),
+      ],
+    ),
+  );
+
+  Widget _costMeter(AssistantController a) => Tooltip(
+    message: '${a.usage!.input} in · ${a.usage!.cacheRead} cached · ${a.usage!.output} out',
+    child: Text('≈\$${a.costUsd.toStringAsFixed(3)}', style: Neon.mono.copyWith(color: Neon.amber)),
+  );
+
+  /// Phones: two tabs, Seed assistant and Favourites. Resting, they're the whole
+  /// bar and a tap opens the sheet on that view; open, they switch views, with
+  /// new chat and settings beside them and the cost on a slim line below.
+  Widget _phoneHeader(AssistantController a) {
+    final open = widget.showActions;
+    final n = a.favorites.items.length;
+    void select(bool favourites) {
+      setState(() => _showFavorites = favourites);
+      widget.onOpen?.call();
+    }
+
+    final tabs = Row(
+      children: [
+        Expanded(
+          child: _PhoneTab(
+            icon: Icons.auto_awesome_rounded,
+            label: 'Seed assistant',
+            semantics: 'Seed assistant',
+            selected: open && !_showFavorites,
+            busy: a.busy,
+            onTap: () => select(false),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: _PhoneTab(
+            icon: n > 0 ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+            label: 'Favourites',
+            semantics: n == 0 ? 'Favourites' : 'Favourites, $n saved',
+            selected: open && _showFavorites,
+            count: n,
+            onTap: () => select(true),
+          ),
+        ),
+      ],
+    );
+    return Padding(padding: const EdgeInsets.fromLTRB(10, 6, 10, 6), child: tabs);
+  }
+
+  /// Phones: the Assistant view's own toolbar, under the tabs. The cost on the
+  /// left, new chat and settings on the right; the Favourites view has none.
+  Widget _assistantToolbar(AssistantController a) => Padding(
+    padding: const EdgeInsets.fromLTRB(14, 0, 4, 0),
+    child: Row(
+      children: [
+        if (a.usage != null) _costMeter(a),
+        const Spacer(),
+        IconButton(
+          tooltip: 'New chat',
+          visualDensity: VisualDensity.compact,
+          onPressed: a.busy ? null : a.newChat,
+          icon: const Icon(Icons.add_comment_rounded, size: 18),
+        ),
+        IconButton(
+          tooltip: 'Settings',
+          visualDensity: VisualDensity.compact,
+          onPressed: () => showApiKeyDialog(context, a),
+          icon: const Icon(Icons.key_rounded, size: 18),
+        ),
       ],
     ),
   );
@@ -372,6 +448,79 @@ class _EntryTile extends StatelessWidget {
     };
     return Padding(padding: const EdgeInsets.only(bottom: 8), child: body);
   }
+}
+
+class _PhoneTab extends StatelessWidget {
+  const _PhoneTab({
+    required this.icon,
+    required this.label,
+    required this.semantics,
+    required this.selected,
+    required this.onTap,
+    this.count = 0,
+    this.busy = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final String semantics;
+  final bool selected;
+  final VoidCallback onTap;
+  final int count;
+
+  /// Claude is working: a spinner replaces the icon, visible even at rest.
+  final bool busy;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    selected: selected,
+    label: semantics,
+    excludeSemantics: true,
+    child: InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        height: 40,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          color: selected ? Neon.magenta.withValues(alpha: 0.12) : Colors.transparent,
+          border: Border.all(color: selected ? Neon.magenta.withValues(alpha: 0.45) : Colors.transparent),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (busy)
+              const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Neon.magenta))
+            else
+              Icon(
+                icon,
+                size: 16,
+                color: Neon.magenta,
+                shadows: const [Shadow(color: Neon.magenta, blurRadius: 10)],
+              ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: Neon.mono.copyWith(fontSize: 13)),
+            ),
+            if (count > 0) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                decoration: BoxDecoration(color: Neon.magenta, borderRadius: BorderRadius.circular(8)),
+                child: Text(
+                  '$count',
+                  style: Neon.mono.copyWith(fontSize: 10, color: Colors.black, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 class _Working extends StatelessWidget {

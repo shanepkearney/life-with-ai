@@ -21,17 +21,19 @@ class ControlBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: Neon.panelDecoration(),
       child: Wrap(
-        spacing: 6,
+        spacing: 4,
         runSpacing: 6,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
+          _Icon(icon: Icons.first_page_rounded, tip: 'Back to the start', onTap: c.atBeginning ? null : c.rewindToStart),
+          _Icon(icon: Icons.skip_previous_rounded, tip: 'Step back one generation (←)', onTap: c.canStepBack ? c.stepBack : null),
           _Icon(
             icon: c.running ? Icons.pause_rounded : Icons.play_arrow_rounded,
             tip: c.running ? 'Pause (space)' : 'Play (space)',
             glow: true,
             onTap: c.toggleRunning,
           ),
-          _Icon(icon: Icons.skip_next_rounded, tip: 'Step one generation', onTap: c.running ? null : c.stepOnce),
+          _Icon(icon: Icons.skip_next_rounded, tip: 'Step one generation (→)', onTap: c.running ? null : c.stepOnce),
           _Icon(icon: Icons.shuffle_rounded, tip: 'Randomise', onTap: () => c.randomize()),
           _Icon(icon: Icons.delete_sweep_rounded, tip: 'Clear', onTap: c.clear),
           _Icon(
@@ -44,7 +46,7 @@ class ControlBar extends StatelessWidget {
           _Labeled(
             label: 'Speed ${c.targetRate.toString().padLeft(3)}/s',
             child: SizedBox(
-              width: 140,
+              width: 110,
               child: Slider(
                 // Geometric steps: fine control at the slow end, where it matters.
                 value: c.speedIndex.toDouble(),
@@ -59,7 +61,7 @@ class ControlBar extends StatelessWidget {
           _Labeled(
             label: 'Glow',
             child: SizedBox(
-              width: 100,
+              width: 90,
               child: Slider(value: c.pipeline.glow, min: 0, max: 2, onChanged: c.setGlow),
             ),
           ),
@@ -88,7 +90,9 @@ class ControlBar extends StatelessWidget {
               isDense: true,
               style: Neon.mono,
               dropdownColor: const Color(0xFF0B0E17),
-              items: [for (final s in BoardSize.values) DropdownMenuItem(value: s, child: Text(s.label))],
+              items: [
+                for (final s in {...BoardSize.desktop, c.boardSize}) DropdownMenuItem(value: s, child: Text(s.label)),
+              ],
               onChanged: (s) => s == null ? null : c.setBoardSize(s),
             ),
           ),

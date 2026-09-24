@@ -120,6 +120,27 @@ Design choices:
 results are batched in order, thinking blocks are echoed back unchanged, roles still alternate
 on follow-ups, the turn cap holds, and the required headers and cache settings are present.
 
+## Phones and small windows
+
+The layout follows the space the app has, never the device type: below 700px wide (or 500px tall,
+e.g. a landscape phone) it switches live to a phone layout; wider windows keep the desktop layout.
+The phone layout puts the board on top, a one-row control strip under it (speed, glow, engine, board
+size and clear behind ⚙), and the assistant in a bottom sheet. At rest the sheet is just two tabs,
+**Seed assistant** and **Favourites**; tapping one opens the sheet on that view, and Claude's spinner
+shows on its tab even while the sheet is closed. Phones start on a portrait 192×256 board, which
+fills a tall screen instead of letterboxing a 4:3 one.
+
+## Rewind
+
+⏮ goes back to where the run began and |◀ steps back one generation (← and → step while paused on
+desktop). Game of Life can't run backwards, since many boards lead to the same next one, so
+`lib/core/timeline.dart` keeps the run's origin plus a bit-packed snapshot every 64 generations, and
+rebuilds any earlier generation from the nearest snapshot: at most 63 steps, instant. Past a 16 MB
+budget, every other snapshot is dropped, so long runs rewind more slowly rather than using ever more
+memory. Anything that puts a new board down (a seed, clear, an experiment, or drawing) starts a new
+timeline; switching engines keeps it. Tests step back 70 generations one at a time on both engines
+and match the forward run exactly.
+
 ## Favourites and share links
 
 Tap the heart on any of Claude's finished seeds to keep it, or the heart in the control bar to save
@@ -149,7 +170,7 @@ untrusted and rejects bad sizes, runs off the board and unknown characters.
 | Suite | Runs | Covers |
 |---|---|---|
 | `test/` (unit + widget) | `flutter test`, on Linux in CI | rules and pattern claims, GPU≡CPU parity, seed codec, favourites storage, share-link parsing of hostile input, the agent loop against scripted API replies, experiment and seed replay, the favourites UI flow, frame-rate-independent speed, layout at two window sizes |
-| `integration_test/` | `flutter test integration_test -d macos`, on a macOS runner in CI | the real app end to end: boot and play, engine hot-swap, opening share links (valid and broken), the Shared-with-you card (replay, save, survives a new chat), saving moments (exact titles, duplicates, undo, empty board), and a full assistant run (experiment replay → finish → replay → heart → recall from favourites → copy link through the real clipboard). Only the Anthropic API is scripted |
+| `integration_test/` | `flutter test integration_test -d macos` (one entry point, `all_test.dart`, since each file would relaunch the app), on a macOS runner in CI | the real app end to end, at desktop and phone sizes (iPhone SE, iPhone 15, Pixel 7, landscape): boot and play, rewind, the phone sheet and its tabs, engine hot-swap, opening share links (valid and broken), the Shared-with-you card (replay, save, survives a new chat), saving moments (exact titles, duplicates, undo, empty board), and a full assistant run (experiment replay → finish → replay → heart → recall from favourites → copy link through the real clipboard). Only the Anthropic API is scripted |
 
 `.github/workflows/pages.yml` runs both on every push and pull request. The web build is deployed
 to Pages only when both pass on `main`.
