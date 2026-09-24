@@ -130,6 +130,7 @@ class LifeController extends ChangeNotifier {
   /// however many generations are due at [targetRate]: zero on most frames at
   /// slow speeds, several per frame at fast ones.
   Future<void> tick(double now) async {
+    if (_disposed) return;
     final dt = _lastTick == null ? 0.0 : (now - _lastTick!).clamp(0.0, 0.1);
     _lastTick = now;
     if (_busy) return;
@@ -252,6 +253,7 @@ class LifeController extends ChangeNotifier {
   }
 
   void _publish() {
+    if (_disposed) return;
     pipeline.update(engine.frame!);
     notifyListeners();
   }
@@ -293,6 +295,7 @@ class LifeController extends ChangeNotifier {
   });
 
   Future<void> _recordCheckpoint() async {
+    if (_disposed) return;
     final t = timeline;
     if (t != null && t.wantsSnapshot(generation)) t.record(generation, await engine.snapshot());
   }
@@ -406,10 +409,15 @@ class LifeController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
     engine.dispose();
     pipeline.dispose();
     super.dispose();
   }
+
+  /// Work already in flight (a step waiting on the isolate, a checkpoint
+  /// readback) can finish after dispose; it must then touch nothing.
+  bool _disposed = false;
 }
 
 /// Steps a board forward in a background isolate (inline on the web).

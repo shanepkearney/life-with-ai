@@ -30,17 +30,21 @@ class GpuEngine implements LifeEngine {
 
   @override
   Future<void> load(Grid grid, {int generation = 0}) async {
+    if (_disposed) return;
     width = grid.width;
     height = grid.height;
     this.generation = generation;
     population = grid.population;
     final next = await imageFromRgba(grid.toRgba(), width, height);
+    // The decode can finish after dispose(): free the image rather than keep it.
+    if (_disposed) return next.dispose();
     frame?.dispose();
     frame = next;
   }
 
   @override
   Future<void> step([int generations = 1]) async {
+    if (_disposed) return;
     for (var i = 0; i < generations; i++) {
       // A fresh shader per pass: the recorded picture is rasterised later, so
       // mutating a shared instance could change a pass that hasn't run yet.
@@ -66,7 +70,7 @@ class GpuEngine implements LifeEngine {
     image.toByteData().then((data) {
       image.dispose();
       _counting = false;
-      if (data == null) return;
+      if (data == null || _disposed) return;
       final bytes = data.buffer.asUint8List();
       var n = 0;
       for (var i = 0; i < bytes.length; i += 4) {
@@ -82,6 +86,13 @@ class GpuEngine implements LifeEngine {
     return Grid.fromRgba(width, height, data!.buffer.asUint8List());
   }
 
+  bool _disposed = false;
+
   @override
-  void dispose() => frame?.dispose();
+  void dispose() {
+    if (_disposed) return;
+    _disposed = true;
+    frame?.dispose();
+    frame = null;
+  }
 }
