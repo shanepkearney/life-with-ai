@@ -89,6 +89,26 @@ or a post (these screenshots were taken the same way). On the web it downloads t
 saves to Downloads. Toasts are left out of the picture, and the board can be cropped out of the full
 window afterwards.
 
+## Board colors
+
+The swatch beside the **Glow** slider (the **Colors** row in the ⚙ sheet on phones) opens the board's
+colors. There are six presets (Neon, the app's own theme, plus Ember, Ocean, Forest, Aurora and Mono),
+and any of the six colors can be changed: the five heat stops, from a lone cell's faint glow to a
+crowd's white-hot core, and the background. Changes show on the board as you make them, and
+**Reset to Neon** puts the original theme back. The choice is kept on the device.
+
+A share link carries the sender's colors, so the seed opens looking the way they saw it. The
+**Shared with you** card then offers to **Keep** those colors or go back to your own. Neon adds
+nothing to a link, a preset adds its name (`&colors=ember`), and custom colors add six hex codes.
+
+| Choosing a preset: the board recolors live behind the dialog | Editing one color, by hue, saturation and brightness or by hex |
+|---|---|
+| ![The Board colors dialog with Ember selected, the board behind it glowing in reds, oranges and gold](readme/app-colors-dialog.png) | ![The dialog editing Ember's second heat stop, with hue, saturation and brightness sliders and its hex code](readme/app-colors-edit.png) |
+| **Ember** | **On a phone: a link in the sender's Ocean colors, with Keep and Use mine** |
+| ![A random board in the Ember palette, with the swatch beside the Glow slider showing red to gold](readme/app-colors-ember.png) | ![The phone layout playing Oscillator Garden in blues and teals, the Shared with you card offering Keep or Use mine](readme/app-phone-shared-colors.png) |
+| **On a phone: Colors in the ⚙ sheet** | **On a phone: the dialog docks below the board, here on Aurora** |
+| ![The phone settings sheet with Speed, Glow and a Colors row showing the Neon swatch](readme/app-phone-colors-sheet.png) | ![The phone layout with the Board colors dialog docked at the bottom, Aurora selected and the board in blues and greens](readme/app-phone-colors.png) |
+
 ## Architecture
 
 ```

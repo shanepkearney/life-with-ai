@@ -216,8 +216,8 @@ class AssistantController extends ChangeNotifier {
 
   Future<bool> toggleFavorite(ChatEntry entry) => favorites.toggle(entry.seed!, title: promptFor(entry), summary: entry.text);
 
-  /// Link for [entry]'s seed, titled with the prompt that produced it.
-  String shareLinkFor(ChatEntry entry) => ShareLink.forSeed(entry.seed!, title: promptFor(entry), note: entry.text);
+  /// Link for [entry]'s seed, titled with the prompt that produced it, in the board's current colors.
+  String shareLinkFor(ChatEntry entry) => ShareLink.forSeed(entry.seed!, title: promptFor(entry), note: entry.text, palette: _life.palette);
 
   /// Replays a finished seed from generation 0, or an experiment exactly as
   /// Claude ran it. Not while Claude is working: it drives the board then.

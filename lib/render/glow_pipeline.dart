@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 
+import 'board_palette.dart';
 import 'shaders.dart';
 
 /// Turns a one-pixel-per-cell board image into the glowing picture on screen.
@@ -25,6 +26,7 @@ class GlowPipeline {
 
   double trailDecay = 0.90;
   double glow = 1.0;
+  BoardPalette palette = BoardPalette.neon;
 
   bool get ready => _state != null;
 
@@ -79,7 +81,16 @@ class GlowPipeline {
       ..setFloat(2, _w.toDouble())
       ..setFloat(3, _h.toDouble())
       ..setFloat(4, seconds)
-      ..setFloat(5, glow)
+      ..setFloat(5, glow);
+    // The palette's six colors follow, three floats each (uC0-uC4, uBg).
+    var i = 6;
+    for (final c in palette.all) {
+      shader
+        ..setFloat(i++, c.r)
+        ..setFloat(i++, c.g)
+        ..setFloat(i++, c.b);
+    }
+    shader
       ..setImageSampler(0, _state!)
       ..setImageSampler(1, _trail!, filterQuality: ui.FilterQuality.low)
       ..setImageSampler(2, _density!, filterQuality: ui.FilterQuality.low);

@@ -13,6 +13,7 @@ import 'package:life_with_ai/core/grid.dart';
 import 'package:life_with_ai/core/patterns.dart';
 import 'package:life_with_ai/engine/life_engine.dart';
 import 'package:life_with_ai/main.dart';
+import 'package:life_with_ai/render/board_palette.dart';
 import 'package:life_with_ai/ui/control_bar.dart';
 import 'package:life_with_ai/ui/life_canvas.dart';
 import 'package:life_with_ai/ui/hud.dart';
@@ -269,6 +270,22 @@ void main() {
     await frames(tester, 100); // one more beat for focus to land in the panel
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await pumpUntil(tester, closed, reason: 'closed by Escape');
+  });
+
+  testWidgets("a share link shows the sender's colors, and Keep makes them yours", (tester) async {
+    final seed = Grid(512, 384);
+    patternLibrary['r_pentomino']!.stampOnto(seed, 250, 180);
+    final app = await start(tester, launchUri: Uri.parse(ShareLink.forSeed(seed, title: 'Warm', palette: BoardPalette.ember)));
+    final life = app.controller;
+    expect(life.palette, BoardPalette.ember, reason: 'drawn in the sender\'s colors');
+    expect(life.ownPalette, BoardPalette.neon, reason: 'but not made the viewer\'s own');
+    expect(find.byTooltip('Board colors · Ember'), findsOneWidget);
+
+    await tester.tap(find.text('Keep'));
+    await pumpUntil(tester, () => life.sharedPalette == null, reason: 'kept');
+    expect(life.ownPalette, BoardPalette.ember);
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100))); // the save is async
+    expect((await SharedPreferences.getInstance()).getString('board_palette'), 'ember', reason: 'kept on the device');
   });
 
   testWidgets('a share link plays its seed, and its card can replay it and save it', (tester) async {
