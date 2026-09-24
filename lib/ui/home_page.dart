@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -5,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../app/assistant_controller.dart';
 import '../app/favorites.dart';
 import '../app/life_controller.dart';
+import '../app/platform/browser.dart';
 import '../app/screenshot/screenshot.dart';
 import '../core/seed_codec.dart';
 import 'about_modal.dart';
@@ -12,6 +14,7 @@ import 'assistant_panel.dart';
 import 'breakpoints.dart';
 import 'broken_link_dialog.dart';
 import 'control_bar.dart';
+import 'download_dialog.dart';
 import 'experiment_overlay.dart';
 import 'hud.dart';
 import 'life_canvas.dart';
@@ -41,7 +44,7 @@ class LaunchNotice {
 }
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key, required this.controller, this.assistant, this.notice, this.favorites, this.saveScreenshot = savePng});
+  const HomePage({super.key, required this.controller, this.assistant, this.notice, this.favorites, this.saveScreenshot = savePng, this.offerMacDownload});
 
   final LifeController controller;
   final FavoritesStore? favorites;
@@ -50,6 +53,9 @@ class HomePage extends StatefulWidget {
   final AssistantController? assistant;
   final LaunchNotice? notice;
   final ScreenshotSaver saveScreenshot;
+
+  /// Shows the ⬇ button for the macOS app. By default, only on the web on a Mac.
+  final bool? offerMacDownload;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -133,6 +139,16 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     }
   }
 
+  /// The ⬇ for the macOS app, beside the 📷; null where it isn't offered.
+  Widget? _macDownloadButton({double size = 18}) => (widget.offerMacDownload ?? (kIsWeb && isMacBrowser))
+      ? IconButton(
+          tooltip: 'Get the macOS app',
+          visualDensity: VisualDensity.compact,
+          onPressed: () => showMacDownloadDialog(context),
+          icon: Icon(Icons.download_rounded, size: size, color: Neon.muted),
+        )
+      : null;
+
   Widget _screenshotButton({double size = 18}) => IconButton(
     tooltip: 'Save a screenshot',
     visualDensity: VisualDensity.compact,
@@ -201,6 +217,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   // The logo and ⓘ open the about panel: who made this, and Conway's rules.
                   const LogoButton(),
                   _screenshotButton(),
+                  ?_macDownloadButton(),
                   const SizedBox(width: 12),
                   // Scale the stats down rather than overflow on narrow windows.
                   Expanded(
@@ -264,6 +281,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   children: [
                     const LogoButton(size: 15, letterSpacing: 4),
                     _screenshotButton(size: 15),
+                    ?_macDownloadButton(size: 15),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Align(

@@ -6,6 +6,9 @@ congregate, and an AI assistant that designs a starting pattern to produce the o
 **Live: https://shanepkearney.github.io/life-with-ai/** (bring your own Anthropic API key for
 the assistant; the simulation works without one).
 
+**⬇ [Download for macOS](https://github.com/shanepkearney/life-with-ai/releases/latest/download/Life-with-AI.dmg)**
+(Apple silicon and Intel, macOS 10.15 or later; see [installing on macOS](#installing-on-macos)).
+
 ![The desktop app playing a shared seed: a rectangle folding into a glowing stack of bars with four magenta hotspots, and the Shared with you card on the Favorites tab](readme/app-desktop.png)
 
 *[Neon Frame](#seeds-made-with-ai) at generation 60, opened from its share link.*
@@ -276,6 +279,19 @@ It groups every commit since the last release under Features, Fixes, and Docs an
 first), linking each to its pull request, or to the commit itself when it went straight to `main`. A hand-written
 intro in `.github/releases/v<version>.md` goes on top when there is one, as it does for v1.0.0. To preview the
 next release's notes: `dart tool/release_notes.dart <version>`.
+
+## Installing on macOS
+
+Every [release](https://github.com/shanepkearney/life-with-ai/releases) includes the macOS app as
+`Life-with-AI.dmg`, built by the same CI run as the web version and carrying the same version number. The web app
+offers it too: a ⬇ beside the logo on a Mac, and a link in the about panel.
+
+The app isn't signed with an Apple Developer ID yet, so macOS asks you to allow it once:
+
+1. Open `Life-with-AI.dmg` and drag **Life with AI** into **Applications**.
+2. Open the app. macOS says it can't verify it: click **Done**.
+3. In **System Settings → Privacy & Security**, scroll down and click **Open Anyway**, then confirm. From then on it
+   opens like any other app.
 
 ## Run
 

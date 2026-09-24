@@ -8,7 +8,9 @@ name: Test and deploy
 # `!` or BREAKING CHANGE → major). The version and commit are compiled into the
 # app for its about panel, and once the deploy succeeds the commit is tagged
 # v<version> with a GitHub Release (notes from tool/release_notes.dart), so a
-# failed deploy never uses up a number.
+# failed deploy never uses up a number. Each release carries the macOS app as
+# Life-with-AI.dmg, so …/releases/latest/download/Life-with-AI.dmg is always
+# the newest.
 on:
   push:
     branches: [main]
@@ -123,6 +125,39 @@ jobs:
         with:
           path: build/web
 
+  macos:
+    name: Build the macOS app
+    needs: [unit, integration, version]
+    # Pull requests build it too, so a broken DMG shows up before merging; only
+    # releases ship one. (`!cancelled()` lets it run on PRs, where `version` is skipped.)
+    if: >-
+      !cancelled() && needs.unit.result == 'success' && needs.integration.result == 'success'
+      && (github.event_name == 'pull_request' || needs.version.outputs.tag == 'true')
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      # A universal (Apple silicon + Intel) app, carrying the same version and
+      # commit as the web build. Ad-hoc signed only: no Developer ID yet.
+      - run: >-
+          flutter build macos --release
+          --build-name=${{ needs.version.outputs.version || '0.0.0' }}
+          --build-number=${{ github.run_number }}
+          --dart-define=APP_VERSION=${{ needs.version.outputs.version }}
+          --dart-define=APP_COMMIT=${{ needs.version.outputs.commit }}
+      - run: tool/make_dmg.sh "build/macos/Build/Products/Release/Life with AI.app" Life-with-AI.dmg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg
+          path: Life-with-AI.dmg
+          if-no-files-found: error
+
   deploy:
     name: Deploy to GitHub Pages
     needs: build
@@ -139,7 +174,8 @@ jobs:
 
   release:
     name: Tag the release
-    needs: [version, deploy]
+    # The DMG rides along, so the download link works the moment the release exists.
+    needs: [version, deploy, macos]
     # A re-run with nothing new since the last tag has nothing to tag.
     if: needs.version.outputs.tag == 'true'
     runs-on: ubuntu-latest
@@ -157,6 +193,9 @@ jobs:
       # Notes grouped from the commits (tool/release_notes.dart), under the
       # version's hand-written intro in .github/releases/ when there is one.
       - run: dart tool/release_notes.dart "${{ needs.version.outputs.version }}" > notes.md
+      - uses: actions/download-artifact@v4
+        with:
+          name: macos-dmg
       - env:
           GH_TOKEN: ${{ github.token }}
         run: >-
@@ -165,3 +204,4 @@ jobs:
           --target "${{ github.sha }}"
           --title "v${{ needs.version.outputs.version }}"
           --notes-file notes.md
+          Life-with-AI.dmg

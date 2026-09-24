@@ -27,7 +27,13 @@ Future<void> main() async {
 
 /// Builds the whole app. Integration tests call this directly with a fake
 /// network and a chosen launch URL, so they exercise the real wiring.
-Future<LifeApp> bootstrap({Uri? launchUri, http.Client? httpClient, EngineKind engine = EngineKind.gpu, bool autoplay = false}) async {
+Future<LifeApp> bootstrap({
+  Uri? launchUri,
+  http.Client? httpClient,
+  EngineKind engine = EngineKind.gpu,
+  bool autoplay = false,
+  bool? offerMacDownload,
+}) async {
   final life = LifeController(await Shaders.load());
   // Phones start on a portrait board sized for them: at 512 cells across, a phone gets under a pixel per cell.
   final view = WidgetsBinding.instance.platformDispatcher.implicitView;
@@ -58,17 +64,20 @@ Future<LifeApp> bootstrap({Uri? launchUri, http.Client? httpClient, EngineKind e
     }
   }
   if (autoplay && !life.running) life.toggleRunning();
-  return LifeApp(controller: life, assistant: assistant, notice: notice);
+  return LifeApp(controller: life, assistant: assistant, notice: notice, offerMacDownload: offerMacDownload);
 }
 
 class LifeApp extends StatelessWidget {
-  const LifeApp({super.key, required this.controller, required this.assistant, this.notice});
+  const LifeApp({super.key, required this.controller, required this.assistant, this.notice, this.offerMacDownload});
 
   final LifeController controller;
   final AssistantController assistant;
 
   /// Shown once after launch, e.g. when a share link was opened.
   final LaunchNotice? notice;
+
+  /// Overrides where the ⬇ for the macOS app shows (by default: web, on a Mac).
+  final bool? offerMacDownload;
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -84,6 +93,12 @@ class LifeApp extends StatelessWidget {
   );
 
   Route<void> _home() => MaterialPageRoute<void>(
-    builder: (_) => HomePage(controller: controller, notice: notice, favorites: assistant.favorites, assistant: assistant),
+    builder: (_) => HomePage(
+      controller: controller,
+      notice: notice,
+      favorites: assistant.favorites,
+      assistant: assistant,
+      offerMacDownload: offerMacDownload,
+    ),
   );
 }
