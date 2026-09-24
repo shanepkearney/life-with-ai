@@ -20,23 +20,28 @@ class ExperimentOverlay extends StatelessWidget {
       child: Container(
         width: 260,
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
-        decoration: Neon.panelDecoration(radius: 10).copyWith(
-          border: Border.all(color: Neon.magenta.withValues(alpha: 0.6)),
-        ),
+        decoration: Neon.panelDecoration(radius: 10).copyWith(border: Border.all(color: Neon.magenta.withValues(alpha: 0.6))),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(children: [
-              const Icon(Icons.science_rounded, size: 14, color: Neon.magenta, shadows: [Shadow(color: Neon.magenta, blurRadius: 8)]),
-              const SizedBox(width: 6),
-              Text('EXPERIMENT ${e.number}', style: Neon.mono.copyWith(color: Neon.magenta, letterSpacing: 1.5)),
-              const Spacer(),
-              Text(
-                done ? 'DONE' : 'GEN ${controller.generation} / ${e.generations}',
-                style: Neon.mono.copyWith(color: done ? Neon.amber : Neon.text, fontSize: 11),
-              ),
-            ]),
+            Row(
+              children: [
+                const Icon(
+                  Icons.science_rounded,
+                  size: 14,
+                  color: Neon.magenta,
+                  shadows: [Shadow(color: Neon.magenta, blurRadius: 8)],
+                ),
+                const SizedBox(width: 6),
+                Text('EXPERIMENT ${e.number}', style: Neon.mono.copyWith(color: Neon.magenta, letterSpacing: 1.5)),
+                const Spacer(),
+                Text(
+                  done ? 'DONE' : 'GEN ${controller.generation} / ${e.generations}',
+                  style: Neon.mono.copyWith(color: done ? Neon.amber : Neon.text, fontSize: 11),
+                ),
+              ],
+            ),
             const SizedBox(height: 6),
             ClipRRect(
               borderRadius: BorderRadius.circular(2),

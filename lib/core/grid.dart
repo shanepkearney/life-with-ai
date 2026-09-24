@@ -8,8 +8,7 @@ import 'dart:typed_data';
 class Grid {
   Grid(this.width, this.height) : cells = Uint8List(width * height);
 
-  Grid.fromCells(this.width, this.height, this.cells)
-      : assert(cells.length == width * height);
+  Grid.fromCells(this.width, this.height, this.cells) : assert(cells.length == width * height);
 
   final int width;
   final int height;
@@ -49,9 +48,7 @@ class Grid {
         // Only the first and last column need the modulo; keep the hot path branch-light.
         final l = x == 0 ? w - 1 : x - 1;
         final r = x == w - 1 ? 0 : x + 1;
-        final n = src[up + l] + src[up + x] + src[up + r] +
-            src[mid + l] + src[mid + r] +
-            src[down + l] + src[down + x] + src[down + r];
+        final n = src[up + l] + src[up + x] + src[up + r] + src[mid + l] + src[mid + r] + src[down + l] + src[down + x] + src[down + r];
         final alive = src[mid + x];
         dst[mid + x] = (n == 3 || (n == 2 && alive == 1)) ? 1 : 0;
       }
@@ -133,7 +130,15 @@ class Grid {
           }
         }
         final f = total == 0 ? 0.0 : live / total;
-        buf.write(live == 0 ? ' ' : f < 0.15 ? '.' : f < 0.4 ? 'o' : '#');
+        buf.write(
+          live == 0
+              ? ' '
+              : f < 0.15
+              ? '.'
+              : f < 0.4
+              ? 'o'
+              : '#',
+        );
       }
       buf.writeln();
     }

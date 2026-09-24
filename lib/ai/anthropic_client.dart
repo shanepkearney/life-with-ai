@@ -36,8 +36,7 @@ class Usage {
   }
 
   /// Cache writes bill at 1.25x input, cache reads at 0.1x.
-  double costUsd(ClaudeModel m) =>
-      (input + cacheWrite * 1.25 + cacheRead * 0.1) * m.inputPerMTok / 1e6 + output * m.outputPerMTok / 1e6;
+  double costUsd(ClaudeModel m) => (input + cacheWrite * 1.25 + cacheRead * 0.1) * m.inputPerMTok / 1e6 + output * m.outputPerMTok / 1e6;
 }
 
 class AnthropicApiException implements Exception {
@@ -51,17 +50,16 @@ class AnthropicApiException implements Exception {
 
   @override
   String toString() => switch (status) {
-        _ when message.contains('usage limits') =>
-          '$message\n\nThis is a spend limit on your Anthropic workspace, not an app error. '
-              'Raise it at platform.claude.com/settings/limits (and check Billing has credit).',
-        _ when message.contains('credit balance') =>
-          '$message\n\nAdd credit at platform.claude.com/settings/billing.',
-        401 => 'The API key was rejected (401). Check it in settings.',
-        403 => 'This key is not allowed to use that model (403).',
-        429 => 'Rate limited by the API (429). Try again in a moment.',
-        529 => 'The API is overloaded (529). Try again shortly.',
-        _ => 'API error $status ($type): $message',
-      };
+    _ when message.contains('usage limits') =>
+      '$message\n\nThis is a spend limit on your Anthropic workspace, not an app error. '
+          'Raise it at platform.claude.com/settings/limits (and check Billing has credit).',
+    _ when message.contains('credit balance') => '$message\n\nAdd credit at platform.claude.com/settings/billing.',
+    401 => 'The API key was rejected (401). Check it in settings.',
+    403 => 'This key is not allowed to use that model (403).',
+    429 => 'Rate limited by the API (429). Try again in a moment.',
+    529 => 'The API is overloaded (529). Try again shortly.',
+    _ => 'API error $status ($type): $message',
+  };
 }
 
 /// Minimal Messages API client over raw HTTP (Dart has no official SDK).
@@ -69,7 +67,7 @@ class AnthropicApiException implements Exception {
 /// with the header Anthropic requires to acknowledge client-side key use.
 class AnthropicClient {
   AnthropicClient({required this.apiKey, required this.model, http.Client? httpClient, this.maxRetries = 2})
-      : _http = httpClient ?? http.Client();
+    : _http = httpClient ?? http.Client();
 
   static final endpoint = Uri.parse('https://api.anthropic.com/v1/messages');
 
@@ -79,20 +77,16 @@ class AnthropicClient {
   final http.Client _http;
 
   Map<String, String> get headers => {
-        'content-type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-        if (model.serverFallbacks) 'anthropic-beta': 'server-side-fallback-2026-07-01',
-      };
+    'content-type': 'application/json',
+    'x-api-key': apiKey,
+    'anthropic-version': '2023-06-01',
+    'anthropic-dangerous-direct-browser-access': 'true',
+    if (model.serverFallbacks) 'anthropic-beta': 'server-side-fallback-2026-07-01',
+  };
 
   Future<Map<String, dynamic>> createMessage(Map<String, dynamic> body) async {
-    final payload = jsonEncode({
-      'model': model.id,
-      if (model.serverFallbacks) 'fallbacks': 'default',
-      ...body,
-    });
-    for (var attempt = 0;; attempt++) {
+    final payload = jsonEncode({'model': model.id, if (model.serverFallbacks) 'fallbacks': 'default', ...body});
+    for (var attempt = 0; ; attempt++) {
       try {
         final res = await _http.post(endpoint, headers: headers, body: payload).timeout(const Duration(minutes: 5));
         final json = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;

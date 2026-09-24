@@ -10,24 +10,11 @@ const maxSimulatedGenerations = 1500;
 
 /// Input for [runSimulation]. A record of primitives so it can cross an
 /// isolate boundary via `compute`.
-typedef SimulationRequest = ({
-  int width,
-  int height,
-  Uint8List cells,
-  int generations,
-  List<int> checkpoints,
-  bool png,
-});
+typedef SimulationRequest = ({int width, int height, Uint8List cells, int generations, List<int> checkpoints, bool png});
 
 /// What the agent learns from running a candidate seed forward.
 class SimulationReport {
-  SimulationReport({
-    required this.generations,
-    required this.fate,
-    required this.populationSamples,
-    required this.checkpoints,
-    this.png,
-  });
+  SimulationReport({required this.generations, required this.fate, required this.populationSamples, required this.checkpoints, this.png});
 
   final int generations;
 
@@ -50,9 +37,11 @@ class SimulationReport {
     for (final c in checkpoints) {
       b
         ..writeln()
-        ..writeln('--- generation ${c.generation}: population ${c.population}, '
-            '${c.bounds == null ? 'empty' : 'bounding box x=${c.bounds!.x} y=${c.bounds!.y} w=${c.bounds!.width} h=${c.bounds!.height}'}, '
-            'hotspots ${c.hotspots} ---')
+        ..writeln(
+          '--- generation ${c.generation}: population ${c.population}, '
+          '${c.bounds == null ? 'empty' : 'bounding box x=${c.bounds!.x} y=${c.bounds!.y} w=${c.bounds!.width} h=${c.bounds!.height}'}, '
+          'hotspots ${c.hotspots} ---',
+        )
         ..write(c.ascii);
     }
     return b.toString();
@@ -102,8 +91,8 @@ SimulationReport runSimulation(SimulationRequest r) {
   final sampleEvery = (gens / 12).ceil();
   String? fate;
 
-  void checkpoint(int gen) => checkpoints.add(Checkpoint(
-      gen, a.population, a.boundingBox, countHotspots(a), a.toAscii(maxCols: 64, maxRows: 24)));
+  void checkpoint(int gen) =>
+      checkpoints.add(Checkpoint(gen, a.population, a.boundingBox, countHotspots(a), a.toAscii(maxCols: 64, maxRows: 24)));
 
   if (wanted.contains(0)) checkpoint(0);
   samples.add((0, a.population));
@@ -141,8 +130,8 @@ SimulationReport runSimulation(SimulationRequest r) {
     fate = late > early * 1.3
         ? 'still active and growing'
         : late < early * 0.7
-            ? 'still active but shrinking'
-            : 'still active (roughly stable population, not yet periodic — spaceships or chaos)';
+        ? 'still active but shrinking'
+        : 'still active (roughly stable population, not yet periodic — spaceships or chaos)';
   }
 
   checkpoints.sort((x, y) => x.generation.compareTo(y.generation));

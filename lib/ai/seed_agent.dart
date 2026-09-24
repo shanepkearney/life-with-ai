@@ -83,7 +83,7 @@ class SeedAgent {
   Stream<AgentEvent> send(String prompt) async* {
     _cancelled = false;
     _appendUser([
-      {'type': 'text', 'text': prompt}
+      {'type': 'text', 'text': prompt},
     ]);
 
     for (var turn = 0; turn < maxTurns; turn++) {
@@ -125,9 +125,7 @@ class SeedAgent {
             final name = call['name'] as String;
             final input = (call['input'] as Map?)?.cast<String, dynamic>() ?? {};
             yield AgentToolCall(name, input);
-            final outcome = _cancelled
-                ? const ToolOutcome('Cancelled by the user.', isError: true)
-                : await workbench.run(name, input);
+            final outcome = _cancelled ? const ToolOutcome('Cancelled by the user.', isError: true) : await workbench.run(name, input);
             yield AgentToolResult(name, outcome);
             if (outcome.seedChanged) yield AgentSeed(workbench.seed.copy());
             if (name == 'simulate' && !outcome.isError) {
@@ -164,15 +162,15 @@ class SeedAgent {
   }
 
   Map<String, dynamic> _requestBody() => {
-        'max_tokens': 16000,
-        'thinking': {'type': 'adaptive', 'display': 'summarized'},
-        // Auto-places a cache breakpoint on the last cacheable block, so the
-        // system prompt, tools and prior turns are re-read at 0.1x cost.
-        'cache_control': {'type': 'ephemeral'},
-        'system': systemPrompt(workbench.seed.width, workbench.seed.height),
-        'tools': seedToolDefinitions,
-        'messages': messages,
-      };
+    'max_tokens': 16000,
+    'thinking': {'type': 'adaptive', 'display': 'summarized'},
+    // Auto-places a cache breakpoint on the last cacheable block, so the
+    // system prompt, tools and prior turns are re-read at 0.1x cost.
+    'cache_control': {'type': 'ephemeral'},
+    'system': systemPrompt(workbench.seed.width, workbench.seed.height),
+    'tools': seedToolDefinitions,
+    'messages': messages,
+  };
 
   /// Tool results for one assistant turn go back in ONE user message; a new
   /// prompt after a finished run is merged into that same message.
@@ -180,23 +178,26 @@ class SeedAgent {
     if (messages.isNotEmpty && messages.last['role'] == 'user') {
       (messages.last['content'] as List).addAll(blocks);
     } else {
-      messages.add({'role': 'user', 'content': [...blocks]});
+      messages.add({
+        'role': 'user',
+        'content': [...blocks],
+      });
     }
   }
 
   static Map<String, dynamic> _toolResult(String id, ToolOutcome o) => {
-        'type': 'tool_result',
-        'tool_use_id': id,
-        if (o.isError) 'is_error': true,
-        'content': [
-          {'type': 'text', 'text': o.text},
-          if (o.png != null)
-            {
-              'type': 'image',
-              'source': {'type': 'base64', 'media_type': 'image/png', 'data': base64Encode(o.png!)},
-            },
-        ],
-      };
+    'type': 'tool_result',
+    'tool_use_id': id,
+    if (o.isError) 'is_error': true,
+    'content': [
+      {'type': 'text', 'text': o.text},
+      if (o.png != null)
+        {
+          'type': 'image',
+          'source': {'type': 'base64', 'media_type': 'image/png', 'data': base64Encode(o.png!)},
+        },
+    ],
+  };
 }
 
 /// Stable for a given board size, so it stays in the prompt cache.

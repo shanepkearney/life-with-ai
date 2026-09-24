@@ -4,10 +4,8 @@ import '../ai/anthropic_client.dart';
 import '../app/assistant_controller.dart';
 import 'theme.dart';
 
-Future<void> showApiKeyDialog(BuildContext context, AssistantController assistant) => showDialog(
-      context: context,
-      builder: (_) => _ApiKeyDialog(assistant),
-    );
+Future<void> showApiKeyDialog(BuildContext context, AssistantController assistant) =>
+    showDialog(context: context, builder: (_) => _ApiKeyDialog(assistant));
 
 class _ApiKeyDialog extends StatefulWidget {
   const _ApiKeyDialog(this.assistant);
@@ -33,7 +31,10 @@ class _ApiKeyDialogState extends State<_ApiKeyDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: const Color(0xFF0B0E17),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Neon.border)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: Neon.border),
+      ),
       title: const Text('Assistant settings'),
       content: SizedBox(
         width: 420,
@@ -62,10 +63,13 @@ class _ApiKeyDialogState extends State<_ApiKeyDialog> {
               decoration: const InputDecoration(labelText: 'Model'),
               items: [
                 for (final m in ClaudeModel.values)
-                  DropdownMenuItem(value: m, child: Text(
+                  DropdownMenuItem(
+                    value: m,
+                    child: Text(
                       '${m.label}  ·  \$${m.inputPerMTok.toStringAsFixed(0)} / \$${m.outputPerMTok.toStringAsFixed(0)} per MTok',
                       overflow: TextOverflow.ellipsis,
-                    )),
+                    ),
+                  ),
               ],
               onChanged: (m) => setState(() => _model = m!),
             ),

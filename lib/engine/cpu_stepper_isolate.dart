@@ -41,8 +41,7 @@ class _IsolateStepper implements CpuStepper {
   }
 
   @override
-  Future<void> load(Grid grid) =>
-      _call(('load', grid.width, grid.height, TransferableTypedData.fromList([grid.cells])));
+  Future<void> load(Grid grid) => _call(('load', grid.width, grid.height, TransferableTypedData.fromList([grid.cells])));
 
   @override
   Future<StepResult> step(int generations) async {

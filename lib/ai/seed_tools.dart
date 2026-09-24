@@ -38,7 +38,8 @@ final List<Map<String, Object>> seedToolDefinitions = [
   },
   {
     'name': 'place_pattern',
-    'description': 'Stamp a named pattern from the library with its top-left corner at (x, y). '
+    'description':
+        'Stamp a named pattern from the library with its top-left corner at (x, y). '
         'Rotation is clockwise and applied after the optional horizontal flip, and changes the direction '
         'moving patterns travel. Coordinates wrap around the edges.',
     'input_schema': {
@@ -47,7 +48,11 @@ final List<Map<String, Object>> seedToolDefinitions = [
         'name': {'type': 'string', 'enum': patternLibrary.keys.toList()},
         'x': {'type': 'integer'},
         'y': {'type': 'integer'},
-        'rotation': {'type': 'integer', 'enum': [0, 90, 180, 270], 'description': 'Degrees clockwise. Default 0.'},
+        'rotation': {
+          'type': 'integer',
+          'enum': [0, 90, 180, 270],
+          'description': 'Degrees clockwise. Default 0.',
+        },
         'flip': {'type': 'boolean', 'description': 'Mirror left-right before rotating. Default false.'},
       },
       'required': ['name', 'x', 'y'],
@@ -55,7 +60,8 @@ final List<Map<String, Object>> seedToolDefinitions = [
   },
   {
     'name': 'draw_shape',
-    'description': 'Draw live cells in a shape. "line" runs from (x, y) to (x+width, y+height). '
+    'description':
+        'Draw live cells in a shape. "line" runs from (x, y) to (x+width, y+height). '
         '"random_soup" fills the rectangle randomly at the given density — the classic way to get a chaotic, '
         'long-lived, colourful region.',
     'input_schema': {
@@ -84,7 +90,12 @@ final List<Map<String, Object>> seedToolDefinitions = [
         'cells': {
           'type': 'array',
           'maxItems': 4000,
-          'items': {'type': 'array', 'items': {'type': 'integer'}, 'minItems': 2, 'maxItems': 2},
+          'items': {
+            'type': 'array',
+            'items': {'type': 'integer'},
+            'minItems': 2,
+            'maxItems': 2,
+          },
           'description': '[[x, y], ...]',
         },
         'alive': {'type': 'boolean', 'description': 'Default true.'},
@@ -94,7 +105,8 @@ final List<Map<String, Object>> seedToolDefinitions = [
   },
   {
     'name': 'view_board',
-    'description': 'ASCII view of the current seed (generation 0). Omit the region for the whole board '
+    'description':
+        'ASCII view of the current seed (generation 0). Omit the region for the whole board '
         '(down-sampled: " " empty, "." sparse, "o" busy, "#" dense); a region of at most 96x48 is shown 1:1 '
         'with "#" = live cell.',
     'input_schema': {
@@ -109,7 +121,8 @@ final List<Map<String, Object>> seedToolDefinitions = [
   },
   {
     'name': 'simulate',
-    'description': 'Run the current seed forward WITHOUT changing it, and report what happens: fate (dies, '
+    'description':
+        'Run the current seed forward WITHOUT changing it, and report what happens: fate (dies, '
         'still life, oscillator, growing, chaotic), population over time, and at each checkpoint the population, '
         'bounding box, hotspot count (dense regions — these glow brightest on screen) and an ASCII thumbnail. '
         'Set include_image to also get a PNG of the final generation (white = alive) when shape matters.',
@@ -130,12 +143,15 @@ final List<Map<String, Object>> seedToolDefinitions = [
   },
   {
     'name': 'finish',
-    'description': 'Hand the seed to the user: it is loaded onto the live board and starts playing. '
+    'description':
+        'Hand the seed to the user: it is loaded onto the live board and starts playing. '
         'Call this once you are satisfied (or out of ideas), with a one- or two-sentence summary of '
         'what the user will see.',
     'input_schema': {
       'type': 'object',
-      'properties': {'summary': {'type': 'string'}},
+      'properties': {
+        'summary': {'type': 'string'},
+      },
       'required': ['summary'],
     },
   },
@@ -144,9 +160,9 @@ final List<Map<String, Object>> seedToolDefinitions = [
 /// The agent's sandbox: a seed board plus the tool implementations.
 class SeedWorkbench {
   SeedWorkbench(int width, int height, {Simulator? simulator, Random? random})
-      : seed = Grid(width, height),
-        _simulate = simulator ?? defaultSimulator,
-        _random = random ?? Random();
+    : seed = Grid(width, height),
+      _simulate = simulator ?? defaultSimulator,
+      _random = random ?? Random();
 
   Grid seed;
   final Simulator _simulate;

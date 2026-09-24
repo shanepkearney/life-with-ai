@@ -85,15 +85,35 @@ final Map<String, Pattern> patternLibrary = {
   for (final p in [
     // Spaceships. The standard RLE ships face left; they are mirrored so every
     // spaceship in the library travels right (or down-right) at rotation 0.
-    Pattern.fromRle('glider', 'Smallest spaceship. 3x3, moves 1 cell diagonally (down-right at rotation 0) every 4 generations.', 'bob\$2bo\$3o!'),
-    Pattern.fromRle('lwss', 'Lightweight spaceship. Moves 2 cells right every 4 generations.', 'bo2bo\$o4b\$o3bo\$4o!').transformed(flipX: true),
-    Pattern.fromRle('mwss', 'Middleweight spaceship. Moves 2 cells right every 4 generations.', '3bo2b\$bo3bo\$o5b\$o4bo\$5o!').transformed(flipX: true),
-    Pattern.fromRle('hwss', 'Heavyweight spaceship. Moves 2 cells right every 4 generations.', '3b2o2b\$bo4bo\$o6b\$o5bo\$6o!').transformed(flipX: true),
+    Pattern.fromRle(
+      'glider',
+      'Smallest spaceship. 3x3, moves 1 cell diagonally (down-right at rotation 0) every 4 generations.',
+      'bob\$2bo\$3o!',
+    ),
+    Pattern.fromRle(
+      'lwss',
+      'Lightweight spaceship. Moves 2 cells right every 4 generations.',
+      'bo2bo\$o4b\$o3bo\$4o!',
+    ).transformed(flipX: true),
+    Pattern.fromRle(
+      'mwss',
+      'Middleweight spaceship. Moves 2 cells right every 4 generations.',
+      '3bo2b\$bo3bo\$o5b\$o4bo\$5o!',
+    ).transformed(flipX: true),
+    Pattern.fromRle(
+      'hwss',
+      'Heavyweight spaceship. Moves 2 cells right every 4 generations.',
+      '3b2o2b\$bo4bo\$o6b\$o5bo\$6o!',
+    ).transformed(flipX: true),
     // Oscillators (stay put, repeat).
     Pattern.fromRle('blinker', 'Period-2 oscillator, 3 cells.', '3o!'),
     Pattern.fromRle('toad', 'Period-2 oscillator.', 'b3o\$3o!'),
     Pattern.fromRle('beacon', 'Period-2 oscillator.', '2o2b\$2o2b\$2b2o\$2b2o!'),
-    Pattern.fromRle('pulsar', 'Large, symmetric period-3 oscillator (13x13). Visually striking.', '2b3o3b3o2b2\$o4bobo4bo\$o4bobo4bo\$o4bobo4bo\$2b3o3b3o2b2\$2b3o3b3o2b\$o4bobo4bo\$o4bobo4bo\$o4bobo4bo2\$2b3o3b3o!'),
+    Pattern.fromRle(
+      'pulsar',
+      'Large, symmetric period-3 oscillator (13x13). Visually striking.',
+      '2b3o3b3o2b2\$o4bobo4bo\$o4bobo4bo\$o4bobo4bo\$2b3o3b3o2b2\$2b3o3b3o2b\$o4bobo4bo\$o4bobo4bo\$o4bobo4bo2\$2b3o3b3o!',
+    ),
     Pattern.fromRle('pentadecathlon', 'Period-15 oscillator (10x3).', '2bo4bo2b\$2ob4ob2o\$2bo4bo!'),
     // Still lifes (never change).
     Pattern.fromRle('block', 'Still life, 2x2. Stable; also eats gliders that hit it at the right phase.', '2o\$2o!'),
@@ -101,14 +121,30 @@ final Map<String, Pattern> patternLibrary = {
     Pattern.fromRle('loaf', 'Still life.', 'b2o\$o2bo\$bobo\$2bo!'),
     Pattern.fromRle('boat', 'Still life.', '2o\$obo\$bo!'),
     // Methuselahs (small seeds with long, chaotic lives — great for "explosions").
-    Pattern.fromRle('r_pentomino', 'Methuselah: 5 cells that churn chaotically for ~1100 generations, throwing off gliders, before settling.', 'b2o\$2o\$bo!'),
-    Pattern.fromRle('acorn', 'Methuselah: 7 cells that grow for ~5200 generations into a large debris field (~630 cells).', 'bo5b\$3bo3b\$2o2b3o!'),
+    Pattern.fromRle(
+      'r_pentomino',
+      'Methuselah: 5 cells that churn chaotically for ~1100 generations, throwing off gliders, before settling.',
+      'b2o\$2o\$bo!',
+    ),
+    Pattern.fromRle(
+      'acorn',
+      'Methuselah: 7 cells that grow for ~5200 generations into a large debris field (~630 cells).',
+      'bo5b\$3bo3b\$2o2b3o!',
+    ),
     Pattern.fromRle('diehard', 'Methuselah that vanishes completely after exactly 130 generations.', '6bob\$2o6b\$bo3b3o!'),
     Pattern.fromRle('pi_heptomino', 'Methuselah: symmetric, evolves for ~170 generations into a symmetric debris field.', '3o\$obo\$obo!'),
     Pattern.fromRle('thunderbird', 'Methuselah: stabilises after 243 generations, symmetric.', '3o2\$bo\$bo\$bo!'),
     // Guns and infinite growth.
-    Pattern.fromRle('gosper_glider_gun', 'Emits a new glider every 30 generations, travelling down-right at rotation 0. 36x9.', '24bo11b\$22bobo11b\$12b2o6b2o12b2o\$11bo3bo4b2o12b2o\$2o8bo5bo3b2o14b\$2o8bo3bob2o4bobo11b\$10bo5bo7bo11b\$11bo3bo20b\$12b2o!'),
-    Pattern.fromRle('infinite_growth', '5x5 seed whose population grows without bound (leaves a switch-engine trail).', '3obo\$o\$3b2o\$b2obo\$obobo!'),
+    Pattern.fromRle(
+      'gosper_glider_gun',
+      'Emits a new glider every 30 generations, travelling down-right at rotation 0. 36x9.',
+      '24bo11b\$22bobo11b\$12b2o6b2o12b2o\$11bo3bo4b2o12b2o\$2o8bo5bo3b2o14b\$2o8bo3bob2o4bobo11b\$10bo5bo7bo11b\$11bo3bo20b\$12b2o!',
+    ),
+    Pattern.fromRle(
+      'infinite_growth',
+      '5x5 seed whose population grows without bound (leaves a switch-engine trail).',
+      '3obo\$o\$3b2o\$b2obo\$obobo!',
+    ),
   ])
     p.name: p,
 };

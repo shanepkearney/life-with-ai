@@ -13,46 +13,41 @@ class LifeCanvas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, box) {
-      final aspect = controller.width / controller.height;
-      var w = box.maxWidth, h = w / aspect;
-      if (h > box.maxHeight) {
-        h = box.maxHeight;
-        w = h * aspect;
-      }
-      final size = Size(w, h);
+    return LayoutBuilder(
+      builder: (context, box) {
+        final aspect = controller.width / controller.height;
+        var w = box.maxWidth, h = w / aspect;
+        if (h > box.maxHeight) {
+          h = box.maxHeight;
+          w = h * aspect;
+        }
+        final size = Size(w, h);
 
-      void draw(Offset p) => controller.paintCell(
-            (p.dx / w * controller.width).floor(),
-            (p.dy / h * controller.height).floor(),
-            !erase,
-          );
+        void draw(Offset p) => controller.paintCell((p.dx / w * controller.width).floor(), (p.dy / h * controller.height).floor(), !erase);
 
-      return Center(
-        child: MouseRegion(
-          cursor: SystemMouseCursors.precise,
-          child: GestureDetector(
-            onPanStart: (d) async {
-              await controller.beginEdit();
-              draw(d.localPosition);
-            },
-            onPanUpdate: (d) => draw(d.localPosition),
-            onPanEnd: (_) => controller.endEdit(),
-            onTapDown: (d) async {
-              await controller.beginEdit();
-              draw(d.localPosition);
-              controller.endEdit();
-            },
-            child: RepaintBoundary(
-              child: CustomPaint(
-                size: size,
-                painter: _GlowPainter(controller, clock),
+        return Center(
+          child: MouseRegion(
+            cursor: SystemMouseCursors.precise,
+            child: GestureDetector(
+              onPanStart: (d) async {
+                await controller.beginEdit();
+                draw(d.localPosition);
+              },
+              onPanUpdate: (d) => draw(d.localPosition),
+              onPanEnd: (_) => controller.endEdit(),
+              onTapDown: (d) async {
+                await controller.beginEdit();
+                draw(d.localPosition);
+                controller.endEdit();
+              },
+              child: RepaintBoundary(
+                child: CustomPaint(size: size, painter: _GlowPainter(controller, clock)),
               ),
             ),
           ),
-        ),
-      );
-    });
+        );
+      },
+    );
   }
 }
 
