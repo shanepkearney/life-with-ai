@@ -10,6 +10,7 @@ import '../engine/gpu_engine.dart';
 import '../engine/life_engine.dart';
 import '../render/glow_pipeline.dart';
 import '../render/shaders.dart';
+import 'telemetry.dart';
 
 /// A board's size in cells: one of the presets, a board shaped like the
 /// screen ([BoardSize.fitScreen]), or whatever size a shared seed came with.
@@ -250,6 +251,7 @@ class LifeController extends ChangeNotifier {
 
   /// Claude finished: play its seed for real once the experiments have been shown.
   Future<void> handOff(Grid seed, {String? title}) async {
+    onSeedOpened?.call(seed, SeedSource.assistant);
     if ((experiment != null && !experimentFinished) || _experimentQueue.isNotEmpty) {
       _pendingHandOff = seed;
       _pendingHandOffTitle = title;
@@ -264,9 +266,15 @@ class LifeController extends ChangeNotifier {
     await _startExperiment(e);
   }
 
+  /// Told whenever a seed is opened, with where from ([SeedSource]) and, for
+  /// a community seed, its name. main.dart points it at [Telemetry.seedOpened].
+  void Function(Grid seed, SeedSource source, {String? communityName})? onSeedOpened;
+
   /// Loads [seed] at generation 0 and plays it at the user's speed. Seeds from
-  /// favorites and share links carry their own board size; adopt it.
-  Future<void> playSeed(Grid seed, {String? title}) {
+  /// favorites and share links carry their own board size; adopt it. Opening
+  /// it from somewhere worth counting passes [source] (replays don't).
+  Future<void> playSeed(Grid seed, {String? title, SeedSource? source, String? communityName}) {
+    if (source != null) onSeedOpened?.call(seed, source, communityName: communityName);
     // Keep a screen-shaped board if the seed is that size; otherwise take the seed's.
     if (seed.width != boardSize.width || seed.height != boardSize.height) boardSize = BoardSize.of(seed.width, seed.height);
     return _loadAndRun(seed, title: title);

@@ -270,6 +270,13 @@ The live site counts visits with [Cloudflare Web Analytics](https://www.cloudfla
 sets no cookies and doesn't track anyone across sites. The Pages build adds its beacon from the `CF_BEACON_TOKEN`
 repository variable; local builds and the macOS app have none.
 
+Page views never include the part of a share link after `#`, so seeds and prompts don't reach Cloudflare this way.
+Which seeds people open is counted separately: released builds (web and macOS) send a small `seed_opened` event to
+a Cloudflare Worker ([`analytics/`](analytics/README.md)) with a 12-character fingerprint of the seed (never its
+cells), where it was opened from (a share link, the Community tab, Favorites, or Claude), a community seed's name
+(those are public; other titles are people's prompts, so never), the version, and web or macOS. Nothing identifies
+the visitor. Local builds send nothing, and `tool/seed_stats.sh` lists the most-opened seeds.
+
 ## Versioning and releases
 
 Every deploy is a [semantic version](https://semver.org). When a merge to `main` passes both test suites,

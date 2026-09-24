@@ -11,6 +11,7 @@ import '../core/seed_codec.dart';
 import 'community.dart';
 import 'favorites.dart';
 import 'share_link.dart';
+import 'telemetry.dart';
 import 'life_controller.dart';
 
 enum EntryKind { user, assistant, thinking, tool, error, done }
@@ -226,7 +227,7 @@ class AssistantController extends ChangeNotifier {
     if (e != null) {
       await _life.replayExperiment(e);
     } else if (entry.seed != null) {
-      await _life.playSeed(entry.seed!.copy(), title: promptFor(entry));
+      await _life.playSeed(entry.seed!.copy(), title: promptFor(entry), source: SeedSource.assistant);
     }
   }
 

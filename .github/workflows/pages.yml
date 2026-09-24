@@ -50,6 +50,8 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
+      # The event collector (analytics/), a Cloudflare Worker: plain Node, no dependencies.
+      - run: node --test analytics/test/
 
   integration:
     name: Integration tests (macOS app)
@@ -159,6 +161,7 @@ jobs:
           --build-number=${{ github.run_number }}
           --dart-define=APP_VERSION=${{ needs.version.outputs.version }}
           --dart-define=APP_COMMIT=${{ needs.version.outputs.commit }}
+          --dart-define=TELEMETRY_URL=${{ vars.TELEMETRY_URL }}
       # Cloudflare Web Analytics, on the live site only (local builds never
       # count). The token is public by design: it's in every page's source.
       - env:
@@ -217,6 +220,7 @@ jobs:
           --build-number=${{ github.run_number }}
           --dart-define=APP_VERSION=${{ needs.version.outputs.version }}
           --dart-define=APP_COMMIT=${{ needs.version.outputs.commit }}
+          --dart-define=TELEMETRY_URL=${{ vars.TELEMETRY_URL }}
       - run: tool/make_dmg.sh "build/macos/Build/Products/Release/Life with AI.app" Life-with-AI.dmg
       - uses: actions/upload-artifact@v4
         with:
