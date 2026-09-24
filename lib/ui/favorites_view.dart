@@ -53,7 +53,7 @@ class _FavoritesViewState extends State<FavoritesView> {
     );
   }
 
-  /// Opens GitHub's new-file page in `community/seeds/` with this favourite's
+  /// Opens GitHub's new-file page in `community/seeds/` with this favorite's
   /// entry filled in; the contributor adds their username and proposes it.
   Future<void> _submit(Favorite f) async {
     final entry = CommunitySubmit.entryFor(f);
@@ -96,7 +96,7 @@ class _FavoritesViewState extends State<FavoritesView> {
               Padding(
                 padding: const EdgeInsets.all(4),
                 child: Text(
-                  'No favourites yet. When Claude finishes a seed you like, tap the heart on its summary card '
+                  'No favorites yet. When Claude finishes a seed you like, tap the heart on its summary card '
                   'and it will be kept here, on this device.',
                   style: Neon.mono.copyWith(color: Neon.muted, height: 1.5),
                 ),
@@ -155,7 +155,7 @@ class _FavoritesViewState extends State<FavoritesView> {
             Row(
               children: [
                 IconButton(
-                  tooltip: saved ? 'Remove from favourites' : 'Add to favourites',
+                  tooltip: saved ? 'Remove from favorites' : 'Add to favorites',
                   visualDensity: VisualDensity.compact,
                   onPressed: () => widget.favorites.toggle(shared.seed, title: title, summary: shared.note ?? Favorite.sharedSummary),
                   icon: Icon(
@@ -244,7 +244,7 @@ class _FavoritesViewState extends State<FavoritesView> {
                             icon: const Icon(Icons.public_rounded, size: 16),
                           ),
                           IconButton(
-                            tooltip: 'Remove from favourites',
+                            tooltip: 'Remove from favorites',
                             visualDensity: VisualDensity.compact,
                             onPressed: () => _delete(f),
                             icon: const Icon(Icons.delete_outline_rounded, size: 16),

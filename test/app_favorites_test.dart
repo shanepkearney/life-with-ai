@@ -70,7 +70,7 @@ void main() {
       expect(await store.add(seedWith('glider', 10, 10), title: 'a', summary: ''), isTrue);
       expect(await store.add(seedWith('glider', 10, 10), title: 'again', summary: ''), isFalse);
 
-      // A 1024x768 checkerboard encodes to ~390 KB: over the per-favourite cap.
+      // A 1024x768 checkerboard encodes to ~390 KB: over the per-favorite cap.
       final noisy = Grid(1024, 768);
       for (var y = 0; y < noisy.height; y++) {
         for (var x = (y % 2); x < noisy.width; x += 2) {
@@ -176,7 +176,7 @@ void main() {
       }
     });
 
-    test('broken seed links are recognised as seed links that cannot be read', () {
+    test('broken seed links are recognized as seed links that cannot be read', () {
       for (final fragment in ['#seed=1_512x384_1', '#seed=not-a-real-seed&title=Oops', '#seed=1_10x10_0_0_999o']) {
         final uri = Uri.parse('${ShareLink.site}$fragment');
         expect(ShareLink.carriesSeed(uri), isTrue, reason: fragment);

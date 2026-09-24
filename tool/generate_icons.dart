@@ -4,7 +4,7 @@
 //
 // Each pixel is computed analytically (rounded-square distance fields with an
 // exponential glow) rather than drawn large and scaled down, so the 16px
-// favicon stays crisp. Colours follow the renderer's heat ramp, cooling from
+// favicon stays crisp. Colors follow the renderer's heat ramp, cooling from
 // the glider's tail (cyan) to its leading edge (amber), the way it travels.
 import 'dart:io';
 import 'dart:math';
@@ -30,7 +30,7 @@ Rgb heat(double t) {
   return (a.$1 + (b.$1 - a.$1) * f, a.$2 + (b.$2 - a.$2) * f, a.$3 + (b.$3 - a.$3) * f);
 }
 
-/// Signed distance from p to a rounded box centred at c (half-size h, corner r).
+/// Signed distance from p to a rounded box centered at c (half-size h, corner r).
 double roundedBox(double px, double py, double cx, double cy, double h, double r) {
   final qx = (px - cx).abs() - h + r, qy = (py - cy).abs() - h + r;
   final ox = max(qx, 0.0), oy = max(qy, 0.0);
@@ -74,7 +74,7 @@ img.Image render(int size, IconStyle style) {
       var r = 0.0, g = 0.0, b = 0.0, a = 0.0;
       for (var sy = 0; sy < samples; sy++) {
         for (var sx = 0; sx < samples; sx++) {
-          // Normalised coordinates in [0,1].
+          // Normalized coordinates in [0,1].
           final px = (x + (sx + 0.5) / samples) / size;
           final py = (y + (sy + 0.5) / samples) / size;
 
@@ -108,7 +108,7 @@ img.Image render(int size, IconStyle style) {
         }
       }
       final n = samples * samples;
-      // Colour was accumulated premultiplied by coverage; un-premultiply for PNG.
+      // Color was accumulated premultiplied by coverage; un-premultiply for PNG.
       final alpha = a / n;
       int ch(double v) => alpha == 0 ? 0 : (v / n / alpha * 255).round().clamp(0, 255);
       image.setPixelRgba(x, y, ch(r), ch(g), ch(b), (alpha * 255).round());

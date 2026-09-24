@@ -1,8 +1,8 @@
 #version 460 core
 #include <flutter/runtime_effect.glsl>
 
-// Final image: a heat-coloured glow cloud over dense regions, fading neon
-// trails, and bright live cells tinted by how crowded their neighbourhood is.
+// Final image: a heat-colored glow cloud over dense regions, fading neon
+// trails, and bright live cells tinted by how crowded their neighborhood is.
 
 precision highp float;
 

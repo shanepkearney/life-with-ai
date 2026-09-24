@@ -96,10 +96,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     if (moment.seed.population == 0) return say('The board is empty, so there is nothing to save.');
     try {
       final added = await favorites.add(moment.seed, title: moment.title, summary: Favorite.momentSummary);
-      if (!added) return say('That exact board is already in your favourites.');
+      if (!added) return say('That exact board is already in your favorites.');
       final code = SeedCodec.encode(moment.seed);
       say(
-        'Saved "${moment.title}" to favourites',
+        'Saved "${moment.title}" to favorites',
         actionLabel: 'Undo',
         onAction: () => favorites.remove(favorites.items.firstWhere((f) => f.code == code)),
       );
@@ -298,7 +298,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           if (widget.assistant != null)
             MobileSheet(
               peekHeight: peek,
-              // Opened from a share link: show its card (on Favourites) rather than hide it in a closed sheet.
+              // Opened from a share link: show its card (on Favorites) rather than hide it in a closed sheet.
               startOpen: widget.assistant!.shared != null,
               builder: (context, expanded, open) =>
                   AssistantPanel(assistant: widget.assistant!, embedded: true, showActions: expanded, onOpen: open),

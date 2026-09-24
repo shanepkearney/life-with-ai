@@ -22,7 +22,7 @@ void main() {
           + cell(p + vec2(-1.0,  0.0))                              + cell(p + vec2(1.0,  0.0))
           + cell(p + vec2(-1.0,  1.0)) + cell(p + vec2(0.0,  1.0)) + cell(p + vec2(1.0,  1.0));
   float alive = cell(p);
-  // Born with exactly 3 neighbours; survives with 2 or 3. Sums of 0/1 floats are exact.
+  // Born with exactly 3 neighbors; survives with 2 or 3. Sums of 0/1 floats are exact.
   float next = (abs(n - 3.0) < 0.5 || (abs(n - 2.0) < 0.5 && alive > 0.5)) ? 1.0 : 0.0;
   fragColor = vec4(next);
 }

@@ -2,7 +2,7 @@ import '../core/grid.dart';
 import '../core/seed_codec.dart';
 
 /// What a share link carries: the seed, and optionally the prompt that made it
-/// and a note about it (Claude's summary, or a favourite's description).
+/// and a note about it (Claude's summary, or a favorite's description).
 typedef SharedSeed = ({Grid seed, String? title, String? note});
 
 /// Share links carry the whole seed in the URL fragment:

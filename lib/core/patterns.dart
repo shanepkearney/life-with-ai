@@ -21,7 +21,7 @@ class Pattern {
   final int height;
 
   /// Rotates clockwise by [quarterTurns] (after an optional horizontal flip),
-  /// renormalised so the result's top-left is (0,0).
+  /// renormalized so the result's top-left is (0,0).
   Pattern transformed({int quarterTurns = 0, bool flipX = false}) {
     var pts = cells.map((c) => flipX ? (width - 1 - c.$1, c.$2) : c).toList();
     var w = width, h = height;
@@ -133,11 +133,11 @@ final Map<String, Pattern> patternLibrary = {
     ),
     Pattern.fromRle('diehard', 'Methuselah that vanishes completely after exactly 130 generations.', '6bob\$2o6b\$bo3b3o!'),
     Pattern.fromRle('pi_heptomino', 'Methuselah: symmetric, evolves for ~170 generations into a symmetric debris field.', '3o\$obo\$obo!'),
-    Pattern.fromRle('thunderbird', 'Methuselah: stabilises after 243 generations, symmetric.', '3o2\$bo\$bo\$bo!'),
+    Pattern.fromRle('thunderbird', 'Methuselah: stabilizes after 243 generations, symmetric.', '3o2\$bo\$bo\$bo!'),
     // Guns and infinite growth.
     Pattern.fromRle(
       'gosper_glider_gun',
-      'Emits a new glider every 30 generations, travelling down-right at rotation 0. 36x9.',
+      'Emits a new glider every 30 generations, traveling down-right at rotation 0. 36x9.',
       '24bo11b\$22bobo11b\$12b2o6b2o12b2o\$11bo3bo4b2o12b2o\$2o8bo5bo3b2o14b\$2o8bo3bob2o4bobo11b\$10bo5bo7bo11b\$11bo3bo20b\$12b2o!',
     ),
     Pattern.fromRle(

@@ -12,7 +12,7 @@ import 'theme.dart';
 import 'toasts.dart';
 
 /// Seeds other people found, contributed by pull request and credited to
-/// their GitHub. Browses like Favourites: click a card to play it.
+/// their GitHub. Browses like Favorites: click a card to play it.
 class CommunityView extends StatefulWidget {
   const CommunityView({super.key, required this.seeds, required this.favorites, required this.life, this.openUrl = openExternal});
 
@@ -63,7 +63,7 @@ class _CommunityViewState extends State<CommunityView> {
       children: [
         Text(
           'Seeds people found and shared. Found a good one? Heart it, then use the submit button on its card in '
-          'Favourites to send it in with a pull request, with credit to your GitHub.',
+          'Favorites to send it in with a pull request, with credit to your GitHub.',
           style: Neon.mono.copyWith(fontSize: 11, color: Neon.muted, height: 1.5),
         ),
         TextButton.icon(
@@ -145,7 +145,7 @@ class _CommunityViewState extends State<CommunityView> {
                             ),
                           ),
                           IconButton(
-                            tooltip: saved ? 'Remove from favourites' : 'Add to favourites',
+                            tooltip: saved ? 'Remove from favorites' : 'Add to favorites',
                             visualDensity: VisualDensity.compact,
                             onPressed: () => widget.favorites.toggle(s.seed, title: s.name, summary: s.description),
                             icon: Icon(saved ? Icons.favorite_rounded : Icons.favorite_border_rounded, size: 16, color: Neon.magenta),

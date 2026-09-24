@@ -61,7 +61,7 @@ void main() {
       expect(strip.getMaxIntrinsicWidth(double.infinity), lessThanOrEqualTo(strip.size.width), reason: 'controls fit on one row');
       expect(app.controller.boardSize, BoardSize.portrait, reason: 'phones start on the portrait board');
       // Real fonts: all three tab labels fit whole, none cut short with an ellipsis.
-      for (final label in ['Assistant', 'Favourites', 'Community']) {
+      for (final label in ['Assistant', 'Favorites', 'Community']) {
         expect(tester.renderObject<RenderParagraph>(find.text(label)).didExceedMaxLines, isFalse, reason: '"$label" is cut off');
       }
     });
@@ -91,21 +91,21 @@ void main() {
 
     // At rest: just the three tabs. The chat, message box and buttons wait for the sheet to open.
     expect(find.text('Assistant'), findsOneWidget);
-    expect(find.text('Favourites'), findsOneWidget);
+    expect(find.text('Favorites'), findsOneWidget);
     expect(find.text('Community'), findsOneWidget);
     expect(find.byType(TextField), findsNothing, reason: 'message box hidden at rest');
     for (final tip in ['New chat', 'Settings']) {
       expect(find.byTooltip(tip), findsNothing, reason: '$tip hidden at rest');
     }
 
-    // Favourites opens the sheet straight onto favourites.
-    await tester.tap(find.text('Favourites'));
+    // Favorites opens the sheet straight onto favorites.
+    await tester.tap(find.text('Favorites'));
     await frames(tester, 400);
     expect(sheetTop(), lessThan(resting - 200), reason: 'opened over the board');
-    expect(find.textContaining('No favourites yet'), findsOneWidget);
-    expect(find.byType(TextField), findsNothing, reason: 'no message box on the favourites view');
+    expect(find.textContaining('No favorites yet'), findsOneWidget);
+    expect(find.byType(TextField), findsNothing, reason: 'no message box on the favorites view');
     for (final tip in ['New chat', 'Settings']) {
-      expect(find.byTooltip(tip), findsNothing, reason: '$tip belongs to the Assistant view, not Favourites');
+      expect(find.byTooltip(tip), findsNothing, reason: '$tip belongs to the Assistant view, not Favorites');
     }
 
     // The same tabs switch views while open: Community lists the contributed seeds.
@@ -146,16 +146,16 @@ void main() {
 
   testWidgets('saving a moment on a phone: the toast clears the controls and the sheet', (tester) async {
     final app = await startOn(tester, const Size(393, 852));
-    await tester.tap(find.byTooltip('Save this moment to favourites'));
+    await tester.tap(find.byTooltip('Save this moment to favorites'));
     await pumpUntil(tester, () => app.assistant.favorites.items.isNotEmpty, reason: 'saved');
     expect(app.assistant.favorites.items.single.title, startsWith('My board · gen'));
-    await pumpUntil(tester, () => find.textContaining('to favourites').evaluate().isNotEmpty, reason: 'toast');
+    await pumpUntil(tester, () => find.textContaining('to favorites').evaluate().isNotEmpty, reason: 'toast');
     await frames(tester, 400);
-    final toast = tester.getRect(find.ancestor(of: find.textContaining('to favourites'), matching: find.byType(Container)).first);
+    final toast = tester.getRect(find.ancestor(of: find.textContaining('to favorites'), matching: find.byType(Container)).first);
     final controls = tester.getRect(find.byType(MobileControls));
     expect(toast.bottom, lessThanOrEqualTo(controls.top), reason: 'toast $toast vs controls $controls');
-    // The resting Favourites tab shows the count without opening the sheet.
-    expect(find.bySemanticsLabel('Favourites, 1 saved'), findsOneWidget);
+    // The resting Favorites tab shows the count without opening the sheet.
+    expect(find.bySemanticsLabel('Favorites, 1 saved'), findsOneWidget);
   });
 
   testWidgets('on a phone, a broken link\'s dialog opens the sheet on the Community tab', (tester) async {
@@ -171,9 +171,9 @@ void main() {
     patternLibrary['r_pentomino']!.stampOnto(desktopSeed, 250, 180);
     var app = await startOn(tester, const Size(393, 852), launchUri: Uri.parse(ShareLink.forSeed(desktopSeed, title: 'From a desktop')));
     expect(app.controller.boardSize, BoardSize.medium, reason: 'adopts the sender\'s board');
-    // On a phone the sheet opens by itself, on Favourites, so the "Shared with you" card is seen.
+    // On a phone the sheet opens by itself, on Favorites, so the "Shared with you" card is seen.
     expect(find.text('SHARED WITH YOU'), findsOneWidget);
-    expect(find.byTooltip('New chat'), findsNothing, reason: 'Favourites, not the Assistant');
+    expect(find.byTooltip('New chat'), findsNothing, reason: 'Favorites, not the Assistant');
     // It plays immediately, so check the seed that arrived rather than a live count.
     expect(app.assistant.shared!.seed.stateHash, desktopSeed.stateHash);
     expect(app.controller.running, isTrue);

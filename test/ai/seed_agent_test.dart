@@ -84,7 +84,7 @@ void main() {
   test('sends auth, browser-access and fallback headers, and caches the prefix', () async {
     final api = ScriptedApi([
       reply('end_turn', [
-        {'type': 'text', 'text': 'Which colour?'},
+        {'type': 'text', 'text': 'Which color?'},
       ]),
     ]);
     final events = await agentFor(api).send('something pretty').toList();

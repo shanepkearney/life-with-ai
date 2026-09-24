@@ -24,7 +24,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  // A fresh, isolated store per test: never touch the developer's real key or favourites.
+  // A fresh, isolated store per test: never touch the developer's real key or favorites.
   setUp(() => SharedPreferences.setMockInitialValues({'anthropic_api_key': 'sk-test'}));
 
   /// Pumps real frames until [condition] holds (the ticker never settles, so
@@ -56,7 +56,7 @@ void main() {
   Future<LifeApp> start(WidgetTester tester, {Uri? launchUri, http.Client? api, EngineKind engine = EngineKind.gpu}) async {
     // Tear down the previous test's app first. Pumping a new LifeApp over the
     // old one would let Flutter reuse the existing Navigator, whose screen is
-    // still wired to the previous test's board and favourites.
+    // still wired to the previous test's board and favorites.
     await tester.pumpWidget(const SizedBox());
     final app = await bootstrap(launchUri: launchUri, httpClient: api, engine: engine);
     // Unmount before disposing: a mounted board would paint with freed GPU images.
@@ -71,7 +71,7 @@ void main() {
 
   // Regression: every GPU pass used to chain onto the image before it, and
   // freeing a chain thousands of links long overflowed the raster thread's
-  // stack, so loading a favourite after a few minutes' play crashed the app.
+  // stack, so loading a favorite after a few minutes' play crashed the app.
   // A crash kills the test process, so getting to the end is the assertion.
   testWidgets('after a long run, loading another board does not crash', (tester) async {
     final app = await start(tester);
@@ -83,9 +83,9 @@ void main() {
     expect(life.generation, 4000);
     final seed = Grid(512, 384);
     patternLibrary['glider']!.stampOnto(seed, 10, 10);
-    await tester.runAsync(() => life.playSeed(seed, title: 'A favourite'));
+    await tester.runAsync(() => life.playSeed(seed, title: 'A favorite'));
     await frames(tester, 500);
-    expect(life.boardTitle, 'A favourite');
+    expect(life.boardTitle, 'A favorite');
     expect(life.generation, greaterThan(0), reason: 'the new board is playing');
   });
 
@@ -111,7 +111,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     await start(tester);
     await tester.pump();
-    // Every control sits on the same row: with centred wrapping, one row means one centre line.
+    // Every control sits on the same row: with centered wrapping, one row means one center line.
     final wrap = tester.renderObject<RenderWrap>(find.descendant(of: find.byType(ControlBar), matching: find.byType(Wrap)));
     final rows = <double>{};
     wrap.visitChildren((c) {
@@ -122,7 +122,7 @@ void main() {
     final hud = tester.renderObject<RenderBox>(find.byType(Hud));
     expect(hud.getMaxIntrinsicWidth(double.infinity), lessThanOrEqualTo(hud.size.width), reason: 'Hud would wrap');
     // Real fonts: all three tab labels fit whole, none cut short with an ellipsis.
-    for (final label in ['Assistant', 'Favourites', 'Community']) {
+    for (final label in ['Assistant', 'Favorites', 'Community']) {
       expect(tester.renderObject<RenderParagraph>(find.text(label)).didExceedMaxLines, isFalse, reason: '"$label" is cut off');
     }
   });
@@ -140,11 +140,11 @@ void main() {
     });
     expect(rows.length, greaterThan(1), reason: 'precondition: controls wrap');
 
-    await tester.tap(find.byTooltip('Save this moment to favourites'));
-    await pumpUntil(tester, () => find.textContaining('to favourites').evaluate().isNotEmpty, reason: 'toast shown');
+    await tester.tap(find.byTooltip('Save this moment to favorites'));
+    await pumpUntil(tester, () => find.textContaining('to favorites').evaluate().isNotEmpty, reason: 'toast shown');
     await frames(tester, 400); // let it finish sliding in
 
-    final toast = tester.getRect(find.ancestor(of: find.textContaining('to favourites'), matching: find.byType(Container)).first);
+    final toast = tester.getRect(find.ancestor(of: find.textContaining('to favorites'), matching: find.byType(Container)).first);
     final controls = tester.getRect(find.byType(ControlBar));
     expect(toast.overlaps(controls), isFalse, reason: 'toast $toast overlaps controls $controls');
     expect(toast.bottom, lessThanOrEqualTo(controls.top));
@@ -254,10 +254,10 @@ void main() {
     expect(life.population, seed.population);
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.textContaining('Loaded a shared seed'), findsOneWidget);
-    // The panel opens on Favourites, where the shared seed's card is pinned at the top.
+    // The panel opens on Favorites, where the shared seed's card is pinned at the top.
     expect(find.text('SHARED WITH YOU'), findsOneWidget);
     expect(find.text('A restless R-pentomino'), findsOneWidget);
-    expect(find.byTooltip('New chat'), findsNothing, reason: 'on the Favourites tab, not the Assistant');
+    expect(find.byTooltip('New chat'), findsNothing, reason: 'on the Favorites tab, not the Assistant');
     expect(app.assistant.favorites.items, isEmpty, reason: 'opening a link never saves it by itself');
 
     // The board moves on; the card's Replay puts the shared seed back at generation 0.
@@ -268,13 +268,13 @@ void main() {
     expect(life.generation, lessThan(5));
 
     // One tap saves it, titled with the sender's prompt.
-    await tester.tap(find.byTooltip('Add to favourites'));
+    await tester.tap(find.byTooltip('Add to favorites'));
     await pumpUntil(tester, () => app.assistant.favorites.items.isNotEmpty, reason: 'saved');
     expect(app.assistant.favorites.items.single.title, 'A restless R-pentomino');
 
     // Heart the board mid-run: titled after the shared seed and its generation.
     await pumpUntil(tester, () => life.generation >= 3, reason: 'running on');
-    await tester.tap(find.byTooltip('Save this moment to favourites'));
+    await tester.tap(find.byTooltip('Save this moment to favorites'));
     await pumpUntil(tester, () => app.assistant.favorites.items.length == 2, reason: 'moment saved');
     expect(app.assistant.favorites.items.first.title, matches(RegExp(r'^A restless R-pentomino · gen \d+$')));
     await tester.pump(const Duration(milliseconds: 300));
@@ -284,8 +284,8 @@ void main() {
     await tester.tap(find.text('Assistant'));
     await tester.pump();
     expect(find.text('SHARED WITH YOU'), findsNothing);
-    // ...it stays pinned at the top of Favourites, above the saved seeds.
-    await tester.tap(find.bySemanticsLabel('Favourites, 2 saved'));
+    // ...it stays pinned at the top of Favorites, above the saved seeds.
+    await tester.tap(find.bySemanticsLabel('Favorites, 2 saved'));
     await tester.pump();
     final savedMoment = find.textContaining(RegExp(r'^A restless R-pentomino · gen \d+$')); // not the toast
     expect(tester.getTopLeft(find.text('SHARED WITH YOU')).dy, lessThan(tester.getTopLeft(savedMoment).dy));
@@ -329,22 +329,22 @@ void main() {
       await tester.tap(find.byTooltip('Step one generation (→)'));
       await pumpUntil(tester, () => life.generation == i + 1, reason: 'step ${i + 1}');
     }
-    await tester.tap(find.byTooltip('Save this moment to favourites'));
+    await tester.tap(find.byTooltip('Save this moment to favorites'));
     await pumpUntil(tester, () => favorites.items.isNotEmpty, reason: 'moment saved');
     expect(favorites.items.single.title, 'My board · gen 7');
     // Compare with an exact reading: the GPU engine refreshes its population count lazily.
     expect(favorites.items.single.seed.stateHash, (await life.captureMoment()).seed.stateHash);
 
     // Saving the identical board again is a no-op.
-    await tester.tap(find.byTooltip('Save this moment to favourites'));
+    await tester.tap(find.byTooltip('Save this moment to favorites'));
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.textContaining('already in your favourites'), findsOneWidget);
+    expect(find.textContaining('already in your favorites'), findsOneWidget);
     expect(favorites.items, hasLength(1));
 
     // Undo from a fresh save removes it again.
     await tester.tap(find.byTooltip('Step one generation (→)'));
     await pumpUntil(tester, () => life.generation == 8, reason: 'step 8');
-    await tester.tap(find.byTooltip('Save this moment to favourites'));
+    await tester.tap(find.byTooltip('Save this moment to favorites'));
     await pumpUntil(tester, () => favorites.items.length == 2, reason: 'second moment');
     await tapSnackBarAction(tester, 'Undo');
     await pumpUntil(tester, () => favorites.items.length == 1, reason: 'undo');
@@ -352,7 +352,7 @@ void main() {
     // An empty board has nothing to keep.
     await tester.tap(find.byTooltip('Clear'));
     await pumpUntil(tester, () => life.population == 0, reason: 'cleared');
-    await tester.tap(find.byTooltip('Save this moment to favourites'));
+    await tester.tap(find.byTooltip('Save this moment to favorites'));
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.textContaining('nothing to save'), findsOneWidget);
     expect(favorites.items, hasLength(1));
@@ -423,16 +423,16 @@ void main() {
     await pumpUntil(tester, () => life.generation < 5, reason: 'replay from generation 0');
     expect(life.population, 10);
 
-    // Heart it, then recall it from Favourites after clearing the board.
-    await tester.tap(find.byTooltip('Add to favourites'));
-    await pumpUntil(tester, () => find.bySemanticsLabel('Favourites, 1 saved').evaluate().isNotEmpty, reason: 'favourite saved');
+    // Heart it, then recall it from Favorites after clearing the board.
+    await tester.tap(find.byTooltip('Add to favorites'));
+    await pumpUntil(tester, () => find.bySemanticsLabel('Favorites, 1 saved').evaluate().isNotEmpty, reason: 'favorite saved');
     await tester.tap(find.byTooltip('Clear'));
     await pumpUntil(tester, () => life.population == 0, reason: 'board cleared');
-    await tester.tap(find.bySemanticsLabel('Favourites, 1 saved'));
+    await tester.tap(find.bySemanticsLabel('Favorites, 1 saved'));
     await tester.pump();
     await tester.tap(find.text('Make two gliders collide'));
     // Wait for the seed itself: a cleared board keeps running, so the generation alone proves nothing.
-    await pumpUntil(tester, () => life.population == 10, reason: 'favourite played');
+    await pumpUntil(tester, () => life.population == 10, reason: 'favorite played');
     await tester.pump();
     expect(find.text('▶ Playing on the board'), findsOneWidget);
 

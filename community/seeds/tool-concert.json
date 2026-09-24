@@ -2,7 +2,7 @@
   "name": "Tool Concert",
   "author": "shanepkearney",
   "added": "2026-09-22",
-  "description": "Nine small patterns on a 3x3 grid, arranged symmetrically around a flower at the centre. Each blooms into a ring, and the stage settles into a fixed constellation.",
+  "description": "Nine small patterns on a 3x3 grid, arranged symmetrically around a flower at the center. Each blooms into a ring, and the stage settles into a fixed constellation.",
   "prompt": "A symmetrical bloom you would see at a tool concert.",
   "link": "https://shanepkearney.github.io/life-with-ai/#seed=1_512x384_186_120_70b3o-70bobo-3o67bobo71bo-140b3obo-bo142bo-bo-bo60-66b3o3b3o2-64bo4bobo4bo-64bo4bobo4bo-4b3o57bo4bobo4bo59b3o-4bo61b3o3b3o63bo-4b3o129b3o-66b3o3b3o-64bo4bobo4bo-64bo4bobo4bo-64bo4bobo4bo2-66b3o3b3o60-70bobo-70bobo-70b3o2-o140bo-ob3o136bo-o140bo2-140b3o&title=A+symmetrical+bloom+you+would+see+at+a+tool+concert."
 }

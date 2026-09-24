@@ -102,7 +102,7 @@ class _GliderPainter extends CustomPainter {
     final cell = size.shortestSide / 5;
     final loop = clock.value * 4; // generations into this loop, 0..4
     final now = loop.floor();
-    // The camera glides a quarter cell per generation, so the glider stays centred.
+    // The camera glides a quarter cell per generation, so the glider stays centered.
     final camera = loop / 4;
 
     // Where generation [gen]'s cells are, in cells (one cell on every four generations).
