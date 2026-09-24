@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../app/life_controller.dart';
+import 'breakpoints.dart';
 import 'life_canvas.dart';
+import 'screen_board.dart';
 import 'theme.dart';
 
 /// Just the board, edge to edge. Moving the mouse or tapping brings up a small
@@ -83,7 +85,11 @@ class _BoardOnlyViewState extends State<BoardOnlyView> {
                           _overBar = false;
                           _wake();
                         },
-                        child: ListenableBuilder(listenable: widget.controller, builder: (context, _) => _bar(widget.controller)),
+                        // On the narrowest phones the bar scales down a touch rather than overflow.
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: ListenableBuilder(listenable: widget.controller, builder: (context, _) => _bar(widget.controller)),
+                        ),
                       ),
                     ),
                   ),
@@ -96,14 +102,40 @@ class _BoardOnlyViewState extends State<BoardOnlyView> {
     ),
   );
 
+  /// The board's size (Fit screen fills the screen with no bars). Closed, it
+  /// shows the short name, so the bar stays compact.
+  Widget _sizeMenu(LifeController c) {
+    final sizes = boardSizeChoices(context, c.boardSize, phone: Breakpoints.isMobile(MediaQuery.sizeOf(context)));
+    return Tooltip(
+      message: 'Board size',
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<BoardSize>(
+          value: c.boardSize,
+          isDense: true,
+          style: Neon.mono,
+          dropdownColor: const Color(0xFF0B0E17),
+          items: [for (final s in sizes) DropdownMenuItem(value: s, child: Text(s.label))],
+          selectedItemBuilder: (_) => [for (final s in sizes) Center(child: Text(s.shortLabel))],
+          onChanged: (s) {
+            if (s != null) c.setBoardSize(s);
+            _wake();
+          },
+        ),
+      ),
+    );
+  }
+
   Widget _bar(LifeController c) {
+    // Compact, so five buttons and the size menu fit an iPhone SE's width.
     Widget button(IconData icon, String tip, VoidCallback? onTap, {bool glow = false}) => IconButton(
       tooltip: tip,
       onPressed: onTap,
+      visualDensity: VisualDensity.compact,
       color: glow ? Neon.cyan : Neon.text,
       disabledColor: Neon.muted.withValues(alpha: 0.4),
       icon: Icon(icon, shadows: glow ? const [Shadow(color: Neon.cyan, blurRadius: 12)] : null),
     );
+    Widget divider() => Container(width: 1, height: 24, margin: const EdgeInsets.symmetric(horizontal: 6), color: Neon.border);
     return DecoratedBox(
       decoration: Neon.panelDecoration(),
       child: Padding(
@@ -120,7 +152,9 @@ class _BoardOnlyViewState extends State<BoardOnlyView> {
               glow: true,
             ),
             button(Icons.skip_next_rounded, 'Step one generation (→)', c.running ? null : c.stepOnce),
-            Container(width: 1, height: 24, margin: const EdgeInsets.symmetric(horizontal: 6), color: Neon.border),
+            divider(),
+            _sizeMenu(c),
+            divider(),
             button(Icons.close_rounded, 'Leave board only (Esc)', widget.onExit),
           ],
         ),

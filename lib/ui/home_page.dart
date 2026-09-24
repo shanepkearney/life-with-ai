@@ -207,7 +207,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     tooltip: 'Board only (B)',
     visualDensity: VisualDensity.compact,
     onPressed: () => _setBoardOnly(true),
-    icon: Icon(Icons.crop_free_rounded, size: size, color: Neon.muted),
+    icon: Icon(Icons.grid_on_rounded, size: size, color: Neon.muted), // the board; ⛶ is full screen
   );
 
   @override
@@ -288,8 +288,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 children: [
                   // The logo and ⓘ open the about panel: who made this, and Conway's rules.
                   const LogoButton(),
-                  _screenshotButton(),
+                  // Beside the ⓘ: getting the app belongs with "about this app".
                   ?_macDownloadButton(),
+                  _screenshotButton(),
                   _boardOnlyButton(),
                   ?_fullScreenButton(),
                   const SizedBox(width: 12),
@@ -357,8 +358,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     const Flexible(
                       child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: LogoButton(size: 15, letterSpacing: 4)),
                     ),
-                    _screenshotButton(size: 15),
                     ?_macDownloadButton(size: 15),
+                    _screenshotButton(size: 15),
                     // No separate ⛶ here: space is tight, and Board only goes full screen by itself.
                     _boardOnlyButton(size: 15),
                     const SizedBox(width: 6),

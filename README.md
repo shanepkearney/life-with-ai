@@ -186,9 +186,9 @@ fills a tall screen instead of letterboxing a 4:3 one.
 ## Full screen and Board only
 
 ⛶ (or **F**) puts the whole app full screen: the browser's full screen on the web, the window's own in the macOS
-app. **Board only** (the frame button beside it, or **B**) goes further: just the glowing board, edge to edge, and
-full screen too where the platform allows. Moving the mouse or tapping brings up a small playback bar (back to the
-start, step back, play or pause, step, and ✕ to leave) along with the pointer; both fade after a couple of seconds
+app. **Board only** (the grid button, or **B**) goes further: just the glowing board, edge to edge, and
+full screen too where the platform allows. Moving the mouse or tapping brings up a small playback bar (back to the start, step back, play or pause, step, the board size (Fit screen
+included), and ✕ to leave) along with the pointer; both fade after a couple of seconds
 of stillness. A tap only wakes the bar, never draws. **Esc**, the ✕, or leaving full screen any other way (a
 browser's own Esc, the window's green button) brings the app back.
 

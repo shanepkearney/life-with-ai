@@ -122,6 +122,20 @@ void main() {
     expect(life.running, isTrue);
   });
 
+  testWidgets("the bar's size menu changes the board, Fit screen included", (tester) async {
+    await start(tester, FakeFullScreen());
+    await tester.tap(find.byTooltip('Board only (B)'));
+    await tester.pump();
+    expect(find.descendant(of: find.byType(BoardOnlyView), matching: find.text('512×384')), findsOneWidget);
+    await tester.tap(find.descendant(of: find.byType(BoardOnlyView), matching: find.text('512×384')));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(find.textContaining('Fit screen · ').last);
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(life.boardSize.fitsScreen, isTrue);
+    expect(find.byType(BoardOnlyView), findsOneWidget, reason: 'still in Board only');
+  });
+
   testWidgets('Esc and B leave it; B enters it', (tester) async {
     await start(tester, FakeFullScreen());
     await tester.sendKeyEvent(LogicalKeyboardKey.keyB);
