@@ -150,11 +150,18 @@ void main() {
     await tester.enterText(find.byType(TextField), 'x = 1100, y = 1\n1100o!');
     await tester.tap(find.text('Load'));
     await settle(tester);
-    expect(find.textContaining("doesn't fit even the largest board"), findsOneWidget);
+    expect(find.textContaining('This pattern is 1,100 × 1 cells, and the largest board here is 1,024 × 768.'), findsOneWidget);
+
+    // Paul Rendell's Universal Turing Machine: its header alone says it's far too big.
+    await tester.enterText(find.byType(TextField), 'x = 12699, y = 12652, rule = b3/s23\n144b2o\$145bo!');
+    await tester.tap(find.text('Load'));
+    await settle(tester);
+    expect(find.textContaining('This pattern is 12,699 × 12,652 cells'), findsOneWidget);
+    expect(find.textContaining('need Golly'), findsOneWidget);
 
     await tester.enterText(find.byType(TextField), 'bo');
     await tester.pump();
-    expect(find.textContaining("doesn't fit"), findsNothing, reason: 'editing clears the message');
+    expect(find.textContaining('largest board'), findsNothing, reason: 'editing clears the message');
   });
 
   testWidgets('on a phone it lives in the ⚙ sheet, and fits the screen', (tester) async {

@@ -193,6 +193,19 @@ void main() {
     }
   });
 
+  test("a giant is refused by its header's size, before its rows are read", () {
+    // Paul Rendell's Universal Turing Machine (rendell-attic.org), header and first row.
+    expect(
+      () => Rle.decode('x = 12699, y = 12652, rule = b3/s23\n144b2o\$145bo\$145bobo\$146b2o3\$151b2o!'),
+      throwsA(isA<RleTooBig>().having((e) => (e.width, e.height), 'size', (12699, 12652))),
+    );
+    expect(
+      () => Rle.decode('3000o!'),
+      throwsA(isA<RleTooBig>().having((e) => e.width, 'width', greaterThan(Rle.maxSide))),
+      reason: 'no header: as far as it got',
+    );
+  });
+
   test('a pattern is centered on the board', () {
     final g = Rle.decode('3o!').centeredOn(11, 5);
     expect(liveCells(g), {(0, 0), (1, 0), (2, 0)});

@@ -90,19 +90,26 @@ class _RlePanelState extends State<_RlePanel> {
     final RlePattern pattern;
     try {
       pattern = Rle.decode(_text.text);
+    } on RleTooBig catch (e) {
+      return setState(() => _error = _tooBig(e.width, e.height));
     } on FormatException catch (e) {
       return setState(() => _error = e.message);
     }
     final ok = await widget.life.playPattern(pattern);
     if (!mounted) return;
-    if (!ok) {
-      final big = BoardSize.desktop.last;
-      return setState(
-        () => _error = "This pattern is ${pattern.width}x${pattern.height}, which doesn't fit even the largest board (${big.width}x${big.height}).",
-      );
-    }
+    if (!ok) return setState(() => _error = _tooBig(pattern.width, pattern.height));
     Navigator.of(context).pop(pattern.name ?? 'Pasted pattern');
   }
+
+  /// Too big for any board: say how big, how big the boards go, and what can run it.
+  static String _tooBig(int width, int height) {
+    final big = BoardSize.desktop.last;
+    return 'This pattern is ${_n(width)} × ${_n(height)} cells, and the largest board here is ${_n(big.width)} × ${_n(big.height)}. '
+        'Patterns this big need Golly, which runs them with HashLife.';
+  }
+
+  /// 12699 as "12,699".
+  static String _n(int n) => n.toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ',');
 
   @override
   Widget build(BuildContext context) {
