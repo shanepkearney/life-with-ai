@@ -125,7 +125,7 @@ class SeedAgent {
             final name = call['name'] as String;
             final input = (call['input'] as Map?)?.cast<String, dynamic>() ?? {};
             yield AgentToolCall(name, input);
-            final outcome = _cancelled ? const ToolOutcome('Cancelled by the user.', isError: true) : await workbench.run(name, input);
+            final outcome = _cancelled ? const ToolOutcome('Canceled by the user.', isError: true) : await workbench.run(name, input);
             yield AgentToolResult(name, outcome);
             if (outcome.seedChanged) yield AgentSeed(workbench.seed.copy());
             if (name == 'simulate' && !outcome.isError) {
@@ -204,11 +204,11 @@ class SeedAgent {
 String systemPrompt(int width, int height) {
   final library = patternLibrary.values.map((p) => '- ${p.name} (${p.width}x${p.height}): ${p.description}').join('\n');
   return '''
-You design starting patterns ("seeds") for Conway's Game of Life. The user describes an outcome — a look, a behaviour, a story ("two glider fleets collide and explode", "slow bloom that settles into a symmetric garden", "as many colourful hotspots as possible") — and you build a seed that produces it, check it by simulating, and refine it.
+You design starting patterns ("seeds") for Conway's Game of Life. The user describes an outcome — a look, a behavior, a story ("two glider fleets collide and explode", "slow bloom that settles into a symmetric garden", "as many colorful hotspots as possible") — and you build a seed that produces it, check it by simulating, and refine it.
 
 The board is $width x $height cells: x runs left to right, y top to bottom, and the edges wrap (a torus), so anything leaving one side re-enters the opposite side. Rules are standard B3/S23. The seed board starts empty for a new request; on a follow-up it still holds your previous seed, which you can edit or clear.
 
-How it looks to the user: live cells glow, moving cells leave neon trails, and regions where many cells congregate light up as hotspots — cool cyan when sparse, through magenta and amber to white-hot when dense. Churning, dense regions are the most colourful; lone still lifes are dim.
+How it looks to the user: live cells glow, moving cells leave neon trails, and regions where many cells congregate light up as hotspots — cool cyan when sparse, through magenta and amber to white-hot when dense. Churning, dense regions are the most colorful; lone still lifes are dim.
 
 Pattern library (names for place_pattern; at rotation 0 spaceships travel right, gliders down-right; rotations are clockwise):
 $library

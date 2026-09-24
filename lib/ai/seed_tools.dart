@@ -63,7 +63,7 @@ final List<Map<String, Object>> seedToolDefinitions = [
     'description':
         'Draw live cells in a shape. "line" runs from (x, y) to (x+width, y+height). '
         '"random_soup" fills the rectangle randomly at the given density — the classic way to get a chaotic, '
-        'long-lived, colourful region.',
+        'long-lived, colorful region.',
     'input_schema': {
       'type': 'object',
       'properties': {

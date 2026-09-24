@@ -6,7 +6,7 @@ congregate, and an AI assistant that designs a starting pattern to produce the o
 **Live: https://shanepkearney.github.io/life-with-ai/** (bring your own Anthropic API key for
 the assistant; the simulation works without one).
 
-![The desktop app playing a shared seed: a rectangle folding into a glowing stack of bars with four magenta hotspots, and the Shared with you card on the Favourites tab](readme/app-desktop.png)
+![The desktop app playing a shared seed: a rectangle folding into a glowing stack of bars with four magenta hotspots, and the Shared with you card on the Favorites tab](readme/app-desktop.png)
 
 *[Neon Frame](#seeds-made-with-ai) at generation 60, opened from its share link.*
 
@@ -45,7 +45,7 @@ the URL fragment and never reaches the server.
 
 > "A symmetrical bloom you would see at a tool concert."
 
-Nine small patterns on a 3×3 grid, arranged symmetrically around a flower at the centre. Each
+Nine small patterns on a 3×3 grid, arranged symmetrically around a flower at the center. Each
 one blooms into a ring, and by generation 600 the whole stage has settled into a fixed
 constellation.
 
@@ -75,7 +75,7 @@ leave a wide garden of blinkers and still lifes behind.
 |---|---|
 | ![Boxed Chaos at generation 60 in the desktop app, lit as a heat map](readme/app-desktop-heat.png) | ![The Community tab listing four seeds, each credited to its finder's GitHub, with Tool Concert playing on the board](readme/app-community.png) |
 | **On a phone, opened from a share link** | **The about panel** |
-| ![The phone layout: the board above, the sheet open on Favourites with the Shared with you card](readme/app-phone.png) | ![The about panel over the board: credits, what the app is, Conway's rules and key lessons](readme/about.png) |
+| ![The phone layout: the board above, the sheet open on Favorites with the Shared with you card](readme/app-phone.png) | ![The about panel over the board: credits, what the app is, Conway's rules and key lessons](readme/about.png) |
 
 The 📷 button beside the logo saves the whole window as a PNG at 2× or better, ready for a README
 or a post. On the web it downloads the file; on macOS it saves to Downloads. Toasts are left out of
@@ -116,11 +116,11 @@ bit-for-bit, including odd board sizes and wrap-around at the edges.
 `density.frag` computes local population density at quarter resolution (64 bilinear taps
 covering 16×16 cells). `composite.frag` maps that density through a violet → cyan → magenta
 → amber → white heat ramp, adds a fading trail buffer, and draws live cells tinted by how
-crowded their neighbourhood is.
+crowded their neighborhood is.
 
 ## The seed assistant
 
-You describe an outcome ("two glider fleets collide and explode into colour"), and Claude
+You describe an outcome ("two glider fleets collide and explode into color"), and Claude
 builds a seed, simulates it, reads the result, and refines it. You can watch it working on the
 board.
 
@@ -156,7 +156,7 @@ Design choices:
   meter (cache-aware), and a Stop button. The system prompt and tools are a stable prefix
   with `cache_control`, so each refine turn re-reads them at 0.1× cost.
 - **Model:** Claude Opus 5 by default (Sonnet 5 selectable), adaptive thinking with
-  summarised reasoning shown in the chat, and server-side refusal fallbacks enabled.
+  summarized reasoning shown in the chat, and server-side refusal fallbacks enabled.
 - **Key handling:** the user pastes their own key. It is sent only to `api.anthropic.com`,
   with the direct-browser-access header the web build needs, and is kept in memory unless
   "remember" is ticked (then stored unencrypted in app storage, as the dialog says).
@@ -171,7 +171,7 @@ The layout follows the space the app has, never the device type: below 700px wid
 e.g. a landscape phone) it switches live to a phone layout; wider windows keep the desktop layout.
 The phone layout puts the board on top, a one-row control strip under it (speed, glow, engine, board
 size and clear behind ⚙), and the assistant in a bottom sheet. At rest the sheet is just its three
-tabs, **Assistant**, **Favourites** and **Community**; tapping one opens the sheet on that view, and Claude's spinner
+tabs, **Assistant**, **Favorites** and **Community**; tapping one opens the sheet on that view, and Claude's spinner
 shows on its tab even while the sheet is closed. Phones start on a portrait 192×256 board, which
 fills a tall screen instead of letterboxing a 4:3 one.
 
@@ -186,20 +186,20 @@ memory. Anything that puts a new board down (a seed, clear, an experiment, or dr
 timeline; switching engines keeps it. Tests step back 70 generations one at a time on both engines
 and match the forward run exactly.
 
-## Favourites and share links
+## Favorites and share links
 
 Tap the heart on any of Claude's finished seeds to keep it, or the heart in the control bar to save
 the board exactly as it is at that moment (titled after its source, e.g. `A restless R-pentomino ·
-gen 340`). The heart button in the panel header opens your favourites next to the board: click one to
-play it, copy its share link, or delete it (with undo). Favourites stay on your device (localStorage
-on the web), with no account or server. Each favourite and the collection as a whole are
+gen 340`). The heart button in the panel header opens your favorites next to the board: click one to
+play it, copy its share link, or delete it (with undo). Favorites stay on your device (localStorage
+on the web), with no account or server. Each favorite and the collection as a whole are
 size-capped, because a write over the browser's ~5 MB quota fails outright and would silently lose
 every later save.
 
-Opening a share link plays the seed and opens the **Favourites** tab with a **Shared with you** card pinned to the top, with
+Opening a share link plays the seed and opens the **Favorites** tab with a **Shared with you** card pinned to the top, with
 the same replay, heart and copy-link controls as Claude's own seeds. Opening a link never adds it to
-favourites by itself. Links carry the sender's prompt as a title, so a saved link keeps its name, and a
-note: Claude's summary or the favourite's description. The seed always travels whole. The note only fills
+favorites by itself. Links carry the sender's prompt as a title, so a saved link keeps its name, and a
+note: Claude's summary or the favorite's description. The seed always travels whole. The note only fills
 the room left under 2,000 characters (where some chat apps cut links off) and is shortened with an ellipsis
 to fit, so a large seed's link has no note.
 
@@ -220,7 +220,7 @@ link to the finder's GitHub profile. Each seed is one file in [`community/seeds/
 bundled into the app, so a merged pull request goes live with the next Pages deploy. One file per seed
 means submissions in flight never conflict with each other.
 
-To submit one, heart it, then press 🌐 on its card in Favourites. That opens GitHub's new-file page with
+To submit one, heart it, then press 🌐 on its card in Favorites. That opens GitHub's new-file page with
 the entry filled in: the contributor adds their username and proposes the file, and GitHub forks the repo
 and opens the pull request for them. A seed too long for GitHub's URL has its entry copied to the
 clipboard instead. [CONTRIBUTING.md](CONTRIBUTING.md) covers the format and the manual route.
@@ -235,8 +235,8 @@ same way at load and skips a bad one rather than failing the tab, and it shows e
 
 | Suite | Runs | Covers |
 |---|---|---|
-| `test/` (unit + widget) | `flutter test`, on Linux in CI | community seed entries, rules and pattern claims, GPU≡CPU parity, seed codec, favourites storage, share-link parsing of hostile input, the agent loop against scripted API replies, experiment and seed replay, the favourites UI flow, frame-rate-independent speed, layout at two window sizes |
-| `integration_test/` | `flutter test integration_test -d macos` (one entry point, `all_test.dart`, since each file would relaunch the app), on a macOS runner in CI | the real app end to end, at desktop and phone sizes (iPhone SE, iPhone 15, Pixel 7, landscape): boot and play, rewind, the phone sheet and its tabs, engine hot-swap, opening share links (valid and broken), the Shared-with-you card (replay, save, survives a new chat), saving moments (exact titles, duplicates, undo, empty board), and a full assistant run (experiment replay → finish → replay → heart → recall from favourites → copy link through the real clipboard). Only the Anthropic API is scripted |
+| `test/` (unit + widget) | `flutter test`, on Linux in CI | community seed entries, rules and pattern claims, GPU≡CPU parity, seed codec, favorites storage, share-link parsing of hostile input, the agent loop against scripted API replies, experiment and seed replay, the favorites UI flow, frame-rate-independent speed, layout at two window sizes |
+| `integration_test/` | `flutter test integration_test -d macos` (one entry point, `all_test.dart`, since each file would relaunch the app), on a macOS runner in CI | the real app end to end, at desktop and phone sizes (iPhone SE, iPhone 15, Pixel 7, landscape): boot and play, rewind, the phone sheet and its tabs, engine hot-swap, opening share links (valid and broken), the Shared-with-you card (replay, save, survives a new chat), saving moments (exact titles, duplicates, undo, empty board), and a full assistant run (experiment replay → finish → replay → heart → recall from favorites → copy link through the real clipboard). Only the Anthropic API is scripted |
 
 `.github/workflows/pages.yml` runs both on every push and pull request. The web build is deployed
 to Pages only when both pass on `main`.

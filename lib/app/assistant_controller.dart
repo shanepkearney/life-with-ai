@@ -155,9 +155,9 @@ class AssistantController extends ChangeNotifier {
     }
   }
 
-  /// The prompt that led to [entry], used as a favourite's title.
+  /// The prompt that led to [entry], used as a favorite's title.
   /// The seed this app was opened with from a share link, if any. Shown at
-  /// the top of the Favourites view, not in the conversation with Claude.
+  /// the top of the Favorites view, not in the conversation with Claude.
   SharedSeed? shared;
 
   /// Seeds contributed to the repo by pull request, shown on the Community tab.

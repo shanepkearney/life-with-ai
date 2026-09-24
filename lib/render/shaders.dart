@@ -46,7 +46,7 @@ const detachEvery = 128;
 /// freeing the newest image frees the whole chain recursively on the raster
 /// thread. After a few thousand passes that recursion overflows its stack and
 /// the app crashes, e.g. when a board is replaced after a long run.
-/// `Picture.toImage` rasterises now and keeps nothing, so its result starts a
+/// `Picture.toImage` rasterizes now and keeps nothing, so its result starts a
 /// fresh chain. Drawn 1:1 with `BlendMode.src`, the pixels are exact.
 Future<ui.Image> detach(ui.Image image) async {
   final recorder = ui.PictureRecorder();
@@ -77,7 +77,7 @@ Future<ui.Image> imageFromRgba(Uint8List rgba, int width, int height) async {
   return frame.image;
 }
 
-/// A solid black image, used to initialise feedback buffers.
+/// A solid black image, used to initialize feedback buffers.
 ui.Image blackImage(int width, int height) {
   final recorder = ui.PictureRecorder();
   ui.Canvas(recorder).drawRect(ui.Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble()), ui.Paint()..color = const ui.Color(0xFF000000));

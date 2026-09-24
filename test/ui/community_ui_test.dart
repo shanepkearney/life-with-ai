@@ -82,7 +82,7 @@ void main() {
 
     // Heart it: it's saved with its description.
     final garden = seeds.firstWhere((s) => s.name == 'Oscillator Garden');
-    await tester.tap(find.byTooltip('Add to favourites').at(seeds.indexOf(garden)));
+    await tester.tap(find.byTooltip('Add to favorites').at(seeds.indexOf(garden)));
     await settle(tester);
     expect(favorites.items.single.title, 'Oscillator Garden');
     expect(favorites.items.single.summary, garden.description);

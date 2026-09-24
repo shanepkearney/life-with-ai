@@ -5,9 +5,9 @@ the seed is in the app, with credit to your GitHub.
 
 ## The quick way: from the app
 
-1. Heart the seed so it's in **Favourites**. You can heart one of Claude's designs, a board you drew,
+1. Heart the seed so it's in **Favorites**. You can heart one of Claude's designs, a board you drew,
    or a moment you caught with the heart in the control bar.
-2. On its card in Favourites, press the 🌐 **Submit to the community** button.
+2. On its card in Favorites, press the 🌐 **Submit to the community** button.
 3. GitHub opens a new file in `community/seeds/` with the entry filled in. Put your GitHub username
    in `author`, check the `name` and `description`, and press **Propose changes**. If you don't have
    write access, GitHub forks the repo and opens the pull request for you.

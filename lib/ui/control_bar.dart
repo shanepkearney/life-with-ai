@@ -34,14 +34,14 @@ class ControlBar extends StatelessWidget {
             onTap: c.toggleRunning,
           ),
           _Icon(icon: Icons.skip_next_rounded, tip: 'Step one generation (→)', onTap: c.running ? null : c.stepOnce),
-          _Icon(icon: Icons.shuffle_rounded, tip: 'Randomise', onTap: () => c.randomize()),
+          _Icon(icon: Icons.shuffle_rounded, tip: 'Randomize', onTap: () => c.randomize()),
           _Icon(icon: Icons.delete_sweep_rounded, tip: 'Clear', onTap: c.clear),
           _Icon(
             icon: erase ? Icons.auto_fix_normal_rounded : Icons.edit_rounded,
             tip: erase ? 'Drawing erases — tap to draw' : 'Drawing adds cells — tap to erase',
             onTap: () => onEraseChanged(!erase),
           ),
-          if (onSaveMoment != null) _Icon(icon: Icons.favorite_border_rounded, tip: 'Save this moment to favourites', onTap: onSaveMoment),
+          if (onSaveMoment != null) _Icon(icon: Icons.favorite_border_rounded, tip: 'Save this moment to favorites', onTap: onSaveMoment),
           const _Divider(),
           _Labeled(
             label: 'Speed ${c.targetRate.toString().padLeft(3)}/s',

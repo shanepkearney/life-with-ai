@@ -189,7 +189,7 @@ class _AboutPanel extends StatelessWidget {
                           padding: const EdgeInsets.only(right: 10),
                           child: Text(
                             'The rules are the cellular automaton devised by mathematician John Horton Conway in 1970. '
-                            'Each cell lives or dies by its eight neighbours: a dead cell with exactly 3 comes alive, '
+                            'Each cell lives or dies by its eight neighbors: a dead cell with exactly 3 comes alive, '
                             'and a live cell with 2 or 3 survives (B3/S23). The board wraps at its edges.',
                             style: body,
                           ),

@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/grid.dart';
 import '../core/seed_codec.dart';
 
-/// A hearted seed. Stored as its [SeedCodec] code, so a favourite and a share
+/// A hearted seed. Stored as its [SeedCodec] code, so a favorite and a share
 /// link are the same data.
 class Favorite {
   Favorite({required this.code, required this.title, required this.summary, required this.savedAt});
@@ -28,7 +28,7 @@ class Favorite {
   String? get linkNote => summary.isEmpty || summary == momentSummary || summary == sharedSummary ? null : summary;
 
   /// Decoded once: a saved board can be ~100 KB of code, and the list
-  /// rebuilds far more often than favourites change.
+  /// rebuilds far more often than favorites change.
   late final Grid seed = SeedCodec.decode(code);
 
   Map<String, Object> toJson() => {'code': code, 'title': title, 'summary': summary, 'savedAt': savedAt.toIso8601String()};
@@ -64,7 +64,7 @@ class FavoritesStore extends ChangeNotifier {
   static const maxFavorites = 200;
 
   /// Browsers give a site ~5 MB of localStorage, and a write that exceeds it
-  /// fails outright, so an oversized favourite would silently lose every save
+  /// fails outright, so an oversized favorite would silently lose every save
   /// after it. A designed seed is a few hundred characters; a whole random
   /// 512x384 board is ~110 KB; stay well inside the quota.
   static const maxCodeLength = 250 * 1024;
@@ -95,8 +95,8 @@ class FavoritesStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Hearts [seed], or un-hearts it if it is already a favourite. Returns
-  /// whether it is a favourite afterwards.
+  /// Hearts [seed], or un-hearts it if it is already a favorite. Returns
+  /// whether it is a favorite afterwards.
   Future<bool> toggle(Grid seed, {required String title, required String summary}) async {
     final code = SeedCodec.encode(seed);
     if (contains(code)) {
@@ -118,7 +118,7 @@ class FavoritesStore extends ChangeNotifier {
       throw FavoriteTooLarge('This board is too busy to save (${code.length ~/ 1024} KB). Try a calmer moment or a smaller board.');
     }
     if (_totalLength + code.length > maxTotalLength) {
-      throw FavoriteTooLarge('Favourites are full. Delete a few large ones to make room.');
+      throw FavoriteTooLarge('Favorites are full. Delete a few large ones to make room.');
     }
     _items.insert(0, Favorite(code: code, title: title, summary: summary, savedAt: DateTime.now()));
     if (_items.length > maxFavorites) _items.removeRange(maxFavorites, _items.length);

@@ -11,7 +11,7 @@ import 'theme.dart';
 import 'toasts.dart';
 
 const _examples = [
-  'Two glider fleets that collide in the middle and explode into colour',
+  'Two glider fleets that collide in the middle and explode into color',
   'A symmetric bloom that slowly settles into a garden of oscillators',
   'Maximum hotspots: keep the whole board churning for a long time',
   'A Gosper gun whose gliders get eaten before they wrap around',
@@ -36,14 +36,14 @@ class AssistantPanel extends StatefulWidget {
   State<AssistantPanel> createState() => _AssistantPanelState();
 }
 
-enum _Tab { assistant, favourites, community }
+enum _Tab { assistant, favorites, community }
 
 class _AssistantPanelState extends State<AssistantPanel> {
   final _input = TextEditingController();
   final _scroll = ScrollController();
 
-  /// Opened from a share link, the panel starts on Favourites, where its card is.
-  late _Tab _tab = widget.assistant.shared != null ? _Tab.favourites : _Tab.assistant;
+  /// Opened from a share link, the panel starts on Favorites, where its card is.
+  late _Tab _tab = widget.assistant.shared != null ? _Tab.favorites : _Tab.assistant;
   late int _communityRequests = widget.assistant.communityRequests;
   bool get _onAssistant => _tab == _Tab.assistant;
 
@@ -94,7 +94,7 @@ class _AssistantPanelState extends State<AssistantPanel> {
               const Divider(height: 1, color: Neon.border),
               if (widget.showActions && _onAssistant) _assistantToolbar(a),
               Expanded(
-                child: _tab == _Tab.favourites
+                child: _tab == _Tab.favorites
                     ? FavoritesView(favorites: a.favorites, life: a.life, shared: a.shared)
                     : _tab == _Tab.community
                     ? _community(a)
@@ -152,7 +152,7 @@ class _AssistantPanelState extends State<AssistantPanel> {
     child: Text('≈\$${a.costUsd.toStringAsFixed(3)}', style: Neon.mono.copyWith(color: Neon.amber)),
   );
 
-  /// Three tabs, Assistant, Favourites and Community, on every layout. In
+  /// Three tabs, Assistant, Favorites and Community, on every layout. In
   /// the phone sheet at rest they're the whole bar and a tap opens the sheet on that view.
   Widget _tabsHeader(AssistantController a) {
     final open = widget.showActions;
@@ -165,7 +165,7 @@ class _AssistantPanelState extends State<AssistantPanel> {
 
     final tabs = Row(
       children: [
-        // Widths follow the labels (Favourites is the longest), so all three fit whole.
+        // Widths follow the labels (Favorites is the longest), so all three fit whole.
         Expanded(
           flex: 9,
           child: _PhoneTab(
@@ -182,11 +182,11 @@ class _AssistantPanelState extends State<AssistantPanel> {
           flex: 10,
           child: _PhoneTab(
             icon: n > 0 ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-            label: 'Favourites',
-            semantics: n == 0 ? 'Favourites' : 'Favourites, $n saved',
-            selected: open && _tab == _Tab.favourites,
+            label: 'Favorites',
+            semantics: n == 0 ? 'Favorites' : 'Favorites, $n saved',
+            selected: open && _tab == _Tab.favorites,
             count: n,
-            onTap: () => select(_Tab.favourites),
+            onTap: () => select(_Tab.favorites),
           ),
         ),
         const SizedBox(width: 4),
@@ -206,7 +206,7 @@ class _AssistantPanelState extends State<AssistantPanel> {
   }
 
   /// The Assistant view's own toolbar, under the tabs: the cost on the left,
-  /// new chat and settings on the right. The Favourites view has none.
+  /// new chat and settings on the right. The Favorites view has none.
   Widget _assistantToolbar(AssistantController a) => Padding(
     padding: const EdgeInsets.fromLTRB(14, 6, 6, 0),
     child: Row(
@@ -309,7 +309,7 @@ class _EntryTile extends StatelessWidget {
   Widget _heartButton(BuildContext context) {
     final saved = assistant.isFavorite(entry);
     return IconButton(
-      tooltip: saved ? 'Remove from favourites' : 'Add to favourites',
+      tooltip: saved ? 'Remove from favorites' : 'Add to favorites',
       visualDensity: VisualDensity.compact,
       onPressed: () => assistant.toggleFavorite(entry),
       icon: Icon(
@@ -489,7 +489,7 @@ class _PhoneTab extends StatelessWidget {
                   ),
                   if (count > 0)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 2), // the heart's visual centre sits a little high
+                      padding: const EdgeInsets.only(bottom: 2), // the heart's visual center sits a little high
                       child: Text(
                         count > 99 ? '99+' : '$count',
                         style: Neon.mono.copyWith(

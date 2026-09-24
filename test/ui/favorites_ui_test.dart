@@ -13,7 +13,7 @@ import 'package:life_with_ai/render/shaders.dart';
 import 'package:life_with_ai/ui/assistant_panel.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Heart a finished seed, find it in Favourites, play it, share it, delete it.
+/// Heart a finished seed, find it in Favorites, play it, share it, delete it.
 void main() {
   http.Client scriptedApi() {
     Map<String, dynamic> reply(List<Map<String, dynamic>> content) => {
@@ -42,7 +42,7 @@ void main() {
     return MockClient((_) async => http.Response(jsonEncode(responses.removeAt(0)), 200));
   }
 
-  testWidgets('heart, recall, play, share and delete a favourite', (tester) async {
+  testWidgets('heart, recall, play, share and delete a favorite', (tester) async {
     SharedPreferences.setMockInitialValues({});
     String? clipboard;
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
@@ -70,20 +70,20 @@ void main() {
     await tester.pump();
 
     // Heart it on the finish card.
-    await tester.tap(find.byTooltip('Add to favourites'));
+    await tester.tap(find.byTooltip('Add to favorites'));
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
     await tester.pump();
-    expect(find.byTooltip('Remove from favourites'), findsOneWidget);
-    expect(find.bySemanticsLabel('Favourites, 1 saved'), findsOneWidget, reason: 'the tab shows the count');
+    expect(find.byTooltip('Remove from favorites'), findsOneWidget);
+    expect(find.bySemanticsLabel('Favorites, 1 saved'), findsOneWidget, reason: 'the tab shows the count');
 
-    // Recall it: the panel switches to Favourites.
-    await tester.tap(find.bySemanticsLabel('Favourites, 1 saved'));
+    // Recall it: the panel switches to Favorites.
+    await tester.tap(find.bySemanticsLabel('Favorites, 1 saved'));
     await tester.pump();
     expect(find.byTooltip('New chat'), findsNothing, reason: 'the Assistant toolbar belongs to its own tab');
     expect(find.text('One glider please'), findsOneWidget);
     expect(find.text('A glider drifts away.'), findsOneWidget);
 
-    // Wipe the board, then play the favourite back onto it.
+    // Wipe the board, then play the favorite back onto it.
     await tester.runAsync(() => life.clear());
     await tester.tap(find.text('One glider please'));
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
@@ -102,11 +102,11 @@ void main() {
     expect(copied.note, 'A glider drifts away.', reason: "Claude's summary travels with the link");
 
     // Delete it, then undo.
-    await tester.tap(find.byTooltip('Remove from favourites'));
+    await tester.tap(find.byTooltip('Remove from favorites'));
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
     await tester.pump();
     expect(assistant.favorites.items, isEmpty);
-    expect(find.textContaining('No favourites yet'), findsOneWidget);
+    expect(find.textContaining('No favorites yet'), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 600)); // the previous message animates out, Undo animates in
     await tester.tap(find.text('Undo'));
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));

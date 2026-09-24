@@ -2,7 +2,7 @@ import 'favorites.dart';
 import 'community.dart';
 import 'share_link.dart';
 
-/// Where a favourite goes to become a community seed: GitHub's "new file"
+/// Where a favorite goes to become a community seed: GitHub's "new file"
 /// page in `community/seeds/`, pre-filled with its entry. For someone without
 /// write access GitHub forks the repo and opens the pull request itself.
 abstract final class CommunitySubmit {
@@ -20,7 +20,7 @@ abstract final class CommunitySubmit {
       author: authorPlaceholder,
       added: now ?? DateTime.now(),
       description: f.linkNote ?? 'Describe what it does as it plays.',
-      // A favourite's title is the prompt it was made from, when Claude made it.
+      // A favorite's title is the prompt it was made from, when Claude made it.
       prompt: f.linkNote != null && title.length <= CommunitySeed.maxPrompt ? title : null,
       link: ShareLink.forSeed(f.seed),
     );

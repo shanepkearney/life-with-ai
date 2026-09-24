@@ -1,6 +1,6 @@
 import 'grid.dart';
 
-/// Compact, URL-safe text form of a seed, used for favourites and share links.
+/// Compact, URL-safe text form of a seed, used for favorites and share links.
 ///
 ///     1_512x384_210_150_2o-bo-3o
 ///     │ │       │   │   └ run-length rows of the live cells' bounding box

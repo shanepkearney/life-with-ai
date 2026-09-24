@@ -50,7 +50,7 @@ class GpuEngine implements LifeEngine {
   Future<void> step([int generations = 1]) async {
     if (_disposed) return;
     for (var i = 0; i < generations; i++) {
-      // A fresh shader per pass: the recorded picture is rasterised later, so
+      // A fresh shader per pass: the recorded picture is rasterized later, so
       // mutating a shared instance could change a pass that hasn't run yet.
       final shader = _program.fragmentShader()
         ..setFloat(0, width.toDouble())

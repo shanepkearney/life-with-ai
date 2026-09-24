@@ -229,7 +229,7 @@ class LifeController extends ChangeNotifier {
   }
 
   /// Loads [seed] at generation 0 and plays it at the user's speed. Seeds from
-  /// favourites and share links carry their own board size; adopt it.
+  /// favorites and share links carry their own board size; adopt it.
   Future<void> playSeed(Grid seed, {String? title}) {
     for (final s in BoardSize.values) {
       if (s.width == seed.width && s.height == seed.height) boardSize = s;
