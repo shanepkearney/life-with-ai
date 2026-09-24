@@ -62,6 +62,15 @@ void main() {
     });
   }
 
+  testWidgets('the about panel opens from the phone header too', (tester) async {
+    await startOn(tester, const Size(375, 667));
+    await tester.tap(find.byTooltip('About this app'));
+    await frames(tester, 400);
+    expect(find.textContaining('John Horton Conway in 1970'), findsOneWidget);
+    await tester.tap(find.byTooltip('Close'));
+    await frames(tester, 400);
+  });
+
   testWidgets('desktop sizes keep the desktop layout', (tester) async {
     await startOn(tester, const Size(1440, 920));
     expect(find.byType(ControlBar), findsOneWidget);

@@ -189,6 +189,21 @@ void main() {
     expect(await board(), edited);
   });
 
+  testWidgets('the logo and the ⓘ open the about panel', (tester) async {
+    await start(tester);
+    await tester.tap(find.bySemanticsLabel('About Life with AI'));
+    await frames(tester, 400);
+    expect(find.textContaining('John Horton Conway in 1970'), findsOneWidget);
+    await tester.tap(find.byTooltip('Close'));
+    await frames(tester, 400);
+    await tester.tap(find.byTooltip('About this app'));
+    await frames(tester, 400);
+    expect(find.textContaining('Shane Kearney'), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await frames(tester, 400);
+    expect(find.textContaining('John Horton Conway'), findsNothing);
+  });
+
   testWidgets('a share link plays its seed, and its card can replay it and save it', (tester) async {
     // Not a pulsar: it repeats every 3 generations, so a "moment" saved at
     // generation 3 would be the very seed already hearted (and rightly refused).
@@ -320,10 +335,10 @@ void main() {
 
     // Heart it, then recall it from Favourites after clearing the board.
     await tester.tap(find.byTooltip('Add to favourites'));
-    await pumpUntil(tester, () => find.byTooltip('Favourites (1)').evaluate().isNotEmpty, reason: 'favourite saved');
+    await pumpUntil(tester, () => find.bySemanticsLabel('Favourites, 1 saved').evaluate().isNotEmpty, reason: 'favourite saved');
     await tester.tap(find.byTooltip('Clear'));
     await pumpUntil(tester, () => life.population == 0, reason: 'board cleared');
-    await tester.tap(find.byTooltip('Favourites (1)'));
+    await tester.tap(find.bySemanticsLabel('Favourites, 1 saved'));
     await tester.pump();
     await tester.tap(find.text('Make two gliders collide'));
     // Wait for the seed itself: a cleared board keeps running, so the generation alone proves nothing.

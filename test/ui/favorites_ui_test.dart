@@ -74,12 +74,12 @@ void main() {
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
     await tester.pump();
     expect(find.byTooltip('Remove from favourites'), findsOneWidget);
-    expect(find.byTooltip('Favourites (1)'), findsOneWidget);
+    expect(find.bySemanticsLabel('Favourites, 1 saved'), findsOneWidget, reason: 'the tab shows the count');
 
     // Recall it: the panel switches to Favourites.
-    await tester.tap(find.byTooltip('Favourites (1)'));
+    await tester.tap(find.bySemanticsLabel('Favourites, 1 saved'));
     await tester.pump();
-    expect(find.text('Favourites'), findsOneWidget);
+    expect(find.byTooltip('New chat'), findsNothing, reason: 'the Assistant toolbar belongs to its own tab');
     expect(find.text('One glider please'), findsOneWidget);
     expect(find.text('A glider drifts away.'), findsOneWidget);
 
@@ -113,9 +113,9 @@ void main() {
     expect(assistant.favorites.items.single.title, 'One glider please');
 
     // Back to the chat.
-    await tester.tap(find.byTooltip('Back to chat'));
+    await tester.tap(find.text('Seed assistant'));
     await tester.pump();
-    expect(find.text('Seed assistant'), findsOneWidget);
+    expect(find.byTooltip('New chat'), findsOneWidget, reason: 'the Assistant tab and its toolbar are back');
 
     await tester.pumpWidget(const SizedBox());
     life.dispose();

@@ -46,8 +46,10 @@ class ControlBar extends StatelessWidget {
           _Labeled(
             label: 'Speed ${c.targetRate.toString().padLeft(3)}/s',
             child: SizedBox(
-              width: 110,
+              width: 90,
               child: Slider(
+                // Default side padding (~24px) is room for the thumb's glow; here it ate the track.
+                padding: const EdgeInsets.symmetric(horizontal: 10),
                 // Geometric steps: fine control at the slow end, where it matters.
                 value: c.speedIndex.toDouble(),
                 min: 0,
@@ -61,8 +63,14 @@ class ControlBar extends StatelessWidget {
           _Labeled(
             label: 'Glow',
             child: SizedBox(
-              width: 90,
-              child: Slider(value: c.pipeline.glow, min: 0, max: 2, onChanged: c.setGlow),
+              width: 70,
+              child: Slider(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                value: c.pipeline.glow,
+                min: 0,
+                max: 2,
+                onChanged: c.setGlow,
+              ),
             ),
           ),
           const _Divider(),
@@ -84,6 +92,7 @@ class ControlBar extends StatelessWidget {
             selected: {c.engineKind},
             onSelectionChanged: (s) => c.switchEngine(s.first),
           ),
+          const SizedBox(width: 4), // with the Wrap's gap: 8px off the engine toggle, like the dividers
           DropdownButtonHideUnderline(
             child: DropdownButton<BoardSize>(
               value: c.boardSize,
@@ -142,5 +151,8 @@ class _Divider extends StatelessWidget {
   const _Divider();
 
   @override
-  Widget build(BuildContext context) => Container(width: 1, height: 24, color: Neon.border);
+  // Its own margin: icon buttons carry built-in padding, but the labels and the
+  // engine toggle beside a divider don't, so the Wrap's gap alone looks cramped.
+  Widget build(BuildContext context) =>
+      Container(width: 1, height: 24, margin: const EdgeInsets.symmetric(horizontal: 8), color: Neon.border);
 }
