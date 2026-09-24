@@ -57,9 +57,33 @@ jobs:
       - run: flutter pub get
       - run: flutter test integration_test -d macos
 
+  web:
+    name: Web tests (Chrome)
+    # The web build in a real browser: page address, browser downloads, Mac
+    # detection, shaders under the browser's renderer. Everything else runs the
+    # macOS app above. The runner comes with Chrome and a matching ChromeDriver.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: |
+          "$CHROMEWEBDRIVER/chromedriver" --port=4444 > chromedriver.log 2>&1 &
+          for _ in $(seq 1 20); do curl -fs http://localhost:4444/status >/dev/null && exit 0; sleep 0.5; done
+          cat chromedriver.log; exit 1
+      - run: >-
+          flutter drive --release -d web-server --browser-name=chrome
+          --driver=test_driver/integration_test.dart
+          --target=integration_test/web_flows.dart
+
   version:
     name: Decide the version
-    needs: [unit, integration]
+    needs: [unit, integration, web]
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     outputs:
@@ -127,11 +151,12 @@ jobs:
 
   macos:
     name: Build the macOS app
-    needs: [unit, integration, version]
+    needs: [unit, integration, web, version]
     # Pull requests build it too, so a broken DMG shows up before merging; only
     # releases ship one. (`!cancelled()` lets it run on PRs, where `version` is skipped.)
     if: >-
       !cancelled() && needs.unit.result == 'success' && needs.integration.result == 'success'
+      && needs.web.result == 'success'
       && (github.event_name == 'pull_request' || needs.version.outputs.tag == 'true')
     runs-on: macos-latest
     timeout-minutes: 30
@@ -205,3 +230,16 @@ jobs:
           --title "v${{ needs.version.outputs.version }}"
           --notes-file notes.md
           Life-with-AI.dmg
+
+  smoke:
+    name: Check the live site
+    # After every deploy, from the outside: the site serves this build, with the
+    # analytics beacon; after a release, its page and the macOS download work.
+    needs: [version, deploy, release]
+    if: ${{ !cancelled() && needs.deploy.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: >-
+          tool/smoke_live.sh "${{ needs.version.outputs.commit }}"
+          "${{ needs.version.outputs.version }}" "${{ needs.release.result == 'success' }}"

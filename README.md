@@ -245,9 +245,11 @@ same way at load and skips a bad one rather than failing the tab, and it shows e
 |---|---|---|
 | `test/` (unit + widget) | `flutter test`, on Linux in CI | community seed entries, rules and pattern claims, GPU≡CPU parity, seed codec, favorites storage, share-link parsing of hostile input, the agent loop against scripted API replies, experiment and seed replay, the favorites UI flow, frame-rate-independent speed, layout at two window sizes |
 | `integration_test/` | `flutter test integration_test -d macos` (one entry point, `all_test.dart`, since each file would relaunch the app), on a macOS runner in CI | the real app end to end, at desktop and phone sizes (iPhone SE, iPhone 15, Pixel 7, landscape): boot and play, rewind, the phone sheet and its tabs, engine hot-swap, opening share links (valid and broken), the Shared-with-you card (replay, save, survives a new chat), saving moments (exact titles, duplicates, undo, empty board), and a full assistant run (experiment replay → finish → replay → heart → recall from favorites → copy link through the real clipboard). Only the Anthropic API is scripted |
+| `integration_test/web_flows.dart` | `flutter drive -d web-server` in headless Chrome, via ChromeDriver, on Linux in CI | the web build in a real browser: the GPU shaders under the browser's renderer, share and broken links read from the page address, community seeds over HTTP, the 📷 download through the browser, the ⬇ following the browser's Mac check, and the image-chain fix |
+| `tool/smoke_live.sh` | after every deploy, against the live site | the site serves the build just deployed (by its commit), the analytics beacon is in the page, and after a release, its page and the macOS download (a real disk image) |
 
-`.github/workflows/pages.yml` runs both on every push and pull request. The web build is deployed
-to Pages only when both pass on `main`.
+`.github/workflows/pages.yml` runs the first three on every push and pull request, along with a build of the macOS
+app, so a broken DMG fails the PR. The web build is deployed to Pages only when all three pass on `main`.
 
 ## Analytics
 
