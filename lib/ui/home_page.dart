@@ -6,6 +6,7 @@ import '../app/assistant_controller.dart';
 import '../app/favorites.dart';
 import '../app/life_controller.dart';
 import '../core/seed_codec.dart';
+import 'about_modal.dart';
 import 'assistant_panel.dart';
 import 'breakpoints.dart';
 import 'control_bar.dart';
@@ -14,7 +15,6 @@ import 'hud.dart';
 import 'life_canvas.dart';
 import 'mobile_controls.dart';
 import 'mobile_sheet.dart';
-import 'theme.dart';
 import 'toasts.dart';
 
 class HomePage extends StatefulWidget {
@@ -129,24 +129,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             children: [
               Row(
                 children: [
-                  Text(
-                    'LIFE',
-                    style: Neon.mono.copyWith(
-                      fontSize: 18,
-                      letterSpacing: 6,
-                      color: Neon.cyan,
-                      shadows: const [Shadow(color: Neon.cyan, blurRadius: 14)],
-                    ),
-                  ),
-                  Text(
-                    ' with AI',
-                    style: Neon.mono.copyWith(
-                      fontSize: 18,
-                      color: Neon.magenta,
-                      shadows: const [Shadow(color: Neon.magenta, blurRadius: 14)],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
+                  // The logo and ⓘ open the about panel: who made this, and Conway's rules.
+                  const LogoButton(),
+                  const SizedBox(width: 12),
                   // Scale the stats down rather than overflow on narrow windows.
                   Expanded(
                     child: Align(
@@ -206,24 +191,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 padding: const EdgeInsets.fromLTRB(14, 8, 10, 0),
                 child: Row(
                   children: [
-                    Text(
-                      'LIFE',
-                      style: Neon.mono.copyWith(
-                        fontSize: 15,
-                        letterSpacing: 4,
-                        color: Neon.cyan,
-                        shadows: const [Shadow(color: Neon.cyan, blurRadius: 12)],
-                      ),
-                    ),
-                    Text(
-                      ' with AI',
-                      style: Neon.mono.copyWith(
-                        fontSize: 15,
-                        color: Neon.magenta,
-                        shadows: const [Shadow(color: Neon.magenta, blurRadius: 12)],
-                      ),
-                    ),
-                    const SizedBox(width: 10),
+                    const LogoButton(size: 15, letterSpacing: 4),
+                    const SizedBox(width: 6),
                     Expanded(
                       child: Align(
                         alignment: Alignment.centerRight,
