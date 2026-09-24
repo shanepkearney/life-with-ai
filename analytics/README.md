@@ -18,20 +18,21 @@ Nothing else: no IP address, no cookie, no visitor ID. The Worker accepts events
 only from the live site (or the macOS app, which sends no `Origin`), and refuses
 anything that doesn't match the fields above exactly (see `test/`).
 
-## Deploy (once, and whenever `src/` changes)
+## Deploy
 
-```
-cd analytics
-npx wrangler login     # opens your browser: approve in the life-with-ai Cloudflare account
-npx wrangler deploy    # prints the Worker's address
-```
+CI does it: `.github/workflows/analytics.yml` tests the Worker on every change to `analytics/`, and on `main`
+uploads it with Wrangler (which needs Node 22) and checks it's live, without storing anything. It can also be
+run by hand from the Actions tab ("Event collector" → Run workflow).
 
-Then set the repository variable the app builds with, so released builds start
-sending (local builds never do):
+It needs two repository settings:
 
-```
-gh variable set TELEMETRY_URL --body "https://life-with-ai-events.<your-subdomain>.workers.dev/v1/event"
-```
+- `CLOUDFLARE_ACCOUNT_ID` (variable): the life-with-ai Cloudflare account's ID.
+- `CLOUDFLARE_API_TOKEN` (secret): in the Cloudflare dashboard, **My Profile → API Tokens → Create Token →
+  "Edit Cloudflare Workers"** template, limited to the life-with-ai account. Save it with
+  `gh secret set CLOUDFLARE_API_TOKEN` and paste it when asked (never into a chat or a file).
+
+The Worker lives at `https://life-with-ai-events.shane-kearney-pro.workers.dev/v1/event`. That's the app's
+`TELEMETRY_URL` repository variable: until it's set, released builds send nothing.
 
 ## Tests
 
