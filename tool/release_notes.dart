@@ -52,6 +52,12 @@ String releaseNotes({
 
   final out = StringBuffer();
   if (intro != null && intro.trim().isNotEmpty) out.writeln('${intro.trim()}\n');
+  // What this release built, pinned to this version (not "latest").
+  out
+    ..writeln('## Downloads\n')
+    ..writeln('- **Web:** $site (deployed from this release)')
+    ..writeln('- **macOS:** [Life-with-AI.dmg](https://github.com/$repo/releases/download/v$version/Life-with-AI.dmg), '
+        'Apple silicon and Intel, macOS 10.15 or later ([opening it the first time](https://github.com/$repo#installing-on-macos))\n');
   void section(String title, List<String> lines) {
     if (lines.isEmpty) return;
     out.writeln('## $title\n');
@@ -69,7 +75,6 @@ String releaseNotes({
         ? '**Full history**: https://github.com/$repo/commits/v$version'
         : '**Full changelog**: https://github.com/$repo/compare/$previousTag...v$version',
   );
-  out.write('\n▶ **Play it**: $site\n');
   return out.toString();
 }
 
@@ -79,7 +84,8 @@ void main(List<String> args) {
     exit(64);
   }
   final version = args.single;
-  final previousTag = lastReleaseTag();
+  // CI tags the release before building it, so skip this version's own tag.
+  final previousTag = lastReleaseTag(except: 'v$version');
   final range = previousTag == null ? 'HEAD' : '$previousTag..HEAD';
 
   // Which pull request brought in each commit: everything a "Merge pull

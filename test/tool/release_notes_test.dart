@@ -26,6 +26,14 @@ void main() {
     expect(notes, contains('https://shanepkearney.github.io/life-with-ai/'));
   });
 
+  test("links what the release built, pinned to its own version", () {
+    final notes = releaseNotes(version: '1.3.0', previousTag: 'v1.2.0', commits: [c('feat: x')]);
+    expect(notes, contains('## Downloads'));
+    expect(notes, contains('https://github.com/shanepkearney/life-with-ai/releases/download/v1.3.0/Life-with-AI.dmg'));
+    expect(notes, isNot(contains('/latest/')));
+    expect(notes.indexOf('## Downloads'), lessThan(notes.indexOf('## Features')));
+  });
+
   test('breaking changes come first', () {
     final notes = releaseNotes(
       version: '2.0.0',
@@ -44,7 +52,7 @@ void main() {
       commits: [c('feat: everything')],
       intro: '## Welcome to the unknown.\n',
     );
-    expect(notes, startsWith('## Welcome to the unknown.\n\n## Features'));
+    expect(notes, startsWith('## Welcome to the unknown.\n\n## Downloads'));
     expect(notes, contains('https://github.com/shanepkearney/life-with-ai/commits/v1.0.0'));
   });
 

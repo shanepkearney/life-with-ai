@@ -3,14 +3,23 @@ name: Test and deploy
 # Both test suites must pass before anything reaches the live site.
 # Pull requests run the tests too, but never deploy.
 #
-# Every deploy is a semantic version, decided from the commits since the last
-# release tag by tool/next_version.dart (feat → minor, fix and the rest → patch,
-# `!` or BREAKING CHANGE → major). The version and commit are compiled into the
-# app for its about panel, and once the deploy succeeds the commit is tagged
-# v<version> with a GitHub Release (notes from tool/release_notes.dart), so a
-# failed deploy never uses up a number. Each release carries the macOS app as
-# Life-with-AI.dmg, so …/releases/latest/download/Life-with-AI.dmg is always
-# the newest.
+# A merge to main, once all three test suites pass, is a release:
+#
+#   1. tag    - tool/next_version.dart picks the next semantic version from the
+#               commits since the last v* tag (feat → minor, fix and the rest →
+#               patch, `!` or BREAKING CHANGE → major), and the commit is tagged
+#               v<version> first, so everything after is built from the tag;
+#   2. build  - the web app and the macOS app (Life-with-AI.dmg), both from the
+#               tag, with the version and commit compiled in;
+#   3. deploy - the web app to Pages;
+#   4. publish- the GitHub Release: notes (tool/release_notes.dart) linking the
+#               builds, with the DMG attached, so
+#               …/releases/latest/download/Life-with-AI.dmg is always the newest;
+#   5. smoke  - the live site, checked from outside (tool/smoke_live.sh).
+#
+# If a build or the deploy fails, the tag stays: "Re-run failed jobs" retries
+# the same version, and a full re-run finds the tag and publishes it once
+# everything passes. A number is only ever skipped, never reused.
 on:
   push:
     branches: [main]
@@ -82,14 +91,18 @@ jobs:
           --target=integration_test/web_flows.dart
 
   version:
-    name: Decide the version
+    name: Tag the release
     needs: [unit, integration, web]
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # to push the tag
     outputs:
-      version: ${{ steps.next.outputs.version }}
-      tag: ${{ steps.next.outputs.tag }}
-      commit: ${{ steps.next.outputs.commit }}
+      version: ${{ steps.tag.outputs.version }}
+      commit: ${{ steps.tag.outputs.commit }}
+      # "true" when v<version> is tagged on this commit and has no GitHub
+      # Release yet: build it, publish it. (A re-run with nothing new: false.)
+      publish: ${{ steps.tag.outputs.publish }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -99,11 +112,31 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
-      - id: next
+      - id: tag
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           # Plain `dart`, not `dart run`, which prints build progress into the output.
-          dart tool/next_version.dart | tee -a "$GITHUB_OUTPUT"
-          echo "commit=$(git rev-parse --short=7 HEAD)" | tee -a "$GITHUB_OUTPUT"
+          next="$(dart tool/next_version.dart)"
+          echo "$next"
+          version="$(sed -n 's/^version=//p' <<<"$next")"
+          tag="v$version"
+          if [ "$(sed -n 's/^tag=//p' <<<"$next")" = true ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -a "$tag" -m "$tag" "$GITHUB_SHA"
+            git push origin "$tag"
+            echo "Tagged $GITHUB_SHA as $tag"
+          fi
+          publish=false
+          if [ "$(git rev-parse "$tag^{commit}" 2>/dev/null)" = "$GITHUB_SHA" ] && ! gh release view "$tag" >/dev/null 2>&1; then
+            publish=true
+          fi
+          {
+            echo "version=$version"
+            echo "commit=$(git rev-parse --short=7 "$GITHUB_SHA")"
+            echo "publish=$publish"
+          } | tee -a "$GITHUB_OUTPUT"
 
   build:
     name: Build web
@@ -111,6 +144,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.version.outputs.version }} # built from the tag
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -157,11 +192,14 @@ jobs:
     if: >-
       !cancelled() && needs.unit.result == 'success' && needs.integration.result == 'success'
       && needs.web.result == 'success'
-      && (github.event_name == 'pull_request' || needs.version.outputs.tag == 'true')
+      && (github.event_name == 'pull_request' || needs.version.outputs.publish == 'true')
     runs-on: macos-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          # From the tag when releasing; the PR's own commit otherwise.
+          ref: ${{ needs.version.outputs.version && format('v{0}', needs.version.outputs.version) || '' }}
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -198,25 +236,27 @@ jobs:
         uses: actions/deploy-pages@v4
 
   release:
-    name: Tag the release
-    # The DMG rides along, so the download link works the moment the release exists.
+    name: Publish the release
+    # Last: once the web app is live and the DMG is built, the release links
+    # both, and the download link works the moment the release exists.
     needs: [version, deploy, macos]
-    # A re-run with nothing new since the last tag has nothing to tag.
-    if: needs.version.outputs.tag == 'true'
+    if: needs.version.outputs.publish == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: v${{ needs.version.outputs.version }}
           fetch-depth: 0 # the notes cover every commit since the last release
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
-      # Notes grouped from the commits (tool/release_notes.dart), under the
-      # version's hand-written intro in .github/releases/ when there is one.
+      # Notes linking the builds, then the commits grouped by kind
+      # (tool/release_notes.dart), under the version's hand-written intro in
+      # .github/releases/ when there is one.
       - run: dart tool/release_notes.dart "${{ needs.version.outputs.version }}" > notes.md
       - uses: actions/download-artifact@v4
         with:
@@ -226,7 +266,7 @@ jobs:
         run: >-
           gh release create "v${{ needs.version.outputs.version }}"
           --repo "${{ github.repository }}"
-          --target "${{ github.sha }}"
+          --verify-tag
           --title "v${{ needs.version.outputs.version }}"
           --notes-file notes.md
           Life-with-AI.dmg
