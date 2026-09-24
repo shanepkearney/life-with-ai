@@ -268,8 +268,14 @@ The biggest bump wins, and merge commits don't count (the commits they merge do)
 
 The build compiles in the version and its short commit (`--dart-define=APP_VERSION` and `APP_COMMIT`), which the
 about panel shows beside the logo as e.g. `v1.3.0 · a1b2c3d`, linked to that release. Once the deploy succeeds, CI
-tags the commit `v1.3.0` and creates a GitHub Release with generated notes, so a failed deploy never uses up a
-number. A re-run with nothing new since the last tag deploys again without tagging. Local builds say `dev`.
+tags the commit `v1.3.0` and creates a GitHub Release, so a failed deploy never uses up a number. A re-run with
+nothing new since the last tag deploys again without tagging. Local builds say `dev`.
+
+The release notes come from `tool/release_notes.dart`, not GitHub's generator, which only lists pull requests.
+It groups every commit since the last release under Features, Fixes, and Docs and maintenance (breaking changes
+first), linking each to its pull request, or to the commit itself when it went straight to `main`. A hand-written
+intro in `.github/releases/v<version>.md` goes on top when there is one, as it does for v1.0.0. To preview the
+next release's notes: `dart tool/release_notes.dart <version>`.
 
 ## Run
 

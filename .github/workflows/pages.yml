@@ -7,7 +7,8 @@ name: Test and deploy
 # release tag by tool/next_version.dart (feat → minor, fix and the rest → patch,
 # `!` or BREAKING CHANGE → major). The version and commit are compiled into the
 # app for its about panel, and once the deploy succeeds the commit is tagged
-# v<version> with a GitHub Release, so a failed deploy never uses up a number.
+# v<version> with a GitHub Release (notes from tool/release_notes.dart), so a
+# failed deploy never uses up a number.
 on:
   push:
     branches: [main]
@@ -145,6 +146,17 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the notes cover every commit since the last release
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      # Notes grouped from the commits (tool/release_notes.dart), under the
+      # version's hand-written intro in .github/releases/ when there is one.
+      - run: dart tool/release_notes.dart "${{ needs.version.outputs.version }}" > notes.md
       - env:
           GH_TOKEN: ${{ github.token }}
         run: >-
@@ -152,4 +164,4 @@ jobs:
           --repo "${{ github.repository }}"
           --target "${{ github.sha }}"
           --title "v${{ needs.version.outputs.version }}"
-          --generate-notes
+          --notes-file notes.md

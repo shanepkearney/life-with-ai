@@ -53,19 +53,23 @@ Bump bumpFor(String message) {
   return (version: '$major.$minor.$patch', isNew: true);
 }
 
-String _git(List<String> args) {
+String git(List<String> args) {
   final r = Process.runSync('git', args);
   if (r.exitCode != 0) throw ProcessException('git', args, '${r.stderr}', r.exitCode);
   return (r.stdout as String).trim();
 }
 
+/// The newest v1.2.3-style tag reachable from HEAD, or null before the first release.
+String? lastReleaseTag() {
+  final tags = git(['tag', '--merged', 'HEAD', '--list', 'v*', '--sort=-v:refname']).split('\n').where(_tag.hasMatch);
+  return tags.isEmpty ? null : tags.first;
+}
+
 void main() {
-  // The newest v1.2.3-style tag reachable from HEAD.
-  final tags = _git(['tag', '--merged', 'HEAD', '--list', 'v*', '--sort=-v:refname']).split('\n').where(_tag.hasMatch);
-  final lastTag = tags.isEmpty ? null : tags.first;
+  final lastTag = lastReleaseTag();
   final range = lastTag == null ? 'HEAD' : '$lastTag..HEAD';
   // NUL-separated so multi-line bodies stay whole.
-  final messages = _git(['log', range, '--format=%B%x00']).split('\x00').where((m) => m.trim().isNotEmpty).toList();
+  final messages = git(['log', range, '--format=%B%x00']).split('\x00').where((m) => m.trim().isNotEmpty).toList();
   final next = nextVersion(lastTag, messages);
   stdout
     ..writeln('version=${next.version}')
