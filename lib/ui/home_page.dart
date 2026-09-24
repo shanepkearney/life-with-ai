@@ -10,6 +10,7 @@ import '../core/seed_codec.dart';
 import 'about_modal.dart';
 import 'assistant_panel.dart';
 import 'breakpoints.dart';
+import 'broken_link_dialog.dart';
 import 'control_bar.dart';
 import 'experiment_overlay.dart';
 import 'hud.dart';
@@ -19,6 +20,26 @@ import 'mobile_sheet.dart';
 import 'theme.dart';
 import 'toasts.dart';
 
+/// A message shown once after launch.
+class LaunchNotice {
+  const LaunchNotice(this.text, {this.offerCommunity = false});
+
+  static const sharedSeed = LaunchNotice('Loaded a shared seed. Press space to pause.');
+
+  /// A link that meant to share a seed, but whose seed couldn't be read or
+  /// loaded. With the assistant panel present it's a dialog offering the
+  /// Community tab; this text is the fallback.
+  static const brokenLink = LaunchNotice(
+    "That seed link is broken or incomplete, so it couldn't be loaded. Find another seed in the Community tab.",
+    offerCommunity: true,
+  );
+
+  final String text;
+
+  /// Offers the Community tab (in a dialog) instead of a plain toast.
+  final bool offerCommunity;
+}
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key, required this.controller, this.assistant, this.notice, this.favorites, this.saveScreenshot = savePng});
 
@@ -27,7 +48,7 @@ class HomePage extends StatefulWidget {
 
   /// Shown as a side panel on desktop and a bottom sheet on phones.
   final AssistantController? assistant;
-  final String? notice;
+  final LaunchNotice? notice;
   final ScreenshotSaver saveScreenshot;
 
   @override
@@ -53,7 +74,14 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     final notice = widget.notice;
     if (notice != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _toasts.show(notice);
+        if (!mounted) return;
+        final assistant = widget.assistant;
+        if (notice.offerCommunity && assistant != null) {
+          // A dialog, not a toast: it's the first thing this visitor sees, and they came for a seed.
+          showBrokenLinkDialog(context, onExplore: assistant.showCommunity);
+        } else {
+          _toasts.show(notice.text);
+        }
       });
     }
   }

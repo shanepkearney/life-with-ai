@@ -44,6 +44,7 @@ class _AssistantPanelState extends State<AssistantPanel> {
 
   /// Opened from a share link, the panel starts on Favourites, where its card is.
   late _Tab _tab = widget.assistant.shared != null ? _Tab.favourites : _Tab.assistant;
+  late int _communityRequests = widget.assistant.communityRequests;
   bool get _onAssistant => _tab == _Tab.assistant;
 
   @override
@@ -69,6 +70,15 @@ class _AssistantPanelState extends State<AssistantPanel> {
       listenable: Listenable.merge([widget.assistant, widget.assistant.favorites]),
       builder: (context, _) {
         final a = widget.assistant;
+        if (a.communityRequests != _communityRequests) {
+          _communityRequests = a.communityRequests;
+          // After this frame: switching tabs and opening the phone sheet both rebuild.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            setState(() => _tab = _Tab.community);
+            widget.onOpen?.call();
+          });
+        }
         if (_onAssistant) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (_scroll.hasClients) _scroll.jumpTo(_scroll.position.maxScrollExtent);

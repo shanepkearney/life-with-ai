@@ -171,6 +171,17 @@ class AssistantController extends ChangeNotifier {
   final Future<List<CommunitySeed>> Function() _communitySource;
   Future<void>? _communityLoad;
 
+  /// Bumped by [showCommunity]; the panel switches to the Community tab (and
+  /// the phone sheet opens) whenever it changes.
+  int communityRequests = 0;
+
+  /// Sends the user to the Community tab, e.g. from a broken link's message.
+  void showCommunity() {
+    communityRequests++;
+    loadCommunity();
+    notifyListeners();
+  }
+
   /// Loads the community seeds once; later calls share the same load. After a
   /// failure, calling it again retries.
   Future<void> loadCommunity() => _communityLoad ??= _loadCommunity();

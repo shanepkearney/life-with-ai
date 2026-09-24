@@ -144,8 +144,10 @@ void main() {
       await frames(tester, 150);
       await tester.tap(f);
     }
+
     // The desktop bar wraps each IconButton in a Tooltip (the phone strip is the other way round).
-    bool enabled(String tip) => tester.widget<IconButton>(find.descendant(of: find.byTooltip(tip), matching: find.byType(IconButton))).onPressed != null;
+    bool enabled(String tip) =>
+        tester.widget<IconButton>(find.descendant(of: find.byTooltip(tip), matching: find.byType(IconButton))).onPressed != null;
     expect(enabled('Back to the start'), isFalse);
     expect(enabled('Step back one generation (←)'), isFalse);
 
@@ -257,10 +259,32 @@ void main() {
     expect(tester.getTopLeft(find.text('SHARED WITH YOU')).dy, lessThan(tester.getTopLeft(savedMoment).dy));
   });
 
-  testWidgets('a broken share link falls back to a normal start', (tester) async {
+  testWidgets('a broken share link falls back to a normal start and points to the Community tab', (tester) async {
     final app = await start(tester, launchUri: Uri.parse('${ShareLink.site}#seed=1_10x10_0_0_999o'));
     expect(app.controller.running, isFalse);
+    expect(app.controller.population, greaterThan(0), reason: 'a normal random board instead');
     expect(find.textContaining('Loaded a shared seed'), findsNothing);
+    await pumpUntil(tester, () => find.text("This seed didn't make it").evaluate().isNotEmpty, reason: 'the dialog');
+
+    // "Just play" closes it, leaving the random board.
+    await tester.tap(find.text('Just play'));
+    await frames(tester, 400);
+    expect(find.text("This seed didn't make it"), findsNothing);
+    expect(find.text('Neon Frame'), findsNothing, reason: 'still on the Assistant tab');
+  });
+
+  testWidgets("a broken link's dialog can take you to the Community tab", (tester) async {
+    await start(tester, launchUri: Uri.parse('${ShareLink.site}#seed=1_512x384_1'));
+    await pumpUntil(tester, () => find.text("This seed didn't make it").evaluate().isNotEmpty, reason: 'the dialog');
+    await tester.tap(find.text('Explore community seeds'));
+    await pumpUntil(tester, () => find.text('Neon Frame').evaluate().isNotEmpty, reason: 'the Community tab open, seeds loaded');
+    expect(find.text("This seed didn't make it"), findsNothing);
+  });
+
+  testWidgets('an ordinary visit says nothing about links', (tester) async {
+    await start(tester, launchUri: Uri.parse(ShareLink.site.toString()));
+    await frames(tester, 300);
+    expect(find.text("This seed didn't make it"), findsNothing);
   });
 
   testWidgets('any moment of a hand-made board can be hearted, and an empty one is refused', (tester) async {
@@ -303,18 +327,41 @@ void main() {
   });
 
   testWidgets('assistant run: experiment replays, then heart, recall and share the seed', (tester) async {
-    Map<String, dynamic> reply(List<Map<String, dynamic>> content) =>
-        {'content': content, 'stop_reason': 'tool_use', 'usage': {'input_tokens': 100, 'output_tokens': 20}};
+    Map<String, dynamic> reply(List<Map<String, dynamic>> content) => {
+      'content': content,
+      'stop_reason': 'tool_use',
+      'usage': {'input_tokens': 100, 'output_tokens': 20},
+    };
     final responses = [
       reply([
         {'type': 'text', 'text': 'Two gliders on a collision course.'},
         {'type': 'tool_use', 'id': 't1', 'name': 'clear_board', 'input': {}},
-        {'type': 'tool_use', 'id': 't2', 'name': 'place_pattern', 'input': {'name': 'glider', 'x': 100, 'y': 100}},
-        {'type': 'tool_use', 'id': 't3', 'name': 'place_pattern', 'input': {'name': 'glider', 'x': 130, 'y': 100, 'rotation': 90}},
-        {'type': 'tool_use', 'id': 't4', 'name': 'simulate', 'input': {'generations': 60}},
+        {
+          'type': 'tool_use',
+          'id': 't2',
+          'name': 'place_pattern',
+          'input': {'name': 'glider', 'x': 100, 'y': 100},
+        },
+        {
+          'type': 'tool_use',
+          'id': 't3',
+          'name': 'place_pattern',
+          'input': {'name': 'glider', 'x': 130, 'y': 100, 'rotation': 90},
+        },
+        {
+          'type': 'tool_use',
+          'id': 't4',
+          'name': 'simulate',
+          'input': {'generations': 60},
+        },
       ]),
       reply([
-        {'type': 'tool_use', 'id': 't5', 'name': 'finish', 'input': {'summary': 'Two gliders meet and annihilate.'}},
+        {
+          'type': 'tool_use',
+          'id': 't5',
+          'name': 'finish',
+          'input': {'summary': 'Two gliders meet and annihilate.'},
+        },
       ]),
     ];
     final requests = <Map<String, dynamic>>[];
