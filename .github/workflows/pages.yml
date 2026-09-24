@@ -169,8 +169,11 @@ jobs:
             exit 0
           fi
           case "$CF_BEACON_TOKEN" in *[!A-Za-z0-9]*) echo "::error::CF_BEACON_TOKEN should be letters and digits only."; exit 1;; esac
-          # Cloudflare's own snippet, as its dashboard gives it.
-          beacon="<script type=\"module\" src=\"https://static.cloudflareinsights.com/beacon.min.js\" data-cf-beacon='{\"token\": \"$CF_BEACON_TOKEN\"}'></script>"
+          # Cloudflare's own snippet, with "spa": false: its single-page-app mode
+          # counts every address change as a page view, and Flutter makes a few
+          # while starting, so one visit read as ~2.4 page views. (It never sends
+          # the #fragment either way: share links' seeds stay out of analytics.)
+          beacon="<script type=\"module\" src=\"https://static.cloudflareinsights.com/beacon.min.js\" data-cf-beacon='{\"token\": \"$CF_BEACON_TOKEN\", \"spa\": false}'></script>"
           python3 - "$beacon" <<'PY'
           import re, sys
           path = 'build/web/index.html'
