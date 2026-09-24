@@ -67,11 +67,35 @@ String? lastReleaseTag({String? except}) {
   return tags.isEmpty ? null : tags.first;
 }
 
+/// Where community seeds live: one JSON file each (CONTRIBUTING.md).
+const communitySeedsDir = 'community/seeds/';
+
+/// Whether a commit only touches community seed files. Those come from
+/// contributors through GitHub's web editor, which can't prefill a commit
+/// message, so they're recognized by what they change rather than what they
+/// say: always a patch, and credited in the notes' own section.
+bool isCommunitySeedsOnly(List<String> files) => files.isNotEmpty && files.every((f) => f.startsWith(communitySeedsDir));
+
+/// The files [sha] changed (none for a merge commit).
+List<String> filesChanged(String sha) =>
+    git(['diff-tree', '--no-commit-id', '--name-only', '-r', sha]).split('\n').where((f) => f.isNotEmpty).toList();
+
+/// Commits in [range], newest first: hash, whole message, and whether it only touches community seeds.
+List<({String sha, String message, bool communityOnly})> commitsIn(String range) => [
+  for (final record in git(['log', range, '--format=%H%x1f%B%x00']).split('\x00'))
+    if (record.trim().isNotEmpty)
+      () {
+        final [sha, message] = record.trim().split('\x1f');
+        return (sha: sha, message: message, communityOnly: isCommunitySeedsOnly(filesChanged(sha)));
+      }(),
+];
+
 void main() {
   final lastTag = lastReleaseTag();
   final range = lastTag == null ? 'HEAD' : '$lastTag..HEAD';
-  // NUL-separated so multi-line bodies stay whole.
-  final messages = git(['log', range, '--format=%B%x00']).split('\x00').where((m) => m.trim().isNotEmpty).toList();
+  // A community seed is a patch, whatever its commit says (a contributor's
+  // "feat!:" mustn't cut a major release).
+  final messages = [for (final c in commitsIn(range)) c.communityOnly ? 'chore: community seed' : c.message];
   final next = nextVersion(lastTag, messages);
   stdout
     ..writeln('version=${next.version}')

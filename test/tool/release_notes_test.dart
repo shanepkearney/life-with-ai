@@ -34,6 +34,20 @@ void main() {
     expect(notes.indexOf('## Downloads'), lessThan(notes.indexOf('## Features')));
   });
 
+  test('new community seeds get their own section, credited to their authors, between features and fixes', () {
+    final notes = releaseNotes(
+      version: '1.1.2',
+      previousTag: 'v1.1.1',
+      commits: [c('feat: a feature'), c('fix: a fix')],
+      newSeeds: [(name: 'Pool Party', author: 'someone', sha: 'abc1234', pr: 14), (name: 'Glider', author: 'octocat', sha: 'def5678', pr: null)],
+    );
+    expect(notes, contains('## Community seeds\n\n- "Pool Party" by @someone (#14)\n- "Glider" by @octocat (def5678)\n'));
+    expect(notes.indexOf('## Features'), lessThan(notes.indexOf('## Community seeds')));
+    expect(notes.indexOf('## Community seeds'), lessThan(notes.indexOf('## Fixes')));
+    final seedsOnly = releaseNotes(version: '1.1.2', previousTag: 'v1.1.1', commits: [], newSeeds: [(name: 'X', author: 'y', sha: 's', pr: 1)]);
+    expect(seedsOnly, isNot(contains('No changes since')));
+  });
+
   test('breaking changes come first', () {
     final notes = releaseNotes(
       version: '2.0.0',

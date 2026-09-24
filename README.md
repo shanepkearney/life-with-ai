@@ -290,6 +290,9 @@ Every deploy is a [semantic version](https://semver.org). When a merge to `main`
 | `feat!: …`, or a `BREAKING CHANGE:` footer | major | 1.2.3 → 2.0.0 |
 
 The biggest bump wins, and merge commits don't count (the commits they merge do). The first release is 1.0.0.
+A commit that only adds or changes community seeds is always a patch, whatever its message: contributors write them
+in GitHub's web editor, which can't prefill a commit message, so they're recognized by the files they change. The
+release notes credit each new seed in a **Community seeds** section, by its name and its author's GitHub username.
 
 A merge to `main` that passes all three test suites is a release, in this order:
 
