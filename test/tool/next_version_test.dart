@@ -27,6 +27,13 @@ void main() {
     });
   });
 
+  test('a commit that only touches community seeds is recognized, whatever its message', () {
+    expect(isCommunitySeedsOnly(['community/seeds/pool-party.json']), isTrue);
+    expect(isCommunitySeedsOnly(['community/seeds/a.json', 'community/seeds/b.json']), isTrue);
+    expect(isCommunitySeedsOnly(['community/seeds/a.json', 'lib/main.dart']), isFalse, reason: 'code too: its message decides');
+    expect(isCommunitySeedsOnly([]), isFalse, reason: 'a merge commit changes nothing itself');
+  });
+
   group('nextVersion', () {
     test('the first release is 1.0.0', () {
       expect(nextVersion(null, ['feat: everything']), (version: '1.0.0', isNew: true));

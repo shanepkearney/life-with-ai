@@ -7,6 +7,7 @@
 // every commit, including the ones pushed straight to main before the project
 // used pull requests. A hand-written intro in .github/releases/v<version>.md,
 // if there is one, goes above the list.
+import 'dart:convert';
 import 'dart:io';
 
 import 'next_version.dart';
@@ -18,6 +19,10 @@ const site = 'https://shanepkearney.github.io/life-with-ai/';
 /// request that brought it in, if any.
 typedef ReleasedCommit = ({String sha, String message, int? pr});
 
+/// A community seed added in this release: its name and author (from its
+/// file) and the pull request, or commit, that brought it.
+typedef SeedCredit = ({String name, String author, String sha, int? pr});
+
 final _conventional = RegExp(r'^(\w+)(\([^)]*\))?(!)?:\s*(.*)$');
 
 /// The notes, in Markdown. [commits] are newest first, as `git log` lists them.
@@ -25,6 +30,7 @@ String releaseNotes({
   required String version,
   required String? previousTag,
   required List<ReleasedCommit> commits,
+  List<SeedCredit> newSeeds = const [],
   String? intro,
 }) {
   final breaking = <String>[], features = <String>[], fixes = <String>[], other = <String>[];
@@ -67,9 +73,14 @@ String releaseNotes({
 
   section('Breaking changes', breaking);
   section('Features', features);
+  section('Community seeds', [
+    for (final s in newSeeds) '- "${s.name}" by @${s.author} (${s.pr != null ? '#${s.pr}' : s.sha})',
+  ]);
   section('Fixes', fixes);
   section('Docs and maintenance', other);
-  if (breaking.isEmpty && features.isEmpty && fixes.isEmpty && other.isEmpty) out.writeln('No changes since $previousTag.\n');
+  if (breaking.isEmpty && features.isEmpty && newSeeds.isEmpty && fixes.isEmpty && other.isEmpty) {
+    out.writeln('No changes since $previousTag.\n');
+  }
   out.writeln(
     previousTag == null
         ? '**Full history**: https://github.com/$repo/commits/v$version'
@@ -99,14 +110,32 @@ void main(List<String> args) {
     }
   }
 
+  // Community seed commits are credited in their own section (below), not listed as commits.
   final commits = <ReleasedCommit>[
-    for (final record in git(['log', range, '--format=%H%x1f%h%x1f%B%x00']).split('\x00'))
-      if (record.trim().isNotEmpty)
-        () {
-          final [full, short, message] = record.trim().split('\x1f');
-          return (sha: short, message: message, pr: prOf[full]);
-        }(),
+    for (final c in commitsIn(range))
+      if (!c.communityOnly) (sha: c.sha.substring(0, 7), message: c.message, pr: prOf[c.sha]),
   ];
+
+  // Seeds added since the last release, named and credited from their files.
+  final added = git(['log', range, '--diff-filter=A', '--name-only', '--format=%x1e%H', '--', communitySeedsDir]);
+  final newSeeds = <SeedCredit>[];
+  for (final block in added.split('\x1e').where((b) => b.trim().isNotEmpty).toList().reversed) {
+    final [sha, ...paths] = block.trim().split('\n').where((l) => l.isNotEmpty).toList();
+    for (final path in paths.where((p) => p.endsWith('.json'))) {
+      Map<String, Object?> entry;
+      try {
+        entry = jsonDecode(git(['show', 'HEAD:$path'])) as Map<String, Object?>;
+      } catch (_) {
+        continue; // since removed, or unreadable: nothing to credit
+      }
+      newSeeds.add((
+        name: '${entry['name'] ?? path.split('/').last}',
+        author: '${entry['author'] ?? 'unknown'}',
+        sha: sha.substring(0, 7),
+        pr: prOf[sha],
+      ));
+    }
+  }
 
   final introFile = File('.github/releases/v$version.md');
   stdout.write(
@@ -114,6 +143,7 @@ void main(List<String> args) {
       version: version,
       previousTag: previousTag,
       commits: commits,
+      newSeeds: newSeeds,
       intro: introFile.existsSync() ? introFile.readAsStringSync() : null,
     ),
   );

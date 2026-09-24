@@ -10,7 +10,8 @@ the seed is in the app, with credit to your GitHub.
 2. On its card in Favorites, press the 🌐 **Submit to the community** button.
 3. GitHub opens a new file in `community/seeds/` with the entry filled in. Put your GitHub username
    in `author`, check the `name` and `description`, and press **Propose changes**. If you don't have
-   write access, GitHub forks the repo and opens the pull request for you.
+   write access, GitHub forks the repo and opens the pull request for you. Any commit message is fine:
+   the release notes credit your seed by its name and your username either way.
 
 Very long seeds don't fit in GitHub's link. For those, the app copies the entry to your clipboard
 instead, so you paste it into the new file.
