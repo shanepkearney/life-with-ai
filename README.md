@@ -346,6 +346,7 @@ only; drag on the board to draw (toggle the pencil to erase).
 
 ## License
 
-Copyright © 2026 Shane Kearney. The code is all rights reserved: it's public to read and review, but not licensed
-for reuse ([LICENSE](LICENSE)). The community seeds are under [CC BY 4.0](community/LICENSE.md): share and reuse
-them freely, crediting each seed's author.
+The code is under the [MIT license](LICENSE), © 2026 Shane Kearney: use it, change it and share it, keeping the
+copyright notice. The community seeds are under [CC BY 4.0](community/LICENSE.md): share and reuse them freely,
+crediting each seed's author. In the spirit of Life itself, which Conway gave away and a community has shared
+freely ever since.

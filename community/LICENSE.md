@@ -10,4 +10,4 @@ app shows it as "by @author".
 By submitting a seed (see [CONTRIBUTING.md](../CONTRIBUTING.md)), you license it
 under CC BY 4.0 and confirm it's yours to license.
 
-The rest of this repository is not under this license: see [`LICENSE`](../LICENSE).
+The rest of this repository (the code) is under the MIT license instead: see [`LICENSE`](../LICENSE).
