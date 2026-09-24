@@ -17,31 +17,35 @@ class ScriptedApi {
   final headers = <Map<String, String>>[];
 
   http.Client get client => MockClient((req) async {
-        requests.add(jsonDecode(req.body) as Map<String, dynamic>);
-        headers.add(req.headers);
-        final next = responses.removeAt(0);
-        final status = next.remove('_status') as int? ?? 200;
-        return http.Response(jsonEncode(next), status);
-      });
+    requests.add(jsonDecode(req.body) as Map<String, dynamic>);
+    headers.add(req.headers);
+    final next = responses.removeAt(0);
+    final status = next.remove('_status') as int? ?? 200;
+    return http.Response(jsonEncode(next), status);
+  });
 }
 
 Map<String, dynamic> reply(String stop, List<Map<String, dynamic>> content) => {
-      'id': 'msg',
-      'type': 'message',
-      'role': 'assistant',
-      'content': content,
-      'stop_reason': stop,
-      'usage': {'input_tokens': 100, 'output_tokens': 50, 'cache_read_input_tokens': 1000},
-    };
+  'id': 'msg',
+  'type': 'message',
+  'role': 'assistant',
+  'content': content,
+  'stop_reason': stop,
+  'usage': {'input_tokens': 100, 'output_tokens': 50, 'cache_read_input_tokens': 1000},
+};
 
-Map<String, dynamic> toolUse(String id, String name, Map<String, dynamic> input) =>
-    {'type': 'tool_use', 'id': id, 'name': name, 'input': input};
+Map<String, dynamic> toolUse(String id, String name, Map<String, dynamic> input) => {
+  'type': 'tool_use',
+  'id': id,
+  'name': name,
+  'input': input,
+};
 
 SeedAgent agentFor(ScriptedApi api, {int maxTurns = 10, ClaudeModel model = ClaudeModel.opus5}) => SeedAgent(
-      client: AnthropicClient(apiKey: 'sk-test', model: model, httpClient: api.client, maxRetries: 0),
-      workbench: SeedWorkbench(64, 48, simulator: (r) async => runSimulation(r)),
-      maxTurns: maxTurns,
-    );
+  client: AnthropicClient(apiKey: 'sk-test', model: model, httpClient: api.client, maxRetries: 0),
+  workbench: SeedWorkbench(64, 48, simulator: (r) async => runSimulation(r)),
+  maxTurns: maxTurns,
+);
 
 void main() {
   test('runs tools, feeds results back, and hands over the seed on finish', () async {
@@ -78,7 +82,11 @@ void main() {
   });
 
   test('sends auth, browser-access and fallback headers, and caches the prefix', () async {
-    final api = ScriptedApi([reply('end_turn', [{'type': 'text', 'text': 'Which colour?'}])]);
+    final api = ScriptedApi([
+      reply('end_turn', [
+        {'type': 'text', 'text': 'Which colour?'},
+      ]),
+    ]);
     final events = await agentFor(api).send('something pretty').toList();
     expect((events.last as AgentDone).play, isFalse);
 
@@ -95,7 +103,11 @@ void main() {
   });
 
   test('Sonnet requests carry no fallback parameters', () async {
-    final api = ScriptedApi([reply('end_turn', [{'type': 'text', 'text': 'ok'}])]);
+    final api = ScriptedApi([
+      reply('end_turn', [
+        {'type': 'text', 'text': 'ok'},
+      ]),
+    ]);
     await agentFor(api, model: ClaudeModel.sonnet5).send('hi').toList();
     expect(api.headers.single.containsKey('anthropic-beta'), isFalse);
     expect(api.requests.single.containsKey('fallbacks'), isFalse);
@@ -103,7 +115,10 @@ void main() {
 
   test('stops at the turn cap and still hands over the seed', () async {
     final api = ScriptedApi([
-      for (var i = 0; i < 3; i++) reply('tool_use', [toolUse('t$i', 'place_pattern', {'name': 'block', 'x': i * 4, 'y': 0})]),
+      for (var i = 0; i < 3; i++)
+        reply('tool_use', [
+          toolUse('t$i', 'place_pattern', {'name': 'block', 'x': i * 4, 'y': 0}),
+        ]),
     ]);
     final events = await agentFor(api, maxTurns: 3).send('keep going forever').toList();
     expect(api.requests, hasLength(3));
@@ -112,8 +127,12 @@ void main() {
 
   test('a tool error is reported to the model, which can recover', () async {
     final api = ScriptedApi([
-      reply('tool_use', [toolUse('t1', 'place_pattern', {'name': 'unicorn', 'x': 0, 'y': 0})]),
-      reply('tool_use', [toolUse('t2', 'finish', {'summary': 'done'})]),
+      reply('tool_use', [
+        toolUse('t1', 'place_pattern', {'name': 'unicorn', 'x': 0, 'y': 0}),
+      ]),
+      reply('tool_use', [
+        toolUse('t2', 'finish', {'summary': 'done'}),
+      ]),
     ]);
     await agentFor(api).send('x').toList();
     final result = (api.requests[1]['messages'] as List)[2]['content'][0];
@@ -123,7 +142,11 @@ void main() {
 
   test('API errors surface as a readable message', () async {
     final api = ScriptedApi([
-      {'_status': 401, 'type': 'error', 'error': {'type': 'authentication_error', 'message': 'invalid x-api-key'}},
+      {
+        '_status': 401,
+        'type': 'error',
+        'error': {'type': 'authentication_error', 'message': 'invalid x-api-key'},
+      },
     ]);
     final events = await agentFor(api).send('x').toList();
     expect((events.last as AgentError).message, contains('API key was rejected'));
@@ -131,9 +154,15 @@ void main() {
 
   test('a follow-up prompt keeps history valid and reuses the seed', () async {
     final api = ScriptedApi([
-      reply('tool_use', [toolUse('t1', 'place_pattern', {'name': 'glider', 'x': 3, 'y': 3})]),
-      reply('tool_use', [toolUse('t2', 'finish', {'summary': 'one'})]),
-      reply('tool_use', [toolUse('t3', 'finish', {'summary': 'two'})]),
+      reply('tool_use', [
+        toolUse('t1', 'place_pattern', {'name': 'glider', 'x': 3, 'y': 3}),
+      ]),
+      reply('tool_use', [
+        toolUse('t2', 'finish', {'summary': 'one'}),
+      ]),
+      reply('tool_use', [
+        toolUse('t3', 'finish', {'summary': 'two'}),
+      ]),
     ]);
     final agent = agentFor(api);
     await agent.send('first').toList();

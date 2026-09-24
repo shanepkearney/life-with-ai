@@ -16,14 +16,27 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Heart a finished seed, find it in Favourites, play it, share it, delete it.
 void main() {
   http.Client scriptedApi() {
-    Map<String, dynamic> reply(List<Map<String, dynamic>> content) =>
-        {'content': content, 'stop_reason': 'tool_use', 'usage': {'input_tokens': 1, 'output_tokens': 1}};
+    Map<String, dynamic> reply(List<Map<String, dynamic>> content) => {
+      'content': content,
+      'stop_reason': 'tool_use',
+      'usage': {'input_tokens': 1, 'output_tokens': 1},
+    };
     final responses = [
       reply([
-        {'type': 'tool_use', 'id': 't1', 'name': 'place_pattern', 'input': {'name': 'glider', 'x': 20, 'y': 20}},
+        {
+          'type': 'tool_use',
+          'id': 't1',
+          'name': 'place_pattern',
+          'input': {'name': 'glider', 'x': 20, 'y': 20},
+        },
       ]),
       reply([
-        {'type': 'tool_use', 'id': 't2', 'name': 'finish', 'input': {'summary': 'A glider drifts away.'}},
+        {
+          'type': 'tool_use',
+          'id': 't2',
+          'name': 'finish',
+          'input': {'summary': 'A glider drifts away.'},
+        },
       ]),
     ];
     return MockClient((_) async => http.Response(jsonEncode(responses.removeAt(0)), 200));
@@ -47,7 +60,13 @@ void main() {
       assistant = AssistantController(life, favorites, httpClient: scriptedApi())..apiKey = 'sk-test';
       await assistant.send('One glider please');
     });
-    await tester.pumpWidget(MaterialApp(home: Scaffold(body: Row(children: [AssistantPanel(assistant: assistant)]))));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Row(children: [AssistantPanel(assistant: assistant)]),
+        ),
+      ),
+    );
     await tester.pump();
 
     // Heart it on the finish card.
