@@ -1,0 +1,73 @@
+name: Event collector
+
+# The seed-open event collector in analytics/, a Cloudflare Worker: tested on
+# every change, and on main uploaded to Cloudflare with Wrangler (which needs
+# Node 22, so it runs here rather than on a laptop). See analytics/README.md.
+on:
+  push:
+    branches: [main]
+    paths: ['analytics/**', '.github/workflows/analytics.yml']
+  pull_request:
+    paths: ['analytics/**', '.github/workflows/analytics.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false # never cut a deploy off halfway
+
+jobs:
+  test:
+    name: Test the collector
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --test analytics/test/*.test.js
+
+  deploy:
+    name: Deploy to Cloudflare
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - id: deploy
+        working-directory: analytics
+        env:
+          # An API token with "Workers Scripts: Edit", made in the Cloudflare
+          # dashboard and saved as a repository secret (analytics/README.md).
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::warning::CLOUDFLARE_API_TOKEN (secret) or CLOUDFLARE_ACCOUNT_ID (variable) isn't set; not deploying."
+            exit 0
+          fi
+          npx --yes wrangler@4 deploy 2>&1 | tee deploy.log
+          url="$(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' deploy.log | head -1)"
+          [ -n "$url" ] || { echo "::error::Wrangler didn't report the Worker's address."; exit 1; }
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "::notice::The collector is at $url/v1/event (the app's TELEMETRY_URL)."
+      # Proves it's live without storing anything: a malformed event is
+      # refused, and the browser's CORS preflight from the site is allowed.
+      - if: steps.deploy.outputs.url != ''
+        env:
+          URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          for _ in $(seq 1 10); do
+            bad="$(curl -s -o /dev/null -w '%{http_code}' -X POST --data 'not an event' "$URL/v1/event")"
+            [ "$bad" = 400 ] && break
+            sleep 3 # a new Worker can take a moment to answer everywhere
+          done
+          [ "$bad" = 400 ] || { echo "::error::Expected 400 for a malformed event, got $bad."; exit 1; }
+          pre="$(curl -s -o /dev/null -w '%{http_code}' -X OPTIONS -H 'Origin: https://shanepkearney.github.io' "$URL/v1/event")"
+          [ "$pre" = 204 ] || { echo "::error::Expected 204 for the site's preflight, got $pre."; exit 1; }
+          echo "✓ the collector is live: malformed events refused, the site's preflight allowed"
