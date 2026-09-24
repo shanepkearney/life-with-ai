@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:life_with_ai/app/life_controller.dart';
@@ -59,6 +60,10 @@ void main() {
       final strip = tester.renderObject<RenderBox>(find.byType(MobileControls));
       expect(strip.getMaxIntrinsicWidth(double.infinity), lessThanOrEqualTo(strip.size.width), reason: 'controls fit on one row');
       expect(app.controller.boardSize, BoardSize.portrait, reason: 'phones start on the portrait board');
+      // Real fonts: all three tab labels fit whole, none cut short with an ellipsis.
+      for (final label in ['Assistant', 'Favourites', 'Community']) {
+        expect(tester.renderObject<RenderParagraph>(find.text(label)).didExceedMaxLines, isFalse, reason: '"$label" is cut off');
+      }
     });
   }
 
@@ -78,15 +83,16 @@ void main() {
     expect(find.byType(MobileSheet), findsNothing);
   });
 
-  testWidgets('the resting sheet is two tabs, each opening the sheet on its own view', (tester) async {
+  testWidgets('the resting sheet is three tabs, each opening the sheet on its own view', (tester) async {
     await startOn(tester, const Size(393, 852));
     final sheet = find.byType(MobileSheet);
     double sheetTop() => tester.getRect(find.descendant(of: sheet, matching: find.byType(AnimatedContainer)).first).top;
     final resting = sheetTop();
 
-    // At rest: just the two tabs. The chat, message box and buttons wait for the sheet to open.
-    expect(find.text('Seed assistant'), findsOneWidget);
+    // At rest: just the three tabs. The chat, message box and buttons wait for the sheet to open.
+    expect(find.text('Assistant'), findsOneWidget);
     expect(find.text('Favourites'), findsOneWidget);
+    expect(find.text('Community'), findsOneWidget);
     expect(find.byType(TextField), findsNothing, reason: 'message box hidden at rest');
     for (final tip in ['New chat', 'Settings']) {
       expect(find.byTooltip(tip), findsNothing, reason: '$tip hidden at rest');
@@ -102,8 +108,14 @@ void main() {
       expect(find.byTooltip(tip), findsNothing, reason: '$tip belongs to the Assistant view, not Favourites');
     }
 
-    // The same tabs switch views while open.
-    await tester.tap(find.text('Seed assistant'));
+    // The same tabs switch views while open: Community lists the contributed seeds.
+    await tester.tap(find.text('Community'));
+    await frames(tester, 200);
+    expect(find.text('Boxed Chaos'), findsOneWidget);
+    expect(find.text('by @shanepkearney', findRichText: true), findsWidgets);
+    expect(find.byType(TextField), findsNothing, reason: 'no message box on the community view');
+
+    await tester.tap(find.text('Assistant'));
     await frames(tester, 200);
     expect(find.textContaining('Two glider fleets'), findsOneWidget, reason: 'chat view with example prompts');
     expect(find.byType(TextField), findsOneWidget);
@@ -118,8 +130,8 @@ void main() {
     expect(find.byType(TextField), findsNothing);
     expect(find.byTooltip('New chat'), findsNothing);
 
-    // Seed assistant at rest opens on the chat.
-    await tester.tap(find.text('Seed assistant'));
+    // Assistant at rest opens on the chat.
+    await tester.tap(find.text('Assistant'));
     await frames(tester, 400);
     expect(find.byType(TextField), findsOneWidget);
 
@@ -127,7 +139,7 @@ void main() {
     await tester.enterText(find.byType(TextField), 'Two gliders, then');
     await tester.drag(find.bySemanticsLabel('Collapse the assistant'), const Offset(0, 500));
     await frames(tester, 400);
-    await tester.tap(find.text('Seed assistant'));
+    await tester.tap(find.text('Assistant'));
     await frames(tester, 400);
     expect(find.text('Two gliders, then'), findsOneWidget);
   });
@@ -151,9 +163,15 @@ void main() {
     patternLibrary['r_pentomino']!.stampOnto(desktopSeed, 250, 180);
     var app = await startOn(tester, const Size(393, 852), launchUri: Uri.parse(ShareLink.forSeed(desktopSeed, title: 'From a desktop')));
     expect(app.controller.boardSize, BoardSize.medium, reason: 'adopts the sender\'s board');
+    // On a phone the sheet opens by itself, on Favourites, so the "Shared with you" card is seen.
+    expect(find.text('SHARED WITH YOU'), findsOneWidget);
+    expect(find.byTooltip('New chat'), findsNothing, reason: 'Favourites, not the Assistant');
     // It plays immediately, so check the seed that arrived rather than a live count.
     expect(app.assistant.shared!.seed.stateHash, desktopSeed.stateHash);
     expect(app.controller.running, isTrue);
+    // The open sheet covers the control strip; close it like a person would to reach ⚙.
+    await tester.drag(find.bySemanticsLabel('Collapse the assistant'), const Offset(0, 500));
+    await frames(tester, 400);
     await tester.tap(find.byTooltip('Speed, glow and engine'));
     await frames(tester, 400);
     expect(find.text('512×384'), findsOneWidget);

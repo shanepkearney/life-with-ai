@@ -119,6 +119,54 @@ void main() {
       expect(ShareLink.parse(Uri.parse('${ShareLink.site}#seed=1_512x384_10_10_bo-2bo-3o&title='))!.title, isNull);
     });
 
+    test('carries a note, cleaned, capped and escaped', () {
+      final seed = seedWith('glider', 10, 10);
+      const note = 'Peaks near gen 136 & settles by ~330 = a period-2 garden.';
+      final shared = ShareLink.parse(Uri.parse(ShareLink.forSeed(seed, title: 'Bloom', note: note)))!;
+      expect((shared.title, shared.note), ('Bloom', note));
+      final long = ShareLink.parse(Uri.parse(ShareLink.forSeed(seed, note: 'word ' * 200)))!;
+      expect(long.note!.length, lessThanOrEqualTo(ShareLink.maxNoteLength));
+      expect(long.note, endsWith('…'));
+      expect(ShareLink.parse(Uri.parse(ShareLink.forSeed(seed, note: ' \n ')))!.note, isNull);
+      expect(ShareLink.parse(Uri.parse(ShareLink.forSeed(seed, note: 'Short, and it fits.')))!.note, 'Short, and it fits.');
+    });
+
+    test('the seed comes first: a note only fills the room it leaves, and is cut to fit', () {
+      // A seed whose link is ~1,700 characters leaves room for only part of a note.
+      final roomy = Grid(512, 384);
+      for (var x = 0; x < 120; x++) {
+        for (var y = 0; y < 24; y++) {
+          if ((x * 7 + y * 13) % 5 == 0) roomy.set(100 + x, 100 + y, true);
+        }
+      }
+      final bare = ShareLink.forSeed(roomy, title: 'Dense');
+      expect(bare.length, inInclusiveRange(1500, ShareLink.comfortableLength - 100));
+      final note = 'Ünïcode & symbols = more bytes when encoded. ' * 9;
+      final link = ShareLink.forSeed(roomy, title: 'Dense', note: note);
+      expect(link.length, lessThanOrEqualTo(ShareLink.comfortableLength));
+      final shared = ShareLink.parse(Uri.parse(link))!;
+      expect(shared.seed.stateHash, roomy.stateHash, reason: 'the seed is never shortened');
+      expect(shared.note, endsWith('…'));
+      expect(note.startsWith(shared.note!.substring(0, shared.note!.length - 1)), isTrue);
+
+      // A seed that fills the budget on its own gets no note at all.
+      final huge = Grid(512, 384);
+      for (var i = 0; i < 4000; i++) {
+        huge.set((i * 37) % 512, (i * 91) % 384, true);
+      }
+      final full = ShareLink.forSeed(huge, note: note);
+      expect(full, isNot(contains('note=')));
+      expect(ShareLink.parse(Uri.parse(full))!.seed.stateHash, huge.stateHash);
+    });
+
+    test("stock summaries aren't sent as notes", () {
+      Favorite fav(String summary) => Favorite(code: 'x', title: 't', summary: summary, savedAt: DateTime(2026));
+      expect(fav(Favorite.momentSummary).linkNote, isNull);
+      expect(fav(Favorite.sharedSummary).linkNote, isNull);
+      expect(fav('').linkNote, isNull);
+      expect(fav('A bloom that settles.').linkNote, 'A bloom that settles.');
+    });
+
     test('ignores URLs without a valid seed', () {
       for (final url in [
         'https://shanepkearney.github.io/life-with-ai/',

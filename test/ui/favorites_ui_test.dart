@@ -99,6 +99,7 @@ void main() {
     final copied = ShareLink.parse(Uri.parse(clipboard!))!;
     expect(copied.seed.population, 5);
     expect(copied.title, 'One glider please');
+    expect(copied.note, 'A glider drifts away.', reason: "Claude's summary travels with the link");
 
     // Delete it, then undo.
     await tester.tap(find.byTooltip('Remove from favourites'));
@@ -113,7 +114,7 @@ void main() {
     expect(assistant.favorites.items.single.title, 'One glider please');
 
     // Back to the chat.
-    await tester.tap(find.text('Seed assistant'));
+    await tester.tap(find.text('Assistant'));
     await tester.pump();
     expect(find.byTooltip('New chat'), findsOneWidget, reason: 'the Assistant tab and its toolbar are back');
 

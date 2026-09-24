@@ -1,5 +1,5 @@
 // Builds the 1200x630 link-preview image (Open Graph / Twitter card) from the
-// README hero screenshot: the star Claude designed, enlarged, beside the name
+// star Claude designed (an early screenshot kept as this tool's input), enlarged, beside the name
 // and tagline in the app's neon style. Uses AppKit for real font rendering, so
 // it runs on macOS only:
 //
@@ -15,7 +15,7 @@ let magenta = NSColor(srgbRed: 1.0, green: 0.169, blue: 0.839, alpha: 1)
 let text = NSColor(srgbRed: 0.902, green: 0.945, blue: 1.0, alpha: 1)
 let muted = NSColor(srgbRed: 0.49, green: 0.545, blue: 0.651, alpha: 1)
 
-guard let hero = NSImage(contentsOfFile: "readme/hero-four-point-star.png"),
+guard let hero = NSImage(contentsOfFile: "tool/social_card_source.png"),
       let heroRep = hero.representations.first else { fatalError("run from the repo root") }
 // Work in the screenshot's pixel space, not its point size.
 let heroPx = NSSize(width: heroRep.pixelsWide, height: heroRep.pixelsHigh)

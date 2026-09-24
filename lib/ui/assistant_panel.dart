@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../app/assistant_controller.dart';
+import 'community_view.dart';
+import 'glider_loader.dart';
 import 'favorites_view.dart';
 import 'api_key_dialog.dart';
 import 'theme.dart';
@@ -34,12 +36,15 @@ class AssistantPanel extends StatefulWidget {
   State<AssistantPanel> createState() => _AssistantPanelState();
 }
 
+enum _Tab { assistant, favourites, community }
+
 class _AssistantPanelState extends State<AssistantPanel> {
   final _input = TextEditingController();
   final _scroll = ScrollController();
 
   /// Opened from a share link, the panel starts on Favourites, where its card is.
-  late bool _showFavorites = widget.assistant.shared != null;
+  late _Tab _tab = widget.assistant.shared != null ? _Tab.favourites : _Tab.assistant;
+  bool get _onAssistant => _tab == _Tab.assistant;
 
   @override
   void dispose() {
@@ -64,7 +69,7 @@ class _AssistantPanelState extends State<AssistantPanel> {
       listenable: Listenable.merge([widget.assistant, widget.assistant.favorites]),
       builder: (context, _) {
         final a = widget.assistant;
-        if (!_showFavorites) {
+        if (_onAssistant) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (_scroll.hasClients) _scroll.jumpTo(_scroll.position.maxScrollExtent);
           });
@@ -77,10 +82,12 @@ class _AssistantPanelState extends State<AssistantPanel> {
             children: [
               _tabsHeader(a),
               const Divider(height: 1, color: Neon.border),
-              if (widget.showActions && !_showFavorites) _assistantToolbar(a),
+              if (widget.showActions && _onAssistant) _assistantToolbar(a),
               Expanded(
-                child: _showFavorites
+                child: _tab == _Tab.favourites
                     ? FavoritesView(favorites: a.favorites, life: a.life, shared: a.shared)
+                    : _tab == _Tab.community
+                    ? _community(a)
                     : a.entries.isEmpty
                     ? _emptyState(a)
                     : ListView.builder(
@@ -90,7 +97,7 @@ class _AssistantPanelState extends State<AssistantPanel> {
                         itemBuilder: (_, i) => i == a.entries.length ? const _Working() : _EntryTile(a.entries[i], assistant: a),
                       ),
               ),
-              if (!_showFavorites && widget.showActions) ...[const Divider(height: 1, color: Neon.border), _composer(a)],
+              if (_onAssistant && widget.showActions) ...[const Divider(height: 1, color: Neon.border), _composer(a)],
             ],
           ),
         );
@@ -98,42 +105,89 @@ class _AssistantPanelState extends State<AssistantPanel> {
     );
   }
 
+  /// The Community tab: its seeds load the first time it opens.
+  Widget _community(AssistantController a) {
+    final seeds = a.community;
+    if (seeds != null) return CommunityView(seeds: seeds, favorites: a.favorites, life: a.life);
+    if (a.communityError != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                "Couldn't load the community seeds.",
+                textAlign: TextAlign.center,
+                style: Neon.mono.copyWith(color: Neon.muted),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: a.loadCommunity,
+                icon: const Icon(Icons.refresh_rounded, size: 16),
+                label: const Text('Try again'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    // Started when the tab is tapped; this covers any other way onto the tab.
+    WidgetsBinding.instance.addPostFrameCallback((_) => a.loadCommunity());
+    return const Center(child: GliderLoader(label: 'Loading community seeds…'));
+  }
+
   Widget _costMeter(AssistantController a) => Tooltip(
     message: '${a.usage!.input} in · ${a.usage!.cacheRead} cached · ${a.usage!.output} out',
     child: Text('≈\$${a.costUsd.toStringAsFixed(3)}', style: Neon.mono.copyWith(color: Neon.amber)),
   );
 
-  /// Two tabs, Seed assistant and Favourites, on every layout. In the phone
-  /// sheet at rest they're the whole bar and a tap opens the sheet on that view.
+  /// Three tabs, Assistant, Favourites and Community, on every layout. In
+  /// the phone sheet at rest they're the whole bar and a tap opens the sheet on that view.
   Widget _tabsHeader(AssistantController a) {
     final open = widget.showActions;
     final n = a.favorites.items.length;
-    void select(bool favourites) {
-      setState(() => _showFavorites = favourites);
+    void select(_Tab tab) {
+      if (tab == _Tab.community) a.loadCommunity(); // first open only; later calls share the load
+      setState(() => _tab = tab);
       widget.onOpen?.call();
     }
 
     final tabs = Row(
       children: [
+        // Widths follow the labels (Favourites is the longest), so all three fit whole.
         Expanded(
+          flex: 9,
           child: _PhoneTab(
             icon: Icons.auto_awesome_rounded,
-            label: 'Seed assistant',
+            label: 'Assistant',
             semantics: 'Seed assistant',
-            selected: open && !_showFavorites,
+            selected: open && _onAssistant,
             busy: a.busy,
-            onTap: () => select(false),
+            onTap: () => select(_Tab.assistant),
           ),
         ),
-        const SizedBox(width: 6),
+        const SizedBox(width: 4),
         Expanded(
+          flex: 10,
           child: _PhoneTab(
             icon: n > 0 ? Icons.favorite_rounded : Icons.favorite_border_rounded,
             label: 'Favourites',
             semantics: n == 0 ? 'Favourites' : 'Favourites, $n saved',
-            selected: open && _showFavorites,
+            selected: open && _tab == _Tab.favourites,
             count: n,
-            onTap: () => select(true),
+            onTap: () => select(_Tab.favourites),
+          ),
+        ),
+        const SizedBox(width: 4),
+        Expanded(
+          flex: 9,
+          child: _PhoneTab(
+            icon: Icons.public_rounded,
+            label: 'Community',
+            semantics: 'Community seeds',
+            selected: open && _tab == _Tab.community,
+            onTap: () => select(_Tab.community),
           ),
         ),
       ],
@@ -402,7 +456,7 @@ class _PhoneTab extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         height: 44,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 4),
         decoration: BoxDecoration(
           border: Border(bottom: BorderSide(color: selected ? Neon.magenta : Colors.transparent, width: 2)),
           boxShadow: selected ? [BoxShadow(color: Neon.magenta.withValues(alpha: 0.18), blurRadius: 12, offset: const Offset(0, 6))] : null,
@@ -438,7 +492,7 @@ class _PhoneTab extends StatelessWidget {
                     ),
                 ],
               ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Flexible(
               child: Text(
                 label,

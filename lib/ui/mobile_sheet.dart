@@ -6,7 +6,11 @@ import 'theme.dart';
 /// up to half or nearly full height, over the board. Used for the assistant
 /// on phones, so the board stays visible while you chat.
 class MobileSheet extends StatefulWidget {
-  const MobileSheet({super.key, required this.builder, required this.peekHeight});
+  const MobileSheet({super.key, required this.builder, required this.peekHeight, this.startOpen = false});
+
+  /// Start half open instead of resting, e.g. when there's something to see
+  /// in the sheet straight away (a seed someone shared).
+  final bool startOpen;
 
   /// Builds the sheet's content. [expanded] is false while it rests at
   /// [peekHeight], so the content can keep that state uncluttered; [open]
@@ -27,7 +31,7 @@ class _MobileSheetState extends State<MobileSheet> {
   /// box, dividers) need ~162px; below this the resting tabs are shown instead.
   static const _fullContentMinHeight = 190.0;
   double? _dragHeight; // non-null while the finger is down
-  _Snap _snap = _Snap.peek;
+  late _Snap _snap = widget.startOpen ? _Snap.half : _Snap.peek;
 
   double _heightFor(_Snap s, double available) => switch (s) {
     _Snap.peek => widget.peekHeight,

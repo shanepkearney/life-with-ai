@@ -26,7 +26,7 @@ void main() {
       await tester.pumpWidget(LifeApp(controller: life, assistant: assistant));
       await tester.pump();
 
-      expect(find.text('Seed assistant'), findsOneWidget);
+      expect(find.text('Assistant'), findsOneWidget);
       expect(find.text('Add your Anthropic API key'), findsOneWidget);
       expect(find.text('GPU · shader'), findsWidgets);
 

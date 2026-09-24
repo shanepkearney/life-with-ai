@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../app/community_submit.dart';
 import '../app/favorites.dart';
 import '../app/life_controller.dart';
 import '../app/share_link.dart';
 import '../core/grid.dart';
 import '../core/seed_codec.dart';
+import 'about_modal.dart';
 import 'seed_thumbnail.dart';
 import 'theme.dart';
 import 'toasts.dart';
@@ -14,10 +16,11 @@ import 'toasts.dart';
 /// a card plays it on the board straight away; the list stays open, so it
 /// browses like a gallery.
 class FavoritesView extends StatefulWidget {
-  const FavoritesView({super.key, required this.favorites, required this.life, this.shared});
+  const FavoritesView({super.key, required this.favorites, required this.life, this.shared, this.openUrl = openExternal});
 
   final FavoritesStore favorites;
   final LifeController life;
+  final OpenUrl openUrl;
 
   /// A seed the app was opened with from a share link: pinned above the list
   /// for this visit, with replay, save (its heart fills once saved) and copy-link.
@@ -35,10 +38,10 @@ class _FavoritesViewState extends State<FavoritesView> {
     await widget.life.playSeed(f.seed, title: f.title);
   }
 
-  Future<void> _copyLink(Favorite f) => _copyLinkFor(f.seed, f.title);
+  Future<void> _copyLink(Favorite f) => _copyLinkFor(f.seed, f.title, note: f.linkNote);
 
-  Future<void> _copyLinkFor(Grid seed, String title) async {
-    final link = ShareLink.forSeed(seed, title: title);
+  Future<void> _copyLinkFor(Grid seed, String title, {String? note}) async {
+    final link = ShareLink.forSeed(seed, title: title, note: note);
     await Clipboard.setData(ClipboardData(text: link));
     if (!mounted) return;
     final long = link.length > ShareLink.comfortableLength;
@@ -47,6 +50,22 @@ class _FavoritesViewState extends State<FavoritesView> {
       long
           ? 'Link copied (${link.length} characters, so some chat apps may cut it off)'
           : 'Link copied. Anyone who opens it sees this seed play.',
+    );
+  }
+
+  /// Opens GitHub's new-file page in `community/seeds/` with this favourite's
+  /// entry filled in; the contributor adds their username and proposes it.
+  Future<void> _submit(Favorite f) async {
+    final entry = CommunitySubmit.entryFor(f);
+    final (:url, :prefilled) = CommunitySubmit.urlFor(f, entry);
+    if (!prefilled) await Clipboard.setData(ClipboardData(text: entry));
+    await widget.openUrl(url);
+    if (!mounted) return;
+    Toasts.show(
+      context,
+      prefilled
+          ? 'Opened GitHub. Put your username in "author", check the name, then propose the file.'
+          : 'This seed is too long for GitHub\'s link, so its entry is copied. Paste it into the new file on GitHub.',
     );
   }
 
@@ -119,7 +138,18 @@ class _FavoritesViewState extends State<FavoritesView> {
               children: [
                 SeedThumbnail(shared.seed),
                 const SizedBox(width: 10),
-                Expanded(child: Text(title, style: Neon.mono.copyWith(fontSize: 12, height: 1.45))),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: Neon.mono.copyWith(fontSize: 12, height: 1.45)),
+                      if (shared.note != null) ...[
+                        const SizedBox(height: 4),
+                        Text(shared.note!, style: Neon.mono.copyWith(fontSize: 10.5, color: Neon.muted, height: 1.45)),
+                      ],
+                    ],
+                  ),
+                ),
               ],
             ),
             Row(
@@ -127,7 +157,7 @@ class _FavoritesViewState extends State<FavoritesView> {
                 IconButton(
                   tooltip: saved ? 'Remove from favourites' : 'Add to favourites',
                   visualDensity: VisualDensity.compact,
-                  onPressed: () => widget.favorites.toggle(shared.seed, title: title, summary: 'Shared with you'),
+                  onPressed: () => widget.favorites.toggle(shared.seed, title: title, summary: shared.note ?? Favorite.sharedSummary),
                   icon: Icon(
                     saved ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                     size: 18,
@@ -139,7 +169,7 @@ class _FavoritesViewState extends State<FavoritesView> {
                   tooltip: 'Copy share link',
                   visualDensity: VisualDensity.compact,
                   color: Neon.cyan,
-                  onPressed: () => _copyLinkFor(shared.seed, title),
+                  onPressed: () => _copyLinkFor(shared.seed, title, note: shared.note),
                   icon: const Icon(Icons.link_rounded, size: 18),
                 ),
                 const Spacer(),
@@ -206,6 +236,12 @@ class _FavoritesViewState extends State<FavoritesView> {
                             visualDensity: VisualDensity.compact,
                             onPressed: () => _copyLink(f),
                             icon: const Icon(Icons.link_rounded, size: 16),
+                          ),
+                          IconButton(
+                            tooltip: 'Submit to the community',
+                            visualDensity: VisualDensity.compact,
+                            onPressed: () => _submit(f),
+                            icon: const Icon(Icons.public_rounded, size: 16),
                           ),
                           IconButton(
                             tooltip: 'Remove from favourites',
