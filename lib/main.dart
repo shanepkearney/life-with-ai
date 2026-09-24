@@ -17,8 +17,10 @@ Future<void> main() async {
     await bootstrap(
       launchUri: Uri.base,
       engine: const String.fromEnvironment('ENGINE') == 'cpu' ? EngineKind.cpu : EngineKind.gpu,
-      // Dev/demo convenience: --dart-define=AUTOPLAY=true starts the simulation running.
-      autoplay: const bool.fromEnvironment('AUTOPLAY'),
+      // The board plays on load: a still board reads as broken, a moving one sells the glow.
+      // --dart-define=NO_AUTOPLAY=true starts paused. (bootstrap() itself defaults to paused,
+      // so tests stay deterministic.)
+      autoplay: !const bool.fromEnvironment('NO_AUTOPLAY'),
     ),
   );
 }

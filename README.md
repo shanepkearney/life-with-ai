@@ -183,8 +183,8 @@ flutter run -d chrome
 flutter test
 ```
 
-Dev flags: `--dart-define=AUTOPLAY=true` starts running; `--dart-define=ENGINE=cpu` starts on
-the CPU engine.
+The board plays on load. Dev flags: `--dart-define=NO_AUTOPLAY=true` starts paused;
+`--dart-define=ENGINE=cpu` starts on the CPU engine.
 
 Speed is a rate in generations per second (1–960, geometric steps), not "generations per frame",
 so it runs the same on 60 Hz and 120 Hz displays; `test/app_speed_test.dart` checks both.
