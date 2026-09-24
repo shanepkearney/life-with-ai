@@ -359,6 +359,7 @@ class LifeController extends ChangeNotifier {
     boardTitle = null; // callers that know the seed's name set it after loading
     await engine.load(grid);
     timeline = Timeline(grid);
+    pipeline.clearTrail();
     _publish();
   });
 

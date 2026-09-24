@@ -16,9 +16,16 @@ class Favorite {
   /// The prompt that produced it, e.g. "A symmetric bloom that slowly settles…".
   final String title;
 
-  /// Claude's finish summary.
+  /// Claude's finish summary, or a stock line for seeds saved another way.
   final String summary;
   final DateTime savedAt;
+
+  /// Stock summaries: they describe how a seed was saved, not the seed itself.
+  static const momentSummary = 'Saved from the board.';
+  static const sharedSummary = 'Shared with you';
+
+  /// What a share link should say about this seed: the summary, unless it's a stock line.
+  String? get linkNote => summary.isEmpty || summary == momentSummary || summary == sharedSummary ? null : summary;
 
   /// Decoded once: a saved board can be ~100 KB of code, and the list
   /// rebuilds far more often than favourites change.

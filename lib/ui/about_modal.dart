@@ -21,6 +21,16 @@ abstract final class About {
 
 typedef OpenUrl = Future<void> Function(Uri url);
 
+/// What the Game of Life shows, in three lines: kept short so the panel stays scannable.
+const _lessons = [
+  ('Simple rules, complex worlds.', 'Two rules are enough for gliders, glider guns, even a working computer.'),
+  (
+    'Beginnings matter.',
+    'One cell\'s difference can decide whether a pattern dies out, freezes, or grows forever: the butterfly effect in miniature.',
+  ),
+  ('Chaos settles into order.', 'Left to run, most random boards calm down into still lifes, oscillators and gliders.'),
+];
+
 /// New tab on the web, the default browser on desktop.
 Future<void> openExternal(Uri url) async {
   await launchUrl(url, mode: LaunchMode.externalApplication, webOnlyWindowName: '_blank');
@@ -128,15 +138,49 @@ class _AboutPanel extends StatelessWidget {
                             ),
                           ],
                         ),
+                        // A byline, like an article's: the credit comes first, without a whole
+                        // section standing between the reader and "what is this?".
+                        const SizedBox(height: 20), // breathing room under the logo
+                        Text.rich(
+                          TextSpan(
+                            children: [
+                              TextSpan(
+                                text: 'Created By ',
+                                style: body.copyWith(color: Neon.cyan, letterSpacing: 0.5),
+                              ),
+                              TextSpan(
+                                text: About.author,
+                                style: body.copyWith(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // The links get their own line, so none is stranded on a wrap.
+                        Wrap(
+                          children: [
+                            link('GitHub', About.authorGitHub),
+                            if (About.authorLinkedIn.isNotEmpty) link('LinkedIn', Uri.parse(About.authorLinkedIn)),
+                            link('Source code', About.repo),
+                          ],
+                        ),
                         heading('ABOUT'),
                         Padding(
                           padding: const EdgeInsets.only(right: 10),
                           child: Text(
-                            "Life with AI began as a chance to improve an earlier Java version of Conway's Game of Life, "
-                            "and to build one that's accessible, sharable and open to AI. It runs in any browser and on "
-                            'phones; every creation is a link anyone can open, no account needed; and if you have your own '
-                            'Claude account, you can bring it and experiment with designing creations together. Or just '
-                            "have fun with Conway's Game of Life — with AI.",
+                            "Conway's Game of Life has always been a place to experiment: set a few cells, press play, and "
+                            'see what grows. Life with AI makes those experiments easy to share. Every seed becomes a link, '
+                            'and anyone who opens it, on a phone or in a browser, watches it unfold with no install or account.',
+                            style: body,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Padding(
+                          padding: const EdgeInsets.only(right: 10),
+                          child: Text(
+                            "It also lets AI take a turn at the seeds. Describe what you'd like to see, and Claude designs a "
+                            'starting pattern, tests it, and refines it until the board does what you imagined. Bring your own '
+                            "Claude account to create, share the results with everyone, or just have fun with Conway's Game of "
+                            'Life — with AI.',
                             style: body,
                           ),
                         ),
@@ -151,21 +195,46 @@ class _AboutPanel extends StatelessWidget {
                           ),
                         ),
                         Wrap(children: [link('Wikipedia', About.wikipedia), link('LifeWiki', About.lifeWiki)]),
+                        heading('KEY LESSONS TO TAKE FROM IT'),
+                        for (final (lead, rest) in _lessons)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 10, bottom: 8),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 7, right: 10),
+                                  child: Container(
+                                    width: 5,
+                                    height: 5,
+                                    decoration: const BoxDecoration(color: Neon.magenta, shape: BoxShape.circle),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Text.rich(
+                                    TextSpan(
+                                      children: [
+                                        TextSpan(
+                                          text: '$lead ',
+                                          style: body.copyWith(fontWeight: FontWeight.bold),
+                                        ),
+                                        TextSpan(
+                                          text: rest,
+                                          style: body.copyWith(color: Neon.muted),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         heading('ORIGINS'),
                         Padding(
                           padding: const EdgeInsets.only(right: 10),
                           child: Text('The earlier Java/Swing version this grew from:', style: body),
                         ),
                         Wrap(children: [link('The original', About.original)]),
-                        heading('CREATED BY'),
-                        Text(About.author, style: body),
-                        Wrap(
-                          children: [
-                            link('GitHub', About.authorGitHub),
-                            if (About.authorLinkedIn.isNotEmpty) link('LinkedIn', Uri.parse(About.authorLinkedIn)),
-                            link('Source code', About.repo),
-                          ],
-                        ),
                       ],
                     ),
                   ),

@@ -20,8 +20,15 @@ class GlowPipeline {
 
   bool get ready => _state != null;
 
+  /// Forgets the comet tails, so a newly loaded board doesn't glow with the
+  /// ghost of the one it replaced.
+  void clearTrail() {
+    _trail?.dispose();
+    _trail = null;
+  }
+
   void update(ui.Image state) {
-    if (state.width != _w || state.height != _h) {
+    if (_trail == null || state.width != _w || state.height != _h) {
       _w = state.width;
       _h = state.height;
       _trail?.dispose();

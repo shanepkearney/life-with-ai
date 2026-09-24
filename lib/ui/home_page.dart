@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../app/assistant_controller.dart';
 import '../app/favorites.dart';
 import '../app/life_controller.dart';
+import '../app/screenshot/screenshot.dart';
 import '../core/seed_codec.dart';
 import 'about_modal.dart';
 import 'assistant_panel.dart';
@@ -15,10 +16,11 @@ import 'hud.dart';
 import 'life_canvas.dart';
 import 'mobile_controls.dart';
 import 'mobile_sheet.dart';
+import 'theme.dart';
 import 'toasts.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key, required this.controller, this.assistant, this.notice, this.favorites});
+  const HomePage({super.key, required this.controller, this.assistant, this.notice, this.favorites, this.saveScreenshot = savePng});
 
   final LifeController controller;
   final FavoritesStore? favorites;
@@ -26,6 +28,7 @@ class HomePage extends StatefulWidget {
   /// Shown as a side panel on desktop and a bottom sheet on phones.
   final AssistantController? assistant;
   final String? notice;
+  final ScreenshotSaver saveScreenshot;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -36,6 +39,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   final _clock = ValueNotifier<double>(0);
   final _focus = FocusNode();
   final _toasts = ToastController();
+  final _shot = GlobalKey();
+  bool _shooting = false;
   bool _erase = false;
 
   @override
@@ -62,7 +67,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     final moment = await widget.controller.captureMoment();
     if (moment.seed.population == 0) return say('The board is empty, so there is nothing to save.');
     try {
-      final added = await favorites.add(moment.seed, title: moment.title, summary: 'Saved from the board.');
+      final added = await favorites.add(moment.seed, title: moment.title, summary: Favorite.momentSummary);
       if (!added) return say('That exact board is already in your favourites.');
       final code = SeedCodec.encode(moment.seed);
       say(
@@ -74,6 +79,38 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       say(e.message);
     }
   }
+
+  /// Saves the whole window (board, controls and panel) as a PNG, for sharing
+  /// or marketing. Cropping to just the board is left to whoever uses it.
+  Future<void> _saveScreenshot() async {
+    if (_shooting) return;
+    setState(() => _shooting = true);
+    try {
+      // The rebuild for _shooting leaves any toast out of the picture.
+      await WidgetsBinding.instance.endOfFrame;
+      final png = await capturePng(_shot);
+      final saved = await widget.saveScreenshot(png, screenshotFileName(DateTime.now()));
+      final file = saved?.file;
+      if (saved == null) {
+        _toasts.show("Screenshots can't be saved on this device yet.");
+      } else if (file != null) {
+        _toasts.show('Screenshot saved to ${saved.label}', actionLabel: 'Open', onAction: () => openExternal(file));
+      } else {
+        _toasts.show('Screenshot saved to ${saved.label}');
+      }
+    } catch (e) {
+      _toasts.show("Couldn't save the screenshot: $e");
+    } finally {
+      if (mounted) setState(() => _shooting = false);
+    }
+  }
+
+  Widget _screenshotButton({double size = 18}) => IconButton(
+    tooltip: 'Save a screenshot',
+    visualDensity: VisualDensity.compact,
+    onPressed: _shooting ? null : _saveScreenshot,
+    icon: Icon(Icons.photo_camera_outlined, size: size, color: Neon.muted),
+  );
 
   @override
   void dispose() {
@@ -89,30 +126,34 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     final c = widget.controller;
     return Toasts(
       controller: _toasts,
-      child: Scaffold(
-        body: KeyboardListener(
-          focusNode: _focus,
-          autofocus: true,
-          onKeyEvent: (e) {
-            final key = e.logicalKey;
-            if (e is! KeyDownEvent && e is! KeyRepeatEvent) return;
-            if (key != LogicalKeyboardKey.space && key != LogicalKeyboardKey.arrowLeft && key != LogicalKeyboardKey.arrowRight) return;
-            // Key events bubble up from the chat box; a space typed there is text, not play/pause.
-            final focused = FocusManager.instance.primaryFocus?.context;
-            final typing =
-                focused != null && (focused.widget is EditableText || focused.findAncestorWidgetOfExactType<EditableText>() != null);
-            if (typing) return;
-            // Holding an arrow repeats, scrubbing through generations; space doesn't repeat.
-            if (key == LogicalKeyboardKey.space) {
-              if (e is KeyDownEvent) c.toggleRunning();
-            } else if (!c.running) {
-              key == LogicalKeyboardKey.arrowLeft ? c.stepBack() : c.stepOnce();
-            }
-          },
-          child: ListenableBuilder(
-            listenable: c,
-            // The phone layout only below the breakpoint; everything wider is the desktop layout, unchanged.
-            builder: (context, _) => LayoutBuilder(builder: (context, box) => Breakpoints.isMobile(box.biggest) ? _mobile(c) : _desktop(c)),
+      child: RepaintBoundary(
+        key: _shot,
+        child: Scaffold(
+          body: KeyboardListener(
+            focusNode: _focus,
+            autofocus: true,
+            onKeyEvent: (e) {
+              final key = e.logicalKey;
+              if (e is! KeyDownEvent && e is! KeyRepeatEvent) return;
+              if (key != LogicalKeyboardKey.space && key != LogicalKeyboardKey.arrowLeft && key != LogicalKeyboardKey.arrowRight) return;
+              // Key events bubble up from the chat box; a space typed there is text, not play/pause.
+              final focused = FocusManager.instance.primaryFocus?.context;
+              final typing =
+                  focused != null && (focused.widget is EditableText || focused.findAncestorWidgetOfExactType<EditableText>() != null);
+              if (typing) return;
+              // Holding an arrow repeats, scrubbing through generations; space doesn't repeat.
+              if (key == LogicalKeyboardKey.space) {
+                if (e is KeyDownEvent) c.toggleRunning();
+              } else if (!c.running) {
+                key == LogicalKeyboardKey.arrowLeft ? c.stepBack() : c.stepOnce();
+              }
+            },
+            child: ListenableBuilder(
+              listenable: c,
+              // The phone layout only below the breakpoint; everything wider is the desktop layout, unchanged.
+              builder: (context, _) =>
+                  LayoutBuilder(builder: (context, box) => Breakpoints.isMobile(box.biggest) ? _mobile(c) : _desktop(c)),
+            ),
           ),
         ),
       ),
@@ -131,6 +172,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 children: [
                   // The logo and ⓘ open the about panel: who made this, and Conway's rules.
                   const LogoButton(),
+                  _screenshotButton(),
                   const SizedBox(width: 12),
                   // Scale the stats down rather than overflow on narrow windows.
                   Expanded(
@@ -169,12 +211,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       ),
       Positioned(top: 12, left: 12, child: ExperimentOverlay(controller: c)),
       // Bottom of the board area: always above the controls, however they wrap.
-      Positioned(
-        left: 12,
-        right: 12,
-        bottom: 12,
-        child: Center(child: ToastView(controller: _toasts)),
-      ),
+      if (!_shooting)
+        Positioned(
+          left: 12,
+          right: 12,
+          bottom: 12,
+          child: Center(child: ToastView(controller: _toasts)),
+        ),
     ],
   );
 
@@ -192,6 +235,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 child: Row(
                   children: [
                     const LogoButton(size: 15, letterSpacing: 4),
+                    _screenshotButton(size: 15),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Align(
@@ -226,6 +270,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           if (widget.assistant != null)
             MobileSheet(
               peekHeight: peek,
+              // Opened from a share link: show its card (on Favourites) rather than hide it in a closed sheet.
+              startOpen: widget.assistant!.shared != null,
               builder: (context, expanded, open) =>
                   AssistantPanel(assistant: widget.assistant!, embedded: true, showActions: expanded, onOpen: open),
             ),

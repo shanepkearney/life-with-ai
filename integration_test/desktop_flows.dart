@@ -72,7 +72,7 @@ void main() {
   testWidgets('boots, plays on the GPU engine, and hot-swaps to the CPU engine', (tester) async {
     final app = await start(tester);
     final life = app.controller;
-    expect(find.text('Seed assistant'), findsOneWidget);
+    expect(find.text('Assistant'), findsOneWidget);
     expect(life.population, greaterThan(1000), reason: 'starts on a random board');
 
     await tester.tap(find.byTooltip('Play (space)'));
@@ -101,6 +101,10 @@ void main() {
     expect(rows, hasLength(1), reason: 'the control bar wraps onto ${rows.length} rows');
     final hud = tester.renderObject<RenderBox>(find.byType(Hud));
     expect(hud.getMaxIntrinsicWidth(double.infinity), lessThanOrEqualTo(hud.size.width), reason: 'Hud would wrap');
+    // Real fonts: all three tab labels fit whole, none cut short with an ellipsis.
+    for (final label in ['Assistant', 'Favourites', 'Community']) {
+      expect(tester.renderObject<RenderParagraph>(find.text(label)).didExceedMaxLines, isFalse, reason: '"$label" is cut off');
+    }
   });
 
   testWidgets('messages never cover the controls, even when the controls wrap', (tester) async {
@@ -125,7 +129,7 @@ void main() {
     expect(toast.overlaps(controls), isFalse, reason: 'toast $toast overlaps controls $controls');
     expect(toast.bottom, lessThanOrEqualTo(controls.top));
     // The panel beside the board is left alone too.
-    final panel = tester.getRect(find.text('Seed assistant'));
+    final panel = tester.getRect(find.text('Assistant'));
     expect(toast.right, lessThan(panel.left));
   });
 
@@ -243,7 +247,7 @@ void main() {
     expect(find.textContaining('Saved "A restless R-pentomino · gen'), findsOneWidget);
 
     // It isn't part of the conversation with Claude...
-    await tester.tap(find.text('Seed assistant'));
+    await tester.tap(find.text('Assistant'));
     await tester.pump();
     expect(find.text('SHARED WITH YOU'), findsNothing);
     // ...it stays pinned at the top of Favourites, above the saved seeds.

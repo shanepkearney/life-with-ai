@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -7,6 +8,7 @@ import '../ai/seed_agent.dart';
 import '../ai/seed_tools.dart';
 import '../core/grid.dart';
 import '../core/seed_codec.dart';
+import 'community.dart';
 import 'favorites.dart';
 import 'share_link.dart';
 import 'life_controller.dart';
@@ -33,7 +35,9 @@ class ChatEntry {
 
 /// Glue between the chat panel, the agent loop, and the live board.
 class AssistantController extends ChangeNotifier {
-  AssistantController(this._life, this.favorites, {http.Client? httpClient}) : _httpClient = httpClient;
+  AssistantController(this._life, this.favorites, {http.Client? httpClient, Future<List<CommunitySeed>> Function()? communitySource})
+    : _httpClient = httpClient,
+      _communitySource = communitySource ?? (() => loadCommunitySeeds(rootBundle));
 
   final LifeController _life;
   final FavoritesStore favorites;
@@ -156,6 +160,33 @@ class AssistantController extends ChangeNotifier {
   /// the top of the Favourites view, not in the conversation with Claude.
   SharedSeed? shared;
 
+  /// Seeds contributed to the repo by pull request, shown on the Community tab.
+  /// Null until [loadCommunity] has finished: they load when the tab is first
+  /// opened, so startup never waits on them however many there are.
+  List<CommunitySeed>? community;
+
+  /// Why the last load failed, if it did. The tab offers a retry.
+  Object? communityError;
+
+  final Future<List<CommunitySeed>> Function() _communitySource;
+  Future<void>? _communityLoad;
+
+  /// Loads the community seeds once; later calls share the same load. After a
+  /// failure, calling it again retries.
+  Future<void> loadCommunity() => _communityLoad ??= _loadCommunity();
+
+  Future<void> _loadCommunity() async {
+    communityError = null;
+    notifyListeners();
+    try {
+      community = await _communitySource();
+    } catch (e) {
+      communityError = e;
+      _communityLoad = null;
+    }
+    notifyListeners();
+  }
+
   void addShared(SharedSeed seed) {
     shared = seed;
     notifyListeners();
@@ -174,7 +205,7 @@ class AssistantController extends ChangeNotifier {
   Future<bool> toggleFavorite(ChatEntry entry) => favorites.toggle(entry.seed!, title: promptFor(entry), summary: entry.text);
 
   /// Link for [entry]'s seed, titled with the prompt that produced it.
-  String shareLinkFor(ChatEntry entry) => ShareLink.forSeed(entry.seed!, title: promptFor(entry));
+  String shareLinkFor(ChatEntry entry) => ShareLink.forSeed(entry.seed!, title: promptFor(entry), note: entry.text);
 
   /// Replays a finished seed from generation 0, or an experiment exactly as
   /// Claude ran it. Not while Claude is working: it drives the board then.
