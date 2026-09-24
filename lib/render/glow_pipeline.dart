@@ -15,6 +15,14 @@ class GlowPipeline {
   ui.Image? _state, _trail, _density;
   int _w = 0, _h = 0;
 
+  /// Trail passes chained since the trail was last detached (see [detach]).
+  int _chained = 0;
+  bool _detaching = false, _disposed = false;
+
+  /// Bumped whenever the trail starts afresh (cleared or resized), so a copy
+  /// taken before that can never land on the new trail.
+  int _epoch = 0;
+
   double trailDecay = 0.90;
   double glow = 1.0;
 
@@ -25,6 +33,8 @@ class GlowPipeline {
   void clearTrail() {
     _trail?.dispose();
     _trail = null;
+    _chained = 0;
+    _epoch++;
   }
 
   void update(ui.Image state) {
@@ -33,6 +43,8 @@ class GlowPipeline {
       _h = state.height;
       _trail?.dispose();
       _trail = blackImage(_w, _h);
+      _chained = 0;
+      _epoch++;
     }
     _state?.dispose();
     _state = state.clone();
@@ -46,6 +58,7 @@ class GlowPipeline {
     final nextTrail = renderPass(trail, _w, _h);
     _trail!.dispose();
     _trail = nextTrail;
+    if (++_chained >= detachEvery) _detachTrail();
 
     final dw = (_w / 4).ceil(), dh = (_h / 4).ceil();
     final density = _shaders.density.fragmentShader()
@@ -73,7 +86,27 @@ class GlowPipeline {
     canvas.drawRect(ui.Offset.zero & size, ui.Paint()..shader = shader);
   }
 
+  /// Swaps in a standalone copy of the trail. [update] is synchronous and the
+  /// copy isn't, so the copy lands a frame or two later and replaces the
+  /// trail it was taken from; those frames' fading is lost, which no one can see.
+  void _detachTrail() {
+    if (_detaching) return;
+    _detaching = true;
+    final base = _trail!.clone();
+    final epoch = _epoch;
+    detach(base).then((flat) {
+      base.dispose();
+      _detaching = false;
+      // Gone, cleared or resized meanwhile: this copy is of a trail no longer wanted.
+      if (_disposed || _trail == null || _epoch != epoch) return flat.dispose();
+      _trail!.dispose();
+      _trail = flat;
+      _chained = 0;
+    });
+  }
+
   void dispose() {
+    _disposed = true;
     _state?.dispose();
     _trail?.dispose();
     _density?.dispose();

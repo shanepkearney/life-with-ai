@@ -21,7 +21,7 @@ void main() {
     return g;
   }
 
-  for (final (w, h, gens) in [(64, 48, 1), (97, 61, 37), (256, 192, 150)]) {
+  for (final (w, h, gens) in [(64, 48, 1), (97, 61, 37), (256, 192, 150), (128, 96, 3 * detachEvery + 5)]) {
     testWidgets('GPU matches CPU on ${w}x$h after $gens generations', (tester) async {
       await tester.runAsync(() async {
         final shaders = await Shaders.load();

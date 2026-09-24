@@ -69,6 +69,26 @@ void main() {
     return app;
   }
 
+  // Regression: every GPU pass used to chain onto the image before it, and
+  // freeing a chain thousands of links long overflowed the raster thread's
+  // stack, so loading a favourite after a few minutes' play crashed the app.
+  // A crash kills the test process, so getting to the end is the assertion.
+  testWidgets('after a long run, loading another board does not crash', (tester) async {
+    final app = await start(tester);
+    final life = app.controller;
+    for (var i = 0; i < 4000; i++) {
+      await tester.runAsync(life.stepOnce); // each step also chains a glow-trail pass
+      if (i % 25 == 0) await tester.pump(const Duration(milliseconds: 16));
+    }
+    expect(life.generation, 4000);
+    final seed = Grid(512, 384);
+    patternLibrary['glider']!.stampOnto(seed, 10, 10);
+    await tester.runAsync(() => life.playSeed(seed, title: 'A favourite'));
+    await frames(tester, 500);
+    expect(life.boardTitle, 'A favourite');
+    expect(life.generation, greaterThan(0), reason: 'the new board is playing');
+  });
+
   testWidgets('boots, plays on the GPU engine, and hot-swaps to the CPU engine', (tester) async {
     final app = await start(tester);
     final life = app.controller;
@@ -270,14 +290,14 @@ void main() {
     await tester.tap(find.text('Just play'));
     await frames(tester, 400);
     expect(find.text("This seed didn't make it"), findsNothing);
-    expect(find.text('Neon Frame'), findsNothing, reason: 'still on the Assistant tab');
+    expect(find.text('Oscillator Garden'), findsNothing, reason: 'still on the Assistant tab');
   });
 
   testWidgets("a broken link's dialog can take you to the Community tab", (tester) async {
     await start(tester, launchUri: Uri.parse('${ShareLink.site}#seed=1_512x384_1'));
     await pumpUntil(tester, () => find.text("This seed didn't make it").evaluate().isNotEmpty, reason: 'the dialog');
     await tester.tap(find.text('Explore community seeds'));
-    await pumpUntil(tester, () => find.text('Neon Frame').evaluate().isNotEmpty, reason: 'the Community tab open, seeds loaded');
+    await pumpUntil(tester, () => find.text('Oscillator Garden').evaluate().isNotEmpty, reason: 'the Community tab open, seeds loaded');
     expect(find.text("This seed didn't make it"), findsNothing);
   });
 

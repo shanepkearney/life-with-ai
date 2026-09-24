@@ -136,7 +136,7 @@ void main() {
     pending.complete(seeds);
     await tester.pump();
     expect(find.byType(GliderLoader), findsNothing);
-    expect(find.text('Neon Frame'), findsOneWidget);
+    expect(find.text(seeds.first.name), findsOneWidget);
     expect(find.byTooltip('New chat'), findsNothing);
 
     // Switching away and back doesn't load again.
@@ -145,7 +145,7 @@ void main() {
     await tester.tap(find.text('Community'));
     await tester.pump();
     expect(loads, 2);
-    expect(find.text('Neon Frame'), findsOneWidget);
+    expect(find.text(seeds.first.name), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox());
     life.dispose();
