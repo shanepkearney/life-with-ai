@@ -98,8 +98,9 @@ crowd's white-hot core, and the background. Changes show on the board as you mak
 **Reset to Neon** puts the original theme back. The choice is kept on the device.
 
 A share link carries the sender's colors, so the seed opens looking the way they saw it. The
-**Shared with you** card then offers to **Keep** those colors or go back to your own. Neon adds
-nothing to a link, a preset adds its name (`&colors=ember`), and custom colors add six hex codes.
+**Shared with you** card then offers to **Keep** those colors or go back to your own, and playing
+anything other than that seed goes back to your own too. A preset travels by name (`&colors=ember`,
+Neon included) and custom colors as six hex codes; older links without colors open in yours.
 
 | Choosing a preset: the board recolors live behind the dialog | Editing one color, by hue, saturation and brightness or by hex |
 |---|---|

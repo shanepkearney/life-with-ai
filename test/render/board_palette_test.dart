@@ -80,11 +80,12 @@ void main() {
   });
 
   group('share links', () {
-    test('carry the colors, except Neon, and read them back', () {
+    test('carry the colors, Neon included, and read them back', () {
       final seed = glider();
       final neon = ShareLink.forSeed(seed, title: 'One glider', palette: BoardPalette.neon);
-      expect(neon, ShareLink.forSeed(seed, title: 'One glider'), reason: 'links in the default colors are unchanged');
-      expect(ShareLink.parse(Uri.parse(neon))!.palette, isNull);
+      expect(neon, contains('&colors=neon'), reason: 'so a receiver in other colors sees what a Neon sender saw');
+      expect(ShareLink.parse(Uri.parse(neon))!.palette, BoardPalette.neon);
+      expect(ShareLink.parse(Uri.parse(ShareLink.forSeed(seed, title: 'One glider')))!.palette, isNull, reason: 'old links have none');
 
       final ember = ShareLink.forSeed(seed, title: 'One glider', palette: BoardPalette.ember);
       expect(ember, contains('&colors=ember'));
@@ -137,17 +138,43 @@ void main() {
       expect(saved, [BoardPalette.forest]);
       expect(life.pipeline.palette, BoardPalette.forest, reason: 'what the shader draws');
 
-      life.showSharedPalette(BoardPalette.ember);
+      final shared = glider();
+      life.showSharedPalette(BoardPalette.ember, seed: shared);
       expect((life.palette, life.ownPalette), (BoardPalette.ember, BoardPalette.forest));
       expect(saved, hasLength(1), reason: 'showing is not saving');
 
       life.dropSharedPalette();
       expect(life.palette, BoardPalette.forest);
 
-      life.showSharedPalette(BoardPalette.ember);
+      life.showSharedPalette(BoardPalette.ember, seed: shared);
       life.keepSharedPalette();
       expect((life.palette, life.ownPalette, life.sharedPalette), (BoardPalette.ember, BoardPalette.ember, null));
       expect(saved.last, BoardPalette.ember);
+    });
+
+    testWidgets("the sender's colors stay with their seed: replaying keeps them, anything else drops them", (tester) async {
+      late LifeController life;
+      await tester.runAsync(() async {
+        life = LifeController(await Shaders.load());
+        await life.init();
+      });
+      addTearDown(life.dispose);
+      final shared = glider();
+      await tester.runAsync(() => life.playSeed(shared, title: 'Shared'));
+      life.showSharedPalette(BoardPalette.ember, seed: shared);
+
+      await tester.runAsync(() => life.playSeed(shared.copy(), title: 'Shared')); // the card's Replay
+      expect(life.palette, BoardPalette.ember);
+
+      final other = Grid(512, 384);
+      patternLibrary['blinker']!.stampOnto(other, 50, 50);
+      await tester.runAsync(() => life.playSeed(other, title: 'A favorite'));
+      expect((life.palette, life.sharedPalette), (BoardPalette.neon, null), reason: 'back to their own colors');
+      expect(life.pipeline.palette, BoardPalette.neon);
+
+      life.showSharedPalette(BoardPalette.ember, seed: shared);
+      await tester.runAsync(() => life.randomize());
+      expect(life.sharedPalette, isNull, reason: 'a random board is something else too');
     });
   });
 }

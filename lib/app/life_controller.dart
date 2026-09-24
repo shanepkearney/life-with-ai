@@ -5,6 +5,7 @@ import 'package:flutter/scheduler.dart';
 
 import '../core/grid.dart';
 import '../core/rle.dart';
+import '../core/seed_codec.dart';
 import '../core/timeline.dart';
 import '../engine/cpu_engine.dart';
 import '../engine/gpu_engine.dart';
@@ -253,6 +254,7 @@ class LifeController extends ChangeNotifier {
   }
 
   Future<void> _startExperiment(Experiment e) => _whileIdle(() async {
+    _leaveSharedColorsFor(e.seed);
     await engine.load(e.seed);
     timeline = Timeline(e.seed);
     experiment = e;
@@ -392,8 +394,12 @@ class LifeController extends ChangeNotifier {
   BoardPalette ownPalette = BoardPalette.neon;
 
   /// A share link's colors, shown instead of [ownPalette] until the user
-  /// keeps them or goes back to their own. Never saved by itself.
+  /// keeps them, goes back to their own, or plays something else. Never
+  /// saved by itself.
   BoardPalette? sharedPalette;
+
+  /// The seed [sharedPalette] belongs to: replaying it keeps the colors.
+  String? _sharedSeedCode;
 
   /// What the board is drawn in right now.
   BoardPalette get palette => pipeline.palette;
@@ -409,10 +415,20 @@ class LifeController extends ChangeNotifier {
     onPaletteChosen?.call(p);
   }
 
-  /// Shows a share link's colors, without making them the user's own.
-  void showSharedPalette(BoardPalette p) {
+  /// Shows a share link's colors for its [seed], without making them the
+  /// user's own. They last while that seed is on the board.
+  void showSharedPalette(BoardPalette p, {required Grid seed}) {
     sharedPalette = p;
+    _sharedSeedCode = SeedCodec.encode(seed);
     _applyPalette();
+  }
+
+  /// Loading [board] leaves the shared colors unless it's the shared seed again.
+  void _leaveSharedColorsFor(Grid board) {
+    if (sharedPalette == null || SeedCodec.encode(board) == _sharedSeedCode) return;
+    sharedPalette = null;
+    pipeline.palette = ownPalette;
+    notifyListeners();
   }
 
   void keepSharedPalette() {
@@ -470,6 +486,7 @@ class LifeController extends ChangeNotifier {
   /// experiment replay stops: the board now shows something else.
   Future<void> load(Grid grid) => _whileIdle(() async {
     _cancelExperiments();
+    _leaveSharedColorsFor(grid);
     boardTitle = null; // callers that know the seed's name set it after loading
     await engine.load(grid);
     timeline = Timeline(grid);

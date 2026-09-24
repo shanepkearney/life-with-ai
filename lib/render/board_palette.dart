@@ -80,14 +80,15 @@ class BoardPalette {
   List<Color> get all => [...heat, background];
 
   /// How it travels in a share link: a preset's id, or six hex colors joined
-  /// by dots (URL-safe). Neon, the default, travels as nothing at all.
-  String? get wire {
-    if (id == 'neon') return null;
-    if (id != null) return id;
-    return all.map(hex).join('.');
-  }
+  /// by dots (URL-safe). Neon too, so a receiver who picked other colors
+  /// still sees the seed the way a Neon sender did.
+  String get linkForm => id ?? all.map(hex).join('.');
 
-  /// Reads [wire]. Share links are untrusted, so anything but a known preset
+  /// How it's stored on the device: [linkForm], except Neon, the default,
+  /// which is stored as nothing.
+  String? get wire => id == 'neon' ? null : linkForm;
+
+  /// Reads [linkForm] or [wire]. Share links are untrusted, so anything but a known preset
   /// or exactly six hex colors is null (and the link still opens, uncolored).
   static BoardPalette? fromWire(String? wire) {
     if (wire == null) return null;

@@ -66,7 +66,7 @@ Future<LifeApp> bootstrap({
         assistant.addShared(shared);
         // The sender's colors, for this visit: the Shared with you card offers to keep them.
         final colors = shared.palette;
-        if (colors != null && colors != life.ownPalette) life.showSharedPalette(colors);
+        if (colors != null && colors != life.ownPalette) life.showSharedPalette(colors, seed: shared.seed);
         notice = LaunchNotice.sharedSeed;
       } catch (e) {
         debugPrint('Could not load the shared seed: $e');
