@@ -234,6 +234,23 @@ Claude's designs come to a few hundred characters (Oscillator Garden's is 64), w
 would be over 100 KB, so only designed seeds are meant for sharing. Decoding treats every link as
 untrusted and rejects bad sizes, runs off the board and unknown characters.
 
+## RLE: Golly, LifeViewer and the forums
+
+The **⇅** button beside 📷 (in the ⚙ sheet on phones) shows the board as
+[RLE](https://conwaylife.com/wiki/Run_Length_Encoded), the text format Golly, LifeViewer, the LifeWiki
+and the ConwayLife forums use. Copy it out, or paste a pattern over it and press **Load**. The board
+pauses while the dialog is open. An export carries the board's name (`#N`), its generation, and a share
+link that opens that exact board here (`#C`).
+
+Import (`lib/core/rle.dart`) centers the pattern on the current board, or moves up to the smallest board
+that holds it, and plays it named after its `#N` line. It reads what the forums actually post: Conway's
+rule however it's written (`B3/S23`, `23/3`, `Life`), LifeHistory and LifeSuper (Life with marker states;
+odd states are alive, as Golly converts them), and a torus such as `B3/S23:T48,12`, which loads on exactly
+that board because the pattern depends on wrapping there. Other rules are refused by name. Checked against
+446 pattern blocks from seven ConwayLife threads: 394 load, and the rest are other rules, patterns wider
+than 2,048 cells, or code blocks that aren't RLE. A few of those posts are test fixtures, credited to their
+authors.
+
 ## Community seeds
 
 The **Community** tab lists seeds that people found and contributed, each credited `by @username` with a

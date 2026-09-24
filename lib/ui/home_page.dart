@@ -22,6 +22,7 @@ import 'hud.dart';
 import 'life_canvas.dart';
 import 'mobile_controls.dart';
 import 'mobile_sheet.dart';
+import 'rle_dialog.dart';
 import 'theme.dart';
 import 'toasts.dart';
 
@@ -128,6 +129,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     }
   }
 
+  /// The board as RLE; a pattern loaded there gets a toast naming it.
+  Future<void> _openRle() async {
+    final loaded = await showRleDialog(context, widget.controller);
+    if (loaded != null && mounted) _toasts.show('Loaded "$loaded".');
+    _focus.requestFocus(); // the dialog had the keyboard; hand it back to the board
+  }
+
   /// Saves the whole window (board, controls and panel) as a PNG, for sharing
   /// or marketing. Cropping to just the board is left to whoever uses it.
   Future<void> _saveScreenshot() async {
@@ -162,6 +170,15 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           icon: Icon(Icons.download_rounded, size: size, color: Neon.muted),
         )
       : null;
+
+  /// Beside the 📷: both take something out of the app, an image or the pattern.
+  /// Not in the control bar, which has no room left at the default window size.
+  Widget _rleButton({double size = 18}) => IconButton(
+    tooltip: 'Import or export RLE',
+    visualDensity: VisualDensity.compact,
+    onPressed: _openRle,
+    icon: Icon(Icons.import_export_rounded, size: size, color: Neon.muted),
+  );
 
   Widget _screenshotButton({double size = 18}) => IconButton(
     tooltip: 'Save a screenshot',
@@ -291,6 +308,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   // Beside the ⓘ: getting the app belongs with "about this app".
                   ?_macDownloadButton(),
                   _screenshotButton(),
+                  _rleButton(),
                   _boardOnlyButton(),
                   ?_fullScreenButton(),
                   const SizedBox(width: 12),
@@ -387,6 +405,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   erase: _erase,
                   onEraseChanged: (v) => setState(() => _erase = v),
                   onSaveMoment: widget.favorites == null ? null : _saveMoment,
+                  onRle: _openRle,
                 ),
               ),
               // Room for the sheet's resting height, so it never hides the controls.

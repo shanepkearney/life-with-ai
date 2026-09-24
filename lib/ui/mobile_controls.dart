@@ -9,12 +9,15 @@ import 'theme.dart';
 /// speed, glow, engine and board size behind a ⚙ sheet. Tooltips match the
 /// desktop control bar, so both layouts are driven the same way.
 class MobileControls extends StatelessWidget {
-  const MobileControls({super.key, required this.controller, required this.erase, required this.onEraseChanged, this.onSaveMoment});
+  const MobileControls({super.key, required this.controller, required this.erase, required this.onEraseChanged, this.onSaveMoment, this.onRle});
 
   final LifeController controller;
   final bool erase;
   final ValueChanged<bool> onEraseChanged;
   final VoidCallback? onSaveMoment;
+
+  /// In the ⚙ sheet rather than the strip: the strip is full, and RLE is a desk job.
+  final VoidCallback? onRle;
 
   @override
   Widget build(BuildContext context) {
@@ -96,14 +99,29 @@ class MobileControls extends StatelessWidget {
                   onSelectionChanged: (s) => c.switchEngine(s.first),
                 ),
                 const SizedBox(height: 16),
-                // Clear lives here on phones, to keep the strip to one row.
-                OutlinedButton.icon(
-                  onPressed: () {
-                    c.clear();
-                    Navigator.of(context).pop();
-                  },
-                  icon: const Icon(Icons.delete_sweep_rounded, size: 18),
-                  label: const Text('Clear the board'),
+                // Clear and RLE live here on phones, to keep the strip to one row.
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 8,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        c.clear();
+                        Navigator.of(context).pop();
+                      },
+                      icon: const Icon(Icons.delete_sweep_rounded, size: 18),
+                      label: const Text('Clear the board'),
+                    ),
+                    if (onRle != null)
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          onRle!();
+                        },
+                        icon: const Icon(Icons.import_export_rounded, size: 18),
+                        label: const Text('Import or export RLE'),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 label('Board size'),
