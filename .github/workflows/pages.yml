@@ -63,6 +63,27 @@ jobs:
       - run: flutter pub get
       # Pages serves the site from /<repo>/, so assets must resolve under that path.
       - run: flutter build web --release --base-href /life-with-ai/
+      # Cloudflare Web Analytics, on the live site only (local builds never
+      # count). The token is public by design: it's in every page's source.
+      - env:
+          CF_BEACON_TOKEN: ${{ vars.CF_BEACON_TOKEN }}
+        run: |
+          if [ -z "$CF_BEACON_TOKEN" ]; then
+            echo "::warning::CF_BEACON_TOKEN is not set; deploying without analytics."
+            exit 0
+          fi
+          case "$CF_BEACON_TOKEN" in *[!A-Za-z0-9]*) echo "::error::CF_BEACON_TOKEN should be letters and digits only."; exit 1;; esac
+          # Cloudflare's own snippet, as its dashboard gives it.
+          beacon="<script type=\"module\" src=\"https://static.cloudflareinsights.com/beacon.min.js\" data-cf-beacon='{\"token\": \"$CF_BEACON_TOKEN\"}'></script>"
+          python3 - "$beacon" <<'PY'
+          import re, sys
+          path = 'build/web/index.html'
+          html = open(path).read()
+          new, n = re.subn(r'  <!-- ANALYTICS:.*?-->', '  ' + sys.argv[1], html, flags=re.S)
+          assert n == 1, 'the ANALYTICS placeholder is missing from web/index.html'
+          open(path, 'w').write(new)
+          PY
+          grep -c cloudflareinsights build/web/index.html
       - uses: actions/upload-pages-artifact@v3
         with:
           path: build/web

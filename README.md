@@ -241,6 +241,12 @@ same way at load and skips a bad one rather than failing the tab, and it shows e
 `.github/workflows/pages.yml` runs both on every push and pull request. The web build is deployed
 to Pages only when both pass on `main`.
 
+## Analytics
+
+The live site counts visits with [Cloudflare Web Analytics](https://www.cloudflare.com/web-analytics/), which
+sets no cookies and doesn't track anyone across sites. The Pages build adds its beacon from the `CF_BEACON_TOKEN`
+repository variable; local builds and the macOS app have none.
+
 ## Run
 
 ```bash
