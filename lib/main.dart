@@ -6,6 +6,7 @@ import 'app/favorites.dart';
 import 'app/life_controller.dart';
 import 'app/platform/full_screen.dart';
 import 'app/share_link.dart';
+import 'app/telemetry.dart';
 import 'engine/life_engine.dart';
 import 'render/shaders.dart';
 import 'ui/breakpoints.dart';
@@ -37,6 +38,9 @@ Future<LifeApp> bootstrap({
   FullScreen? fullScreen,
 }) async {
   final life = LifeController(await Shaders.load());
+  // Released builds count which seeds get opened (see lib/app/telemetry.dart); local builds don't.
+  final telemetry = Telemetry.fromEnvironment(client: httpClient);
+  life.onSeedOpened = telemetry.seedOpened;
   // Phones start on a portrait board sized for them: at 512 cells across, a phone gets under a pixel per cell.
   final view = WidgetsBinding.instance.platformDispatcher.implicitView;
   if (view != null && Breakpoints.isMobile(view.physicalSize / view.devicePixelRatio)) life.boardSize = BoardSize.portrait;
@@ -55,7 +59,7 @@ Future<LifeApp> bootstrap({
     final shared = ShareLink.parse(launchUri);
     if (shared != null) {
       try {
-        await life.playSeed(shared.seed, title: shared.title);
+        await life.playSeed(shared.seed, title: shared.title, source: SeedSource.shareLink);
         assistant.addShared(shared);
         notice = LaunchNotice.sharedSeed;
       } catch (e) {

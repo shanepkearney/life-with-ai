@@ -186,9 +186,9 @@ fills a tall screen instead of letterboxing a 4:3 one.
 ## Full screen and Board only
 
 ⛶ (or **F**) puts the whole app full screen: the browser's full screen on the web, the window's own in the macOS
-app. **Board only** (the frame button beside it, or **B**) goes further: just the glowing board, edge to edge, and
-full screen too where the platform allows. Moving the mouse or tapping brings up a small playback bar (back to the
-start, step back, play or pause, step, and ✕ to leave) along with the pointer; both fade after a couple of seconds
+app. **Board only** (the grid button, or **B**) goes further: just the glowing board, edge to edge, and
+full screen too where the platform allows. Moving the mouse or tapping brings up a small playback bar (back to the start, step back, play or pause, step, the board size (Fit screen
+included), and ✕ to leave) along with the pointer; both fade after a couple of seconds
 of stillness. A tap only wakes the bar, never draws. **Esc**, the ✕, or leaving full screen any other way (a
 browser's own Esc, the window's green button) brings the app back.
 
@@ -269,6 +269,13 @@ app, so a broken DMG fails the PR. The web build is deployed to Pages only when 
 The live site counts visits with [Cloudflare Web Analytics](https://www.cloudflare.com/web-analytics/), which
 sets no cookies and doesn't track anyone across sites. The Pages build adds its beacon from the `CF_BEACON_TOKEN`
 repository variable; local builds and the macOS app have none.
+
+Page views never include the part of a share link after `#`, so seeds and prompts don't reach Cloudflare this way.
+Which seeds people open is counted separately: released builds (web and macOS) send a small `seed_opened` event to
+a Cloudflare Worker ([`analytics/`](analytics/README.md)) with a 12-character fingerprint of the seed (never its
+cells), where it was opened from (a share link, the Community tab, Favorites, or Claude), a community seed's name
+(those are public; other titles are people's prompts, so never), the version, and web or macOS. Nothing identifies
+the visitor. Local builds send nothing, and `tool/seed_stats.sh` lists the most-opened seeds.
 
 ## Versioning and releases
 

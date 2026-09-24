@@ -9,3 +9,8 @@ BoardSize screenBoardFor(BuildContext context) {
   final logical = display.size / display.devicePixelRatio;
   return BoardSize.fitScreen(logical.width, logical.height);
 }
+
+/// The board sizes a size menu offers: the layout's presets, Fit screen, and
+/// whatever size is on the board now (a shared seed's, say).
+List<BoardSize> boardSizeChoices(BuildContext context, BoardSize current, {required bool phone}) =>
+    {...(phone ? BoardSize.mobile : BoardSize.desktop), screenBoardFor(context), current}.toList();

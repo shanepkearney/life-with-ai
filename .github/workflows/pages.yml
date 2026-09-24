@@ -50,6 +50,8 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
+      # The event collector (analytics/), a Cloudflare Worker: plain Node, no dependencies.
+      - run: node --test analytics/test/*.test.js # the files: Node 22 no longer expands a folder
 
   integration:
     name: Integration tests (macOS app)
@@ -159,6 +161,7 @@ jobs:
           --build-number=${{ github.run_number }}
           --dart-define=APP_VERSION=${{ needs.version.outputs.version }}
           --dart-define=APP_COMMIT=${{ needs.version.outputs.commit }}
+          --dart-define=TELEMETRY_URL=${{ vars.TELEMETRY_URL }}
       # Cloudflare Web Analytics, on the live site only (local builds never
       # count). The token is public by design: it's in every page's source.
       - env:
@@ -169,8 +172,11 @@ jobs:
             exit 0
           fi
           case "$CF_BEACON_TOKEN" in *[!A-Za-z0-9]*) echo "::error::CF_BEACON_TOKEN should be letters and digits only."; exit 1;; esac
-          # Cloudflare's own snippet, as its dashboard gives it.
-          beacon="<script type=\"module\" src=\"https://static.cloudflareinsights.com/beacon.min.js\" data-cf-beacon='{\"token\": \"$CF_BEACON_TOKEN\"}'></script>"
+          # Cloudflare's own snippet, with "spa": false: its single-page-app mode
+          # counts every address change as a page view, and Flutter makes a few
+          # while starting, so one visit read as ~2.4 page views. (It never sends
+          # the #fragment either way: share links' seeds stay out of analytics.)
+          beacon="<script type=\"module\" src=\"https://static.cloudflareinsights.com/beacon.min.js\" data-cf-beacon='{\"token\": \"$CF_BEACON_TOKEN\", \"spa\": false}'></script>"
           python3 - "$beacon" <<'PY'
           import re, sys
           path = 'build/web/index.html'
@@ -214,6 +220,7 @@ jobs:
           --build-number=${{ github.run_number }}
           --dart-define=APP_VERSION=${{ needs.version.outputs.version }}
           --dart-define=APP_COMMIT=${{ needs.version.outputs.commit }}
+          --dart-define=TELEMETRY_URL=${{ vars.TELEMETRY_URL }}
       - run: tool/make_dmg.sh "build/macos/Build/Products/Release/Life with AI.app" Life-with-AI.dmg
       - uses: actions/upload-artifact@v4
         with:

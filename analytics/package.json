@@ -1,0 +1,8 @@
+{
+  "name": "life-with-ai-events",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  }
+}

@@ -1,0 +1,10 @@
+# The event collector (src/index.js). Deploy from this folder: npx wrangler deploy
+name = "life-with-ai-events"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+
+# Workers Analytics Engine: one row per event. Columns: index1 = seed
+# fingerprint; blob1..5 = seed, source, community name, version, platform.
+[[analytics_engine_datasets]]
+binding = "EVENTS"
+dataset = "life_with_ai_events"

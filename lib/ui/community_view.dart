@@ -5,6 +5,7 @@ import '../app/community.dart';
 import '../app/community_submit.dart';
 import '../app/favorites.dart';
 import '../app/life_controller.dart';
+import '../app/telemetry.dart';
 import '../core/seed_codec.dart';
 import 'about_modal.dart';
 import 'seed_thumbnail.dart';
@@ -30,7 +31,7 @@ class _CommunityViewState extends State<CommunityView> {
 
   Future<void> _play(CommunitySeed s) async {
     setState(() => _playing = s);
-    await widget.life.playSeed(s.seed.copy(), title: s.name);
+    await widget.life.playSeed(s.seed.copy(), title: s.name, source: SeedSource.community, communityName: s.name);
   }
 
   Future<void> _copyLink(CommunitySeed s) async {

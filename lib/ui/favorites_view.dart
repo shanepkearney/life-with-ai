@@ -5,6 +5,7 @@ import '../app/community_submit.dart';
 import '../app/favorites.dart';
 import '../app/life_controller.dart';
 import '../app/share_link.dart';
+import '../app/telemetry.dart';
 import '../core/grid.dart';
 import '../core/seed_codec.dart';
 import 'about_modal.dart';
@@ -35,7 +36,7 @@ class _FavoritesViewState extends State<FavoritesView> {
 
   Future<void> _play(Favorite f) async {
     setState(() => _playing = f.code);
-    await widget.life.playSeed(f.seed, title: f.title);
+    await widget.life.playSeed(f.seed, title: f.title, source: SeedSource.favorite);
   }
 
   Future<void> _copyLink(Favorite f) => _copyLinkFor(f.seed, f.title, note: f.linkNote);

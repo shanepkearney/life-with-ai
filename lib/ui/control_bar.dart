@@ -18,7 +18,7 @@ class ControlBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = controller;
-    final sizes = {...BoardSize.desktop, screenBoardFor(context), c.boardSize}.toList();
+    final sizes = boardSizeChoices(context, c.boardSize, phone: false);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: Neon.panelDecoration(),
