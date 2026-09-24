@@ -83,7 +83,7 @@ void main() {
 
   testWidgets('links go to the right places', (tester) async {
     final opened = await open(tester);
-    for (final label in ['Wikipedia', 'LifeWiki', 'The original', 'GitHub', 'LinkedIn', 'Source code']) {
+    for (final label in ['Wikipedia', 'LifeWiki', 'The original', 'GitHub', 'LinkedIn']) {
       await tester.ensureVisible(find.text(label));
       await tester.tap(find.text(label));
     }
@@ -93,8 +93,9 @@ void main() {
       About.original,
       About.authorGitHub,
       Uri.parse('https://www.linkedin.com/in/shanepkearney/'),
-      About.repo,
     ]);
+    // The source is reached from the version tag's release page instead.
+    expect(find.text('Source code'), findsNothing);
   });
 
   testWidgets('closes with the ✕, Esc, and a tap outside', (tester) async {

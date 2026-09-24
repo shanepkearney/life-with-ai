@@ -14,7 +14,6 @@ abstract final class About {
   static final authorGitHub = Uri.parse('https://github.com/shanepkearney');
 
   static const authorLinkedIn = 'https://www.linkedin.com/in/shanepkearney/';
-  static final repo = Uri.parse('https://github.com/shanepkearney/life-with-ai');
   static final original = Uri.parse('https://github.com/shanepkearney/life');
   static final wikipedia = Uri.parse('https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life');
   static final lifeWiki = Uri.parse('https://conwaylife.com/wiki/Conway%27s_Game_of_Life');
@@ -163,7 +162,6 @@ class _AboutPanel extends StatelessWidget {
                           children: [
                             link('GitHub', About.authorGitHub),
                             if (About.authorLinkedIn.isNotEmpty) link('LinkedIn', Uri.parse(About.authorLinkedIn)),
-                            link('Source code', About.repo),
                           ],
                         ),
                         heading('ABOUT'),
