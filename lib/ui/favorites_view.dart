@@ -10,6 +10,7 @@ import '../core/grid.dart';
 import '../core/seed_codec.dart';
 import 'about_modal.dart';
 import 'seed_thumbnail.dart';
+import 'colors_dialog.dart';
 import 'theme.dart';
 import 'toasts.dart';
 
@@ -42,7 +43,8 @@ class _FavoritesViewState extends State<FavoritesView> {
   Future<void> _copyLink(Favorite f) => _copyLinkFor(f.seed, f.title, note: f.linkNote);
 
   Future<void> _copyLinkFor(Grid seed, String title, {String? note}) async {
-    final link = ShareLink.forSeed(seed, title: title, note: note);
+    // In the colors it's showing in: the receiver sees what the sender saw.
+    final link = ShareLink.forSeed(seed, title: title, note: note, palette: widget.life.palette);
     await Clipboard.setData(ClipboardData(text: link));
     if (!mounted) return;
     final long = link.length > ShareLink.comfortableLength;
@@ -153,6 +155,7 @@ class _FavoritesViewState extends State<FavoritesView> {
                 ),
               ],
             ),
+            _sharedColors(),
             Row(
               children: [
                 IconButton(
@@ -187,6 +190,33 @@ class _FavoritesViewState extends State<FavoritesView> {
       ),
     );
   }
+
+  /// While the board shows a link's colors instead of the user's own: say so,
+  /// and offer to keep them or go back.
+  Widget _sharedColors() => ListenableBuilder(
+    listenable: widget.life,
+    builder: (context, _) {
+      final colors = widget.life.sharedPalette;
+      if (colors == null) return const SizedBox.shrink();
+      Widget action(String text, Color color, VoidCallback onPressed) => TextButton(
+        onPressed: onPressed,
+        style: TextButton.styleFrom(foregroundColor: color, visualDensity: VisualDensity.compact, padding: const EdgeInsets.symmetric(horizontal: 8)),
+        child: Text(text, style: Neon.mono.copyWith(fontSize: 11, color: color)),
+      );
+      return Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Row(
+          children: [
+            PaletteSwatch(colors, width: 32, height: 10),
+            const SizedBox(width: 8),
+            Expanded(child: Text("Sender's colors", style: Neon.mono.copyWith(fontSize: 11, color: Neon.muted))),
+            action('Keep', Neon.cyan, widget.life.keepSharedPalette),
+            action('Use mine', Neon.muted, widget.life.dropSharedPalette),
+          ],
+        ),
+      );
+    },
+  );
 
   Widget _card(Favorite f) {
     final playing = _playing == f.code;

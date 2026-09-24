@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'app/assistant_controller.dart';
 import 'app/favorites.dart';
 import 'app/life_controller.dart';
+import 'app/palette_store.dart';
 import 'app/platform/full_screen.dart';
 import 'app/share_link.dart';
 import 'app/telemetry.dart';
@@ -45,6 +46,8 @@ Future<LifeApp> bootstrap({
   final view = WidgetsBinding.instance.platformDispatcher.implicitView;
   if (view != null && Breakpoints.isMobile(view.physicalSize / view.devicePixelRatio)) life.boardSize = BoardSize.portrait;
   await life.init(engine: engine);
+  life.choosePalette(await PaletteStore.load());
+  life.onPaletteChosen = PaletteStore.save;
   final favorites = FavoritesStore();
   await favorites.load();
   final assistant = AssistantController(life, favorites, httpClient: httpClient);
@@ -61,6 +64,9 @@ Future<LifeApp> bootstrap({
       try {
         await life.playSeed(shared.seed, title: shared.title, source: SeedSource.shareLink);
         assistant.addShared(shared);
+        // The sender's colors, for this visit: the Shared with you card offers to keep them.
+        final colors = shared.palette;
+        if (colors != null && colors != life.ownPalette) life.showSharedPalette(colors);
         notice = LaunchNotice.sharedSeed;
       } catch (e) {
         debugPrint('Could not load the shared seed: $e');

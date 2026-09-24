@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app/life_controller.dart';
 import '../engine/life_engine.dart';
+import 'colors_dialog.dart';
 import 'screen_board.dart';
 import 'theme.dart';
 
@@ -59,17 +60,20 @@ class MobileControls extends StatelessWidget {
     );
   }
 
-  void _showTuning(BuildContext context) => showModalBottomSheet<void>(
-    context: context,
+  void _showTuning(BuildContext pageContext) => showModalBottomSheet<void>(
+    context: pageContext,
     backgroundColor: const Color(0xFA0B0E17),
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(18))),
+    // Taller than the default 9/16 of the screen when it needs to be, and it
+    // scrolls past that: it outgrew the default once it held Colors and RLE.
+    isScrollControlled: true,
     builder: (_) => ListenableBuilder(
       listenable: controller,
       builder: (context, _) {
         final c = controller;
         Widget label(String text) => Text(text, style: Neon.mono.copyWith(color: Neon.muted));
         return SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -84,6 +88,28 @@ class MobileControls extends StatelessWidget {
                 ),
                 label('Glow'),
                 Slider(value: c.pipeline.glow, max: 2, onChanged: c.setGlow),
+                // The colors editor needs the board to preview on, so the sheet makes way.
+                InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    showColorsDialog(pageContext, c);
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      children: [
+                        label('Colors'),
+                        const SizedBox(width: 12),
+                        PaletteSwatch(c.palette, width: 64, height: 14),
+                        const SizedBox(width: 10),
+                        Text(c.palette.name, style: Neon.mono),
+                        const Spacer(),
+                        const Icon(Icons.chevron_right_rounded, color: Neon.muted),
+                      ],
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 8),
                 label('Engine'),
                 const SizedBox(height: 6),

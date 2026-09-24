@@ -9,6 +9,7 @@ import '../core/timeline.dart';
 import '../engine/cpu_engine.dart';
 import '../engine/gpu_engine.dart';
 import '../engine/life_engine.dart';
+import '../render/board_palette.dart';
 import '../render/glow_pipeline.dart';
 import '../render/shaders.dart';
 import 'telemetry.dart';
@@ -382,6 +383,50 @@ class LifeController extends ChangeNotifier {
 
   void setGlow(double value) {
     pipeline.glow = value;
+    notifyListeners();
+  }
+
+  // ---- Board colors ---------------------------------------------------------
+
+  /// The user's own board colors, kept on this device.
+  BoardPalette ownPalette = BoardPalette.neon;
+
+  /// A share link's colors, shown instead of [ownPalette] until the user
+  /// keeps them or goes back to their own. Never saved by itself.
+  BoardPalette? sharedPalette;
+
+  /// What the board is drawn in right now.
+  BoardPalette get palette => pipeline.palette;
+
+  /// Told when the user picks colors, so they can be saved (see main.dart).
+  void Function(BoardPalette palette)? onPaletteChosen;
+
+  /// The user picks [p]: it becomes their own, replacing any shared colors.
+  void choosePalette(BoardPalette p) {
+    ownPalette = p;
+    sharedPalette = null;
+    _applyPalette();
+    onPaletteChosen?.call(p);
+  }
+
+  /// Shows a share link's colors, without making them the user's own.
+  void showSharedPalette(BoardPalette p) {
+    sharedPalette = p;
+    _applyPalette();
+  }
+
+  void keepSharedPalette() {
+    final p = sharedPalette;
+    if (p != null) choosePalette(p);
+  }
+
+  void dropSharedPalette() {
+    sharedPalette = null;
+    _applyPalette();
+  }
+
+  void _applyPalette() {
+    pipeline.palette = sharedPalette ?? ownPalette;
     notifyListeners();
   }
 

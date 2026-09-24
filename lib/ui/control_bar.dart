@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app/life_controller.dart';
 import '../engine/life_engine.dart';
+import 'colors_dialog.dart';
 import 'screen_board.dart';
 import 'theme.dart';
 
@@ -48,7 +49,7 @@ class ControlBar extends StatelessWidget {
           _Labeled(
             label: 'Speed ${c.targetRate.toString().padLeft(3)}/s',
             child: SizedBox(
-              width: 90,
+              width: 76,
               child: Slider(
                 // Default side padding (~24px) is room for the thumb's glow; here it ate the track.
                 padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -65,7 +66,7 @@ class ControlBar extends StatelessWidget {
           _Labeled(
             label: 'Glow',
             child: SizedBox(
-              width: 70,
+              width: 56,
               child: Slider(
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 value: c.pipeline.glow,
@@ -75,6 +76,9 @@ class ControlBar extends StatelessWidget {
               ),
             ),
           ),
+          // With the glow it colors. The sliders and dividers gave up a few pixels
+          // for it: at the default window size the bar has none to spare.
+          _PaletteButton(controller: c),
           const _Divider(),
           SegmentedButton<EngineKind>(
             style: SegmentedButton.styleFrom(
@@ -159,5 +163,25 @@ class _Divider extends StatelessWidget {
   // Its own margin: icon buttons carry built-in padding, but the labels and the
   // engine toggle beside a divider don't, so the Wrap's gap alone looks cramped.
   Widget build(BuildContext context) =>
-      Container(width: 1, height: 24, margin: const EdgeInsets.symmetric(horizontal: 8), color: Neon.border);
+      Container(width: 1, height: 24, margin: const EdgeInsets.symmetric(horizontal: 6), color: Neon.border);
+}
+
+/// The board's colors as a small swatch; opens the colors dialog.
+class _PaletteButton extends StatelessWidget {
+  const _PaletteButton({required this.controller});
+
+  final LifeController controller;
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+    message: 'Board colors · ${controller.palette.name}',
+    child: InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: () => showColorsDialog(context, controller),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 12),
+        child: PaletteSwatch(controller.palette, width: 22, height: 12),
+      ),
+    ),
+  );
 }

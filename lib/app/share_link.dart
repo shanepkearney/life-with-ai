@@ -1,12 +1,15 @@
 import '../core/grid.dart';
 import '../core/seed_codec.dart';
+import '../render/board_palette.dart';
 
-/// What a share link carries: the seed, and optionally the prompt that made it
-/// and a note about it (Claude's summary, or a favorite's description).
-typedef SharedSeed = ({Grid seed, String? title, String? note});
+/// What a share link carries: the seed, and optionally the prompt that made it,
+/// a note about it (Claude's summary, or a favorite's description) and the
+/// sender's board colors.
+typedef SharedSeed = ({Grid seed, String? title, String? note, BoardPalette? palette});
 
 /// Share links carry the whole seed in the URL fragment:
-/// `…/#seed=<code>&title=<prompt>&note=<description>`.
+/// `…/#seed=<code>&title=<prompt>&colors=<palette>&note=<description>`.
+/// `colors` is left out for Neon, the default, so most links never have it.
 ///
 /// The fragment is never sent to the server, so GitHub Pages can't reject a
 /// long link (servers refuse URLs past ~8 KB) and shared seeds stay out of
@@ -26,8 +29,13 @@ abstract final class ShareLink {
   /// The seed always travels whole. A note only fills whatever room is left
   /// under [comfortableLength], shortened with an ellipsis to fit, and is
   /// dropped when the seed (and title) already use it all.
-  static String forSeed(Grid seed, {String? title, String? note}) {
-    final base = _link({'seed': SeedCodec.encode(seed), if (title != null && title.trim().isNotEmpty) 'title': _clean(title)});
+  static String forSeed(Grid seed, {String? title, String? note, BoardPalette? palette}) {
+    final colors = palette?.wire;
+    final base = _link({
+      'seed': SeedCodec.encode(seed),
+      if (title != null && title.trim().isNotEmpty) 'title': _clean(title),
+      'colors': ?colors,
+    });
     final text = note == null ? '' : _clean(note, maxNoteLength);
     if (text.isEmpty) return base;
     final room = comfortableLength - base.length - '&note='.length;
@@ -84,7 +92,7 @@ abstract final class ShareLink {
       return value == null || value.isEmpty ? null : value;
     }
 
-    return (seed: seed, title: text('title', maxTitleLength), note: text('note', maxNoteLength));
+    return (seed: seed, title: text('title', maxTitleLength), note: text('note', maxNoteLength), palette: BoardPalette.fromWire(params['colors']));
   }
 
   /// Plain text only: no control characters or line breaks, capped in length.
