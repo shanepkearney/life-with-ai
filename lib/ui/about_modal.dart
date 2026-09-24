@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../app/build_info.dart';
 import 'theme.dart';
 
 /// Who made this, and whose rules it runs. Opened from the logo or the ⓘ
@@ -127,6 +128,8 @@ class _AboutPanel extends StatelessWidget {
                                         shadows: const [Shadow(color: Neon.magenta, blurRadius: 14)],
                                       ),
                                     ),
+                                    const SizedBox(width: 12),
+                                    _VersionTag(openUrl: openUrl),
                                   ],
                                 ),
                               ),
@@ -244,6 +247,32 @@ class _AboutPanel extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Which build this is, e.g. `v1.2.0 · a1b2c3d`, linked to its GitHub Release.
+/// A local build says `dev` and links nowhere.
+class _VersionTag extends StatelessWidget {
+  const _VersionTag({required this.openUrl});
+
+  final OpenUrl openUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = BuildInfo.releaseUrl;
+    final tag = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Neon.border),
+      ),
+      child: Text(BuildInfo.label, style: Neon.mono.copyWith(fontSize: 11, color: Neon.muted)),
+    );
+    if (url == null) return Tooltip(message: 'A local build', child: tag);
+    return Tooltip(
+      message: 'Release notes',
+      child: InkWell(borderRadius: BorderRadius.circular(6), onTap: () => openUrl(url), child: tag),
     );
   }
 }

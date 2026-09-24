@@ -252,6 +252,25 @@ The live site counts visits with [Cloudflare Web Analytics](https://www.cloudfla
 sets no cookies and doesn't track anyone across sites. The Pages build adds its beacon from the `CF_BEACON_TOKEN`
 repository variable; local builds and the macOS app have none.
 
+## Versioning and releases
+
+Every deploy is a [semantic version](https://semver.org). When a merge to `main` passes both test suites,
+`tool/next_version.dart` reads the commits since the last release tag and picks the next version from their
+[Conventional Commits](https://www.conventionalcommits.org) prefixes:
+
+| Commit | Bump | Example |
+|---|---|---|
+| `feat: …` | minor | 1.2.3 → 1.3.0 |
+| `fix: …`, `docs: …`, `chore: …`, anything else | patch | 1.2.3 → 1.2.4 |
+| `feat!: …`, or a `BREAKING CHANGE:` footer | major | 1.2.3 → 2.0.0 |
+
+The biggest bump wins, and merge commits don't count (the commits they merge do). The first release is 1.0.0.
+
+The build compiles in the version and its short commit (`--dart-define=APP_VERSION` and `APP_COMMIT`), which the
+about panel shows beside the logo as e.g. `v1.3.0 · a1b2c3d`, linked to that release. Once the deploy succeeds, CI
+tags the commit `v1.3.0` and creates a GitHub Release with generated notes, so a failed deploy never uses up a
+number. A re-run with nothing new since the last tag deploys again without tagging. Local builds say `dev`.
+
 ## Run
 
 ```bash
