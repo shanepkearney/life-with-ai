@@ -217,17 +217,29 @@ void main() {
 
   testWidgets('the logo and the ⓘ open the about panel', (tester) async {
     await start(tester);
+    // Wait for the panel to finish opening, not a fixed time: until its route's
+    // transition completes it doesn't hold focus, so an Escape sent early goes
+    // to the board instead (CI's slower runners caught exactly that).
+    bool fullyOpen() {
+      final close = find.byTooltip('Close');
+      if (close.evaluate().isEmpty) return false;
+      return ModalRoute.of(tester.element(close))?.animation?.isCompleted ?? false;
+    }
+
+    bool closed() => find.textContaining('John Horton Conway').evaluate().isEmpty;
+
     await tester.tap(find.bySemanticsLabel('About Life with AI'));
-    await frames(tester, 400);
+    await pumpUntil(tester, fullyOpen, reason: 'the about panel open, from the logo');
     expect(find.textContaining('John Horton Conway in 1970'), findsOneWidget);
     await tester.tap(find.byTooltip('Close'));
-    await frames(tester, 400);
+    await pumpUntil(tester, closed, reason: 'closed by its ✕');
+
     await tester.tap(find.byTooltip('About this app'));
-    await frames(tester, 400);
+    await pumpUntil(tester, fullyOpen, reason: 'the about panel open, from the ⓘ');
     expect(find.textContaining('Shane Kearney'), findsOneWidget);
+    await frames(tester, 100); // one more beat for focus to land in the panel
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-    await frames(tester, 400);
-    expect(find.textContaining('John Horton Conway'), findsNothing);
+    await pumpUntil(tester, closed, reason: 'closed by Escape');
   });
 
   testWidgets('a share link plays its seed, and its card can replay it and save it', (tester) async {
