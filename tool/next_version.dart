@@ -59,9 +59,11 @@ String git(List<String> args) {
   return (r.stdout as String).trim();
 }
 
-/// The newest v1.2.3-style tag reachable from HEAD, or null before the first release.
-String? lastReleaseTag() {
-  final tags = git(['tag', '--merged', 'HEAD', '--list', 'v*', '--sort=-v:refname']).split('\n').where(_tag.hasMatch);
+/// The newest v1.2.3-style tag reachable from HEAD, or null before the first
+/// release. [except] leaves one out: the release notes for v1.3.0 are written
+/// once v1.3.0 is already tagged, and look back to the release before it.
+String? lastReleaseTag({String? except}) {
+  final tags = git(['tag', '--merged', 'HEAD', '--list', 'v*', '--sort=-v:refname']).split('\n').where((t) => _tag.hasMatch(t) && t != except);
   return tags.isEmpty ? null : tags.first;
 }
 

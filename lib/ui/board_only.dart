@@ -1,0 +1,130 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+
+import '../app/life_controller.dart';
+import 'life_canvas.dart';
+import 'theme.dart';
+
+/// Just the board, edge to edge. Moving the mouse or tapping brings up a small
+/// playback bar (and the pointer); both fade after a moment of stillness, so
+/// what's left is the glowing board. Drawing is off: a tap only wakes the bar.
+class BoardOnlyView extends StatefulWidget {
+  const BoardOnlyView({super.key, required this.controller, required this.clock, required this.onExit});
+
+  final LifeController controller;
+  final ValueNotifier<double> clock;
+
+  /// Leaves Board only (the bar's ✕; Esc and B are handled by the page).
+  final VoidCallback onExit;
+
+  /// How long the bar stays after the last movement or tap.
+  static const linger = Duration(milliseconds: 2500);
+
+  @override
+  State<BoardOnlyView> createState() => _BoardOnlyViewState();
+}
+
+class _BoardOnlyViewState extends State<BoardOnlyView> {
+  bool _visible = true; // shown on entry, so it's clear how to leave
+  bool _overBar = false;
+  Timer? _hide;
+
+  @override
+  void initState() {
+    super.initState();
+    _wake();
+  }
+
+  @override
+  void dispose() {
+    _hide?.cancel();
+    super.dispose();
+  }
+
+  /// Shows the bar, and hides it again after [BoardOnlyView.linger], unless the pointer rests on it.
+  void _wake() {
+    _hide?.cancel();
+    if (!_visible) setState(() => _visible = true);
+    if (!_overBar) _hide = Timer(BoardOnlyView.linger, () => mounted ? setState(() => _visible = false) : null);
+  }
+
+  @override
+  Widget build(BuildContext context) => MouseRegion(
+    cursor: _visible ? MouseCursor.defer : SystemMouseCursors.none,
+    onHover: (_) => _wake(),
+    child: Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (_) => _wake(),
+      child: ColoredBox(
+        color: Neon.background,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            LifeCanvas(controller: widget.controller, clock: widget.clock, erase: false, drawable: false),
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 24,
+              child: SafeArea(
+                top: false,
+                child: Center(
+                  child: IgnorePointer(
+                    ignoring: !_visible,
+                    child: AnimatedOpacity(
+                      opacity: _visible ? 1 : 0,
+                      duration: const Duration(milliseconds: 250),
+                      child: MouseRegion(
+                        onEnter: (_) {
+                          _overBar = true;
+                          _wake();
+                        },
+                        onExit: (_) {
+                          _overBar = false;
+                          _wake();
+                        },
+                        child: ListenableBuilder(listenable: widget.controller, builder: (context, _) => _bar(widget.controller)),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  Widget _bar(LifeController c) {
+    Widget button(IconData icon, String tip, VoidCallback? onTap, {bool glow = false}) => IconButton(
+      tooltip: tip,
+      onPressed: onTap,
+      color: glow ? Neon.cyan : Neon.text,
+      disabledColor: Neon.muted.withValues(alpha: 0.4),
+      icon: Icon(icon, shadows: glow ? const [Shadow(color: Neon.cyan, blurRadius: 12)] : null),
+    );
+    return DecoratedBox(
+      decoration: Neon.panelDecoration(),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            button(Icons.first_page_rounded, 'Back to the start', c.atBeginning ? null : c.rewindToStart),
+            button(Icons.skip_previous_rounded, 'Step back one generation (←)', c.canStepBack ? c.stepBack : null),
+            button(
+              c.running ? Icons.pause_rounded : Icons.play_arrow_rounded,
+              c.running ? 'Pause (space)' : 'Play (space)',
+              c.toggleRunning,
+              glow: true,
+            ),
+            button(Icons.skip_next_rounded, 'Step one generation (→)', c.running ? null : c.stepOnce),
+            Container(width: 1, height: 24, margin: const EdgeInsets.symmetric(horizontal: 6), color: Neon.border),
+            button(Icons.close_rounded, 'Leave board only (Esc)', widget.onExit),
+          ],
+        ),
+      ),
+    );
+  }
+}

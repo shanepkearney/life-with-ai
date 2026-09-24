@@ -11,20 +11,56 @@ import '../engine/life_engine.dart';
 import '../render/glow_pipeline.dart';
 import '../render/shaders.dart';
 
-enum BoardSize {
-  small(256, 192),
-  medium(512, 384),
-  large(1024, 768), // the original Java app's board
-  portrait(192, 256); // phones: fills a tall screen instead of letterboxing a 4:3 board
+/// A board's size in cells: one of the presets, a board shaped like the
+/// screen ([BoardSize.fitScreen]), or whatever size a shared seed came with.
+@immutable
+class BoardSize {
+  const BoardSize._(this.width, this.height, {this.fitsScreen = false});
 
-  const BoardSize(this.width, this.height);
-  final int width;
-  final int height;
-  String get label => '$width×$height';
+  static const small = BoardSize._(256, 192);
+  static const medium = BoardSize._(512, 384);
+  static const large = BoardSize._(1024, 768); // the original Java app's board
+  static const portrait = BoardSize._(192, 256); // phones: fills a tall screen instead of letterboxing a 4:3 board
 
-  /// The sizes each layout offers. Desktop keeps its original three.
+  /// The presets. (Community seeds must use one of these.)
+  static const values = [small, medium, large, portrait];
+
+  /// The presets each layout offers, alongside Fit screen. Desktop keeps its original three.
   static const desktop = [small, medium, large];
   static const mobile = [portrait, small, medium];
+
+  /// Logical pixels per cell for [fitScreen]: about the default board's density in a desktop window.
+  static const screenCellSize = 2.0;
+
+  /// A board shaped like a screen of [width] x [height] logical pixels, at
+  /// [screenCellSize] per cell, so Board only fills it edge to edge.
+  factory BoardSize.fitScreen(double width, double height) => BoardSize._(
+    (width / screenCellSize).round().clamp(64, 2048),
+    (height / screenCellSize).round().clamp(64, 2048),
+    fitsScreen: true,
+  );
+
+  /// The size a shared seed or favorite came with: a preset if it is one.
+  factory BoardSize.of(int width, int height) =>
+      values.firstWhere((s) => s.width == width && s.height == height, orElse: () => BoardSize._(width, height));
+
+  final int width;
+  final int height;
+  final bool fitsScreen;
+
+  String get label => fitsScreen ? 'Fit screen · $width×$height' : '$width×$height';
+
+  /// For tight spaces (the phone's size picker).
+  String get shortLabel => fitsScreen ? 'Fit screen' : label;
+
+  @override
+  bool operator ==(Object other) => other is BoardSize && other.width == width && other.height == height && other.fitsScreen == fitsScreen;
+
+  @override
+  int get hashCode => Object.hash(width, height, fitsScreen);
+
+  @override
+  String toString() => 'BoardSize($label)';
 }
 
 /// One of the AI's `simulate` calls, replayed on the live board so the user
@@ -231,9 +267,8 @@ class LifeController extends ChangeNotifier {
   /// Loads [seed] at generation 0 and plays it at the user's speed. Seeds from
   /// favorites and share links carry their own board size; adopt it.
   Future<void> playSeed(Grid seed, {String? title}) {
-    for (final s in BoardSize.values) {
-      if (s.width == seed.width && s.height == seed.height) boardSize = s;
-    }
+    // Keep a screen-shaped board if the seed is that size; otherwise take the seed's.
+    if (seed.width != boardSize.width || seed.height != boardSize.height) boardSize = BoardSize.of(seed.width, seed.height);
     return _loadAndRun(seed, title: title);
   }
 
@@ -375,7 +410,7 @@ class LifeController extends ChangeNotifier {
     final g = _edit;
     if (g == null || x < 0 || y < 0 || x >= g.width || y >= g.height) return;
     // A 2x2 brush on big boards so strokes are visible.
-    final r = boardSize == BoardSize.large ? 1 : 0;
+    final r = boardSize.width >= 1024 ? 1 : 0;
     for (var dy = 0; dy <= r; dy++) {
       for (var dx = 0; dx <= r; dx++) {
         g.set(x + dx, y + dy, alive);

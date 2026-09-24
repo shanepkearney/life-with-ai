@@ -67,6 +67,42 @@ void main() {
     });
   }
 
+  testWidgets('with the ⬇ for the macOS app, the phone header still fits', (tester) async {
+    for (final size in phones.values) {
+      tester.view.physicalSize = size * tester.view.devicePixelRatio;
+      await tester.pumpWidget(const SizedBox());
+      final app = await bootstrap(offerMacDownload: true);
+      await tester.pumpWidget(app);
+      await frames(tester, 200);
+      expect(find.byTooltip('Get the macOS app'), findsOneWidget);
+      // Real fonts: the logo, ⓘ, 📷 and ⬇ fit, with the HUD scaled rather than overflowing.
+      for (final tip in ['About this app', 'Save a screenshot', 'Get the macOS app']) {
+        final r = tester.getRect(find.byTooltip(tip));
+        expect(r.right, lessThanOrEqualTo(size.width), reason: '$tip on ${size.width}');
+      }
+      await tester.pumpWidget(const SizedBox());
+      app.controller.dispose();
+    }
+    tester.view.resetPhysicalSize();
+  });
+
+  testWidgets('Board only on a phone: the bar fits, fades, and a tap brings it back', (tester) async {
+    await startOn(tester, const Size(375, 667));
+    await tester.tap(find.byTooltip('Board only (B)'));
+    await frames(tester, 300);
+    final leave = find.byTooltip('Leave board only (Esc)');
+    expect(tester.getRect(leave).right, lessThanOrEqualTo(375));
+    await frames(tester, 3000); // longer than the bar lingers
+    bool shown() => !tester.widget<IgnorePointer>(find.ancestor(of: leave, matching: find.byType(IgnorePointer)).first).ignoring;
+    expect(shown(), isFalse);
+    await tester.tapAt(const Offset(187, 300));
+    await frames(tester, 300);
+    expect(shown(), isTrue);
+    await tester.tap(leave);
+    await frames(tester, 300);
+    expect(find.byType(MobileControls), findsOneWidget);
+  });
+
   testWidgets('the about panel opens from the phone header too', (tester) async {
     await startOn(tester, const Size(375, 667));
     await tester.tap(find.byTooltip('About this app'));

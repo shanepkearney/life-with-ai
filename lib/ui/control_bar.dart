@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app/life_controller.dart';
 import '../engine/life_engine.dart';
+import 'screen_board.dart';
 import 'theme.dart';
 
 class ControlBar extends StatelessWidget {
@@ -17,6 +18,7 @@ class ControlBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = controller;
+    final sizes = {...BoardSize.desktop, screenBoardFor(context), c.boardSize}.toList();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: Neon.panelDecoration(),
@@ -100,8 +102,11 @@ class ControlBar extends StatelessWidget {
               style: Neon.mono,
               dropdownColor: const Color(0xFF0B0E17),
               items: [
-                for (final s in {...BoardSize.desktop, c.boardSize}) DropdownMenuItem(value: s, child: Text(s.label)),
+                for (final s in sizes) DropdownMenuItem(value: s, child: Text(s.label)),
               ],
+              // Closed, it shows the short name: the full "Fit screen · 1512×982"
+              // would widen the button and wrap the bar onto a second row.
+              selectedItemBuilder: (_) => [for (final s in sizes) Center(child: Text(s.shortLabel))],
               onChanged: (s) => s == null ? null : c.setBoardSize(s),
             ),
           ),

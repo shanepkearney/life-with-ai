@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app/life_controller.dart';
 import '../engine/life_engine.dart';
+import 'screen_board.dart';
 import 'theme.dart';
 
 /// The phone control strip: the buttons used constantly, in one row, with
@@ -115,10 +116,12 @@ class MobileControls extends StatelessWidget {
                   ),
                   showSelectedIcon: false,
                   segments: [
-                    for (final s in {...BoardSize.mobile, c.boardSize})
+                    for (final s in {...BoardSize.mobile, screenBoardFor(context), c.boardSize})
                       ButtonSegment(
                         value: s,
-                        label: Text(s.label, style: Neon.mono),
+                        tooltip: s.label,
+                        // Four segments share a phone's width: "Fit screen" would wrap.
+                        label: Text(s.fitsScreen ? 'Fit' : s.label, style: Neon.mono),
                       ),
                   ],
                   selected: {c.boardSize},

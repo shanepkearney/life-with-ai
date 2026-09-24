@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:life_with_ai/app/platform/full_screen.dart';
 import 'package:life_with_ai/app/share_link.dart';
 import 'package:life_with_ai/core/grid.dart';
 import 'package:life_with_ai/core/patterns.dart';
@@ -53,12 +54,12 @@ void main() {
     await tester.tap(find.text(label));
   }
 
-  Future<LifeApp> start(WidgetTester tester, {Uri? launchUri, http.Client? api, EngineKind engine = EngineKind.gpu}) async {
+  Future<LifeApp> start(WidgetTester tester, {Uri? launchUri, http.Client? api, EngineKind engine = EngineKind.gpu, FullScreen? fullScreen}) async {
     // Tear down the previous test's app first. Pumping a new LifeApp over the
     // old one would let Flutter reuse the existing Navigator, whose screen is
     // still wired to the previous test's board and favorites.
     await tester.pumpWidget(const SizedBox());
-    final app = await bootstrap(launchUri: launchUri, httpClient: api, engine: engine);
+    final app = await bootstrap(launchUri: launchUri, httpClient: api, engine: engine, fullScreen: fullScreen);
     // Unmount before disposing: a mounted board would paint with freed GPU images.
     addTearDown(() async {
       await tester.pumpWidget(const SizedBox());
@@ -87,6 +88,34 @@ void main() {
     await frames(tester, 500);
     expect(life.boardTitle, 'A favorite');
     expect(life.generation, greaterThan(0), reason: 'the new board is playing');
+  });
+
+  testWidgets('macOS full screen, for real: the window enters and leaves it through the channel', (tester) async {
+    final fullScreen = FullScreen.platform();
+    addTearDown(fullScreen.dispose);
+    expect(fullScreen.supported, isTrue);
+    await pumpUntil(tester, () => !fullScreen.active.value, reason: 'starts windowed');
+    await fullScreen.set(true);
+    await pumpUntil(tester, () => fullScreen.active.value, reason: 'the window reports full screen', seconds: 15);
+    await fullScreen.set(false);
+    await pumpUntil(tester, () => !fullScreen.active.value, reason: 'the window reports windowed again', seconds: 15);
+  });
+
+  testWidgets('Board only: just the board, a bar that fades, and back', (tester) async {
+    // Windowed (no full screen): this checks the view; the test above checks
+    // the real window, and the widget tests check how the two go together.
+    final app = await start(tester, fullScreen: NoFullScreen());
+    await tester.tap(find.byTooltip('Board only (B)'));
+    await frames(tester, 300);
+    expect(find.byType(ControlBar), findsNothing);
+    expect(find.byTooltip('Leave board only (Esc)'), findsOneWidget);
+    // Real fonts: the bar's five buttons sit within the window.
+    final bar = tester.getRect(find.byTooltip('Leave board only (Esc)'));
+    expect(bar.right, lessThanOrEqualTo(tester.view.physicalSize.width / tester.view.devicePixelRatio));
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await frames(tester, 300);
+    expect(find.byType(ControlBar), findsOneWidget);
+    expect(app.controller.generation, greaterThanOrEqualTo(0));
   });
 
   testWidgets('boots, plays on the GPU engine, and hot-swaps to the CPU engine', (tester) async {

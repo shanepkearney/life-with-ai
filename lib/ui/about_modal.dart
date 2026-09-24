@@ -1,9 +1,11 @@
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../app/build_info.dart';
+import 'download_dialog.dart';
 import 'theme.dart';
 
 /// Who made this, and whose rules it runs. Opened from the logo or the ⓘ
@@ -36,13 +38,16 @@ Future<void> openExternal(Uri url) async {
   await launchUrl(url, mode: LaunchMode.externalApplication, webOnlyWindowName: '_blank');
 }
 
-Future<void> showAboutModal(BuildContext context, {OpenUrl openUrl = openExternal}) => showGeneralDialog<void>(
+/// [offerMacDownload] adds a link to the macOS app: on by default on the web,
+/// where the visitor doesn't have it yet.
+Future<void> showAboutModal(BuildContext context, {OpenUrl openUrl = openExternal, bool offerMacDownload = kIsWeb}) =>
+    showGeneralDialog<void>(
   context: context,
   barrierDismissible: true,
   barrierLabel: 'Close about',
   barrierColor: Colors.black.withValues(alpha: 0.25),
   transitionDuration: const Duration(milliseconds: 200),
-  pageBuilder: (context, _, _) => _AboutPanel(openUrl: openUrl),
+  pageBuilder: (context, _, _) => _AboutPanel(openUrl: openUrl, offerMacDownload: offerMacDownload),
   transitionBuilder: (context, anim, _, child) => FadeTransition(
     opacity: anim,
     child: ScaleTransition(
@@ -53,9 +58,10 @@ Future<void> showAboutModal(BuildContext context, {OpenUrl openUrl = openExterna
 );
 
 class _AboutPanel extends StatelessWidget {
-  const _AboutPanel({required this.openUrl});
+  const _AboutPanel({required this.openUrl, required this.offerMacDownload});
 
   final OpenUrl openUrl;
+  final bool offerMacDownload;
 
   @override
   Widget build(BuildContext context) {
@@ -185,6 +191,20 @@ class _AboutPanel extends StatelessWidget {
                             style: body,
                           ),
                         ),
+                        if (offerMacDownload)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8, top: 6),
+                            child: TextButton.icon(
+                              onPressed: () => showMacDownloadDialog(context, openUrl: openUrl),
+                              style: TextButton.styleFrom(
+                                foregroundColor: Neon.magenta,
+                                visualDensity: VisualDensity.compact,
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                              ),
+                              icon: const Icon(Icons.download_rounded, size: 15),
+                              label: Text('Get the macOS app', style: Neon.mono.copyWith(fontSize: 12, color: Neon.magenta)),
+                            ),
+                          ),
                         heading("CONWAY'S GAME OF LIFE"),
                         Padding(
                           padding: const EdgeInsets.only(right: 10),
