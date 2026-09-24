@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:life_with_ai/app/build_info.dart';
 import 'package:life_with_ai/ui/about_modal.dart';
 import 'package:life_with_ai/ui/theme.dart';
 
@@ -32,6 +33,27 @@ void main() {
     return opened;
   }
 
+  testWidgets('shows which build this is beside the logo; a local build is "dev"', (tester) async {
+    final opened = await open(tester);
+    expect(find.text('dev'), findsOneWidget);
+    await tester.tap(find.text('dev'));
+    await tester.pump();
+    expect(opened, isEmpty, reason: 'a local build has no release to link to');
+  });
+
+  group('BuildInfo', () {
+    test('labels a release with its version and short commit', () {
+      expect(BuildInfo.labelFor('1.2.0', 'a1b2c3d4e5f6'), 'v1.2.0 · a1b2c3d');
+      expect(BuildInfo.labelFor('1.2.0', ''), 'v1.2.0');
+      expect(BuildInfo.labelFor('', 'a1b2c3d'), 'dev');
+    });
+
+    test('links a release to its GitHub Release page', () {
+      expect(BuildInfo.releaseUrlFor('1.2.0').toString(), 'https://github.com/shanepkearney/life-with-ai/releases/tag/v1.2.0');
+      expect(BuildInfo.releaseUrlFor(''), isNull);
+    });
+  });
+
   testWidgets('says what it is for, credits the author and Conway, with the rules', (tester) async {
     await open(tester);
     expect(find.text('ABOUT'), findsOneWidget);
@@ -61,7 +83,7 @@ void main() {
 
   testWidgets('links go to the right places', (tester) async {
     final opened = await open(tester);
-    for (final label in ['Wikipedia', 'LifeWiki', 'The original', 'GitHub', 'LinkedIn', 'Source code']) {
+    for (final label in ['Wikipedia', 'LifeWiki', 'The original', 'GitHub', 'LinkedIn']) {
       await tester.ensureVisible(find.text(label));
       await tester.tap(find.text(label));
     }
@@ -71,8 +93,9 @@ void main() {
       About.original,
       About.authorGitHub,
       Uri.parse('https://www.linkedin.com/in/shanepkearney/'),
-      About.repo,
     ]);
+    // The source is reached from the version tag's release page instead.
+    expect(find.text('Source code'), findsNothing);
   });
 
   testWidgets('closes with the ✕, Esc, and a tap outside', (tester) async {
