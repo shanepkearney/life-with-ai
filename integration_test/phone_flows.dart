@@ -152,7 +152,7 @@ void main() {
     var app = await startOn(tester, const Size(393, 852), launchUri: Uri.parse(ShareLink.forSeed(desktopSeed, title: 'From a desktop')));
     expect(app.controller.boardSize, BoardSize.medium, reason: 'adopts the sender\'s board');
     // It plays immediately, so check the seed that arrived rather than a live count.
-    expect(app.assistant.entries.first.seed!.stateHash, desktopSeed.stateHash);
+    expect(app.assistant.shared!.seed.stateHash, desktopSeed.stateHash);
     expect(app.controller.running, isTrue);
     await tester.tap(find.byTooltip('Speed, glow and engine'));
     await frames(tester, 400);

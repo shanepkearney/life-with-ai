@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import '../app/favorites.dart';
 import '../app/life_controller.dart';
 import '../app/share_link.dart';
+import '../core/grid.dart';
+import '../core/seed_codec.dart';
 import 'seed_thumbnail.dart';
 import 'theme.dart';
 import 'toasts.dart';
@@ -12,10 +14,14 @@ import 'toasts.dart';
 /// a card plays it on the board straight away; the list stays open, so it
 /// browses like a gallery.
 class FavoritesView extends StatefulWidget {
-  const FavoritesView({super.key, required this.favorites, required this.life});
+  const FavoritesView({super.key, required this.favorites, required this.life, this.shared});
 
   final FavoritesStore favorites;
   final LifeController life;
+
+  /// A seed the app was opened with from a share link: pinned above the list
+  /// for this visit, with replay, save (its heart fills once saved) and copy-link.
+  final SharedSeed? shared;
 
   @override
   State<FavoritesView> createState() => _FavoritesViewState();
@@ -29,8 +35,10 @@ class _FavoritesViewState extends State<FavoritesView> {
     await widget.life.playSeed(f.seed, title: f.title);
   }
 
-  Future<void> _copyLink(Favorite f) async {
-    final link = ShareLink.forSeed(f.seed, title: f.title);
+  Future<void> _copyLink(Favorite f) => _copyLinkFor(f.seed, f.title);
+
+  Future<void> _copyLinkFor(Grid seed, String title) async {
+    final link = ShareLink.forSeed(seed, title: title);
     await Clipboard.setData(ClipboardData(text: link));
     if (!mounted) return;
     final long = link.length > ShareLink.comfortableLength;
@@ -60,18 +68,92 @@ class _FavoritesViewState extends State<FavoritesView> {
       listenable: widget.favorites,
       builder: (context, _) {
         final items = widget.favorites.items;
-        if (items.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(
-              'No favourites yet. When Claude finishes a seed you like, tap the heart on its summary card '
-              'and it will be kept here, on this device.',
-              style: Neon.mono.copyWith(color: Neon.muted, height: 1.5),
-            ),
-          );
-        }
-        return ListView.builder(padding: const EdgeInsets.all(12), itemCount: items.length, itemBuilder: (context, i) => _card(items[i]));
+        final shared = widget.shared;
+        return ListView(
+          padding: const EdgeInsets.all(12),
+          children: [
+            if (shared != null) _sharedCard(shared),
+            if (items.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(4),
+                child: Text(
+                  'No favourites yet. When Claude finishes a seed you like, tap the heart on its summary card '
+                  'and it will be kept here, on this device.',
+                  style: Neon.mono.copyWith(color: Neon.muted, height: 1.5),
+                ),
+              )
+            else
+              for (final f in items) _card(f),
+          ],
+        );
       },
+    );
+  }
+
+  /// The seed from the link the app was opened with.
+  Widget _sharedCard(SharedSeed shared) {
+    final title = shared.title ?? 'A seed shared with you';
+    final saved = widget.favorites.contains(SeedCodec.encode(shared.seed));
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(12, 10, 6, 6),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Neon.cyan.withValues(alpha: 0.6)),
+          color: Neon.cyan.withValues(alpha: 0.06),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.link_rounded, color: Neon.cyan, size: 16),
+                const SizedBox(width: 8),
+                Text('SHARED WITH YOU', style: Neon.mono.copyWith(fontSize: 10, color: Neon.cyan, letterSpacing: 1.5)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SeedThumbnail(shared.seed),
+                const SizedBox(width: 10),
+                Expanded(child: Text(title, style: Neon.mono.copyWith(fontSize: 12, height: 1.45))),
+              ],
+            ),
+            Row(
+              children: [
+                IconButton(
+                  tooltip: saved ? 'Remove from favourites' : 'Add to favourites',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => widget.favorites.toggle(shared.seed, title: title, summary: 'Shared with you'),
+                  icon: Icon(
+                    saved ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                    size: 18,
+                    color: Neon.magenta,
+                    shadows: saved ? const [Shadow(color: Neon.magenta, blurRadius: 10)] : null,
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Copy share link',
+                  visualDensity: VisualDensity.compact,
+                  color: Neon.cyan,
+                  onPressed: () => _copyLinkFor(shared.seed, title),
+                  icon: const Icon(Icons.link_rounded, size: 18),
+                ),
+                const Spacer(),
+                TextButton.icon(
+                  onPressed: () => widget.life.playSeed(shared.seed.copy(), title: title),
+                  icon: const Icon(Icons.replay_rounded, size: 16),
+                  label: Text('Replay seed', style: Neon.mono.copyWith(fontSize: 11, color: null)),
+                  style: TextButton.styleFrom(foregroundColor: Neon.magenta, visualDensity: VisualDensity.compact),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 

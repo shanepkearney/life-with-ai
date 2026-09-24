@@ -37,7 +37,9 @@ class AssistantPanel extends StatefulWidget {
 class _AssistantPanelState extends State<AssistantPanel> {
   final _input = TextEditingController();
   final _scroll = ScrollController();
-  bool _showFavorites = false;
+
+  /// Opened from a share link, the panel starts on Favourites, where its card is.
+  late bool _showFavorites = widget.assistant.shared != null;
 
   @override
   void dispose() {
@@ -78,8 +80,8 @@ class _AssistantPanelState extends State<AssistantPanel> {
               if (widget.showActions && !_showFavorites) _assistantToolbar(a),
               Expanded(
                 child: _showFavorites
-                    ? FavoritesView(favorites: a.favorites, life: a.life)
-                    : a.entries.every((e) => e.kind == EntryKind.shared)
+                    ? FavoritesView(favorites: a.favorites, life: a.life, shared: a.shared)
+                    : a.entries.isEmpty
                     ? _emptyState(a)
                     : ListView.builder(
                         controller: _scroll,
@@ -166,24 +168,24 @@ class _AssistantPanelState extends State<AssistantPanel> {
   Widget _emptyState(AssistantController a) => ListView(
     padding: const EdgeInsets.all(16),
     children: [
-      for (final e in a.entries) _EntryTile(e, assistant: a),
       Text(
         'Describe what you want to see. Claude builds a seed from known patterns, simulates it, '
         'checks the result, and refines, all live on the board.',
         style: Neon.mono.copyWith(color: Neon.muted, height: 1.5),
       ),
       if (!a.hasKey) ...[
-        const SizedBox(height: 12),
+        const SizedBox(height: 18),
         OutlinedButton.icon(
           onPressed: () => showApiKeyDialog(context, a),
+          style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
           icon: const Icon(Icons.key_rounded, size: 16),
           label: const Text('Add your Anthropic API key'),
         ),
       ],
-      const SizedBox(height: 16),
+      const SizedBox(height: 22),
       for (final e in _examples)
         Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.only(bottom: 12),
           child: _PromptCard(text: e, onTap: () => _send(e)),
         ),
     ],
@@ -360,29 +362,6 @@ class _EntryTile extends StatelessWidget {
           ],
         ),
       ),
-      EntryKind.shared => Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Neon.cyan.withValues(alpha: 0.6)),
-          color: Neon.cyan.withValues(alpha: 0.06),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.link_rounded, color: Neon.cyan, size: 16),
-                const SizedBox(width: 8),
-                Text('SHARED WITH YOU', style: style.copyWith(fontSize: 10, color: Neon.cyan, letterSpacing: 1.5)),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(e.text, style: style),
-            _seedActions(context),
-          ],
-        ),
-      ),
     };
     return Padding(padding: const EdgeInsets.only(bottom: 8), child: body);
   }
@@ -507,14 +486,14 @@ class _PromptCardState extends State<_PromptCard> {
           onTap: widget.onTap,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 120),
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
               color: _hot ? Neon.cyan.withValues(alpha: 0.08) : Colors.transparent,
               border: Border.all(color: _hot ? Neon.cyan.withValues(alpha: 0.7) : Neon.border),
               boxShadow: _hot ? [BoxShadow(color: Neon.cyan.withValues(alpha: 0.15), blurRadius: 14)] : null,
             ),
-            child: Text(widget.text, style: Neon.mono.copyWith(color: Neon.cyan)),
+            child: Text(widget.text, style: Neon.mono.copyWith(color: Neon.cyan, height: 1.45)),
           ),
         ),
       ),

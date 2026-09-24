@@ -83,6 +83,9 @@ class SeedPainter extends CustomPainter {
     final dense = seed.population / (b.width * b.height) > 0.05;
     final paint = Paint();
     final lit = Neon.cyan.withValues(alpha: 0.95), dim = Neon.cyan.withValues(alpha: 0.12);
+    final glow = Paint()
+      ..color = Neon.cyan.withValues(alpha: 0.35)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
     for (var py = 0; py < h; py++) {
       final y0 = (py / scale).floor(), y1 = min(b.height, ((py + 1) / scale).ceil());
       for (var px = 0; px < w; px++) {
@@ -94,6 +97,14 @@ class SeedPainter extends CustomPainter {
           on = _anyAlive(b.x + x0, b.y + y0, b.x + x1, b.y + y1);
         }
         if (!on && !dense) continue;
+        if (!dense) {
+          // Sparse seeds: each lit patch is a lone cluster, so draw it as a small
+          // glowing dot rather than a single, near-invisible pixel.
+          final c = Offset(ox + px + 0.5, oy + py + 0.5);
+          canvas.drawCircle(c, 3, glow);
+          canvas.drawCircle(c, 1.4, paint..color = lit);
+          continue;
+        }
         paint.color = on ? lit : dim;
         canvas.drawRect(Rect.fromLTWH(ox + px, oy + py, 1, 1), paint);
       }
