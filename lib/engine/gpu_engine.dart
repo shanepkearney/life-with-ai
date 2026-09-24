@@ -13,6 +13,9 @@ class GpuEngine implements LifeEngine {
 
   final ui.FragmentProgram _program;
   DateTime _lastCount = DateTime.fromMillisecondsSinceEpoch(0);
+
+  /// Passes chained onto [frame] since it was last detached (see [detach]).
+  int _chained = 0;
   bool _counting = false;
 
   @override
@@ -40,6 +43,7 @@ class GpuEngine implements LifeEngine {
     if (_disposed) return next.dispose();
     frame?.dispose();
     frame = next;
+    _chained = 0;
   }
 
   @override
@@ -55,8 +59,16 @@ class GpuEngine implements LifeEngine {
       final next = renderPass(shader, width, height);
       frame!.dispose(); // safe: the pending picture holds its own reference
       frame = next;
+      _chained++;
     }
     generation += generations;
+    if (_chained >= detachEvery) {
+      final flat = await detach(frame!);
+      if (_disposed) return flat.dispose();
+      frame!.dispose();
+      frame = flat;
+      _chained = 0;
+    }
     _maybeCountPopulation();
   }
 

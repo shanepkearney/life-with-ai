@@ -69,6 +69,26 @@ void main() {
     return app;
   }
 
+  // Regression: every GPU pass used to chain onto the image before it, and
+  // freeing a chain thousands of links long overflowed the raster thread's
+  // stack, so loading a favourite after a few minutes' play crashed the app.
+  // A crash kills the test process, so getting to the end is the assertion.
+  testWidgets('after a long run, loading another board does not crash', (tester) async {
+    final app = await start(tester);
+    final life = app.controller;
+    for (var i = 0; i < 4000; i++) {
+      await tester.runAsync(life.stepOnce); // each step also chains a glow-trail pass
+      if (i % 25 == 0) await tester.pump(const Duration(milliseconds: 16));
+    }
+    expect(life.generation, 4000);
+    final seed = Grid(512, 384);
+    patternLibrary['glider']!.stampOnto(seed, 10, 10);
+    await tester.runAsync(() => life.playSeed(seed, title: 'A favourite'));
+    await frames(tester, 500);
+    expect(life.boardTitle, 'A favourite');
+    expect(life.generation, greaterThan(0), reason: 'the new board is playing');
+  });
+
   testWidgets('boots, plays on the GPU engine, and hot-swaps to the CPU engine', (tester) async {
     final app = await start(tester);
     final life = app.controller;
