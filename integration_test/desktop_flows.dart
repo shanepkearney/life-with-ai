@@ -216,8 +216,10 @@ void main() {
     expect(life.population, seed.population);
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.textContaining('Loaded a shared seed'), findsOneWidget);
+    // The panel opens on Favourites, where the shared seed's card is pinned at the top.
     expect(find.text('SHARED WITH YOU'), findsOneWidget);
     expect(find.text('A restless R-pentomino'), findsOneWidget);
+    expect(find.byTooltip('New chat'), findsNothing, reason: 'on the Favourites tab, not the Assistant');
     expect(app.assistant.favorites.items, isEmpty, reason: 'opening a link never saves it by itself');
 
     // The board moves on; the card's Replay puts the shared seed back at generation 0.
@@ -240,10 +242,15 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.textContaining('Saved "A restless R-pentomino · gen'), findsOneWidget);
 
-    // A new chat keeps the shared card.
-    await tester.tap(find.byTooltip('New chat'));
+    // It isn't part of the conversation with Claude...
+    await tester.tap(find.text('Seed assistant'));
     await tester.pump();
-    expect(find.text('SHARED WITH YOU'), findsOneWidget);
+    expect(find.text('SHARED WITH YOU'), findsNothing);
+    // ...it stays pinned at the top of Favourites, above the saved seeds.
+    await tester.tap(find.bySemanticsLabel('Favourites, 2 saved'));
+    await tester.pump();
+    final savedMoment = find.textContaining(RegExp(r'^A restless R-pentomino · gen \d+$')); // not the toast
+    expect(tester.getTopLeft(find.text('SHARED WITH YOU')).dy, lessThan(tester.getTopLeft(savedMoment).dy));
   });
 
   testWidgets('a broken share link falls back to a normal start', (tester) async {

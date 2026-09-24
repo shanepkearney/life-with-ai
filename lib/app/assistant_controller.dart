@@ -11,7 +11,7 @@ import 'favorites.dart';
 import 'share_link.dart';
 import 'life_controller.dart';
 
-enum EntryKind { user, assistant, thinking, tool, error, done, shared }
+enum EntryKind { user, assistant, thinking, tool, error, done }
 
 class ChatEntry {
   ChatEntry(this.kind, this.text, {this.detail, this.seed});
@@ -86,8 +86,7 @@ class AssistantController extends ChangeNotifier {
 
   void newChat() {
     _resetAgent();
-    // Seeds shared with the user aren't part of the conversation; keep them.
-    entries.removeWhere((e) => e.kind != EntryKind.shared);
+    entries.clear();
     notifyListeners();
   }
 
@@ -153,15 +152,16 @@ class AssistantController extends ChangeNotifier {
   }
 
   /// The prompt that led to [entry], used as a favourite's title.
-  /// A seed opened from a share link, shown as a card at the top of the chat
-  /// with the same replay, heart and link controls as Claude's own seeds.
-  void addShared(SharedSeed shared) {
-    entries.insert(0, ChatEntry(EntryKind.shared, shared.title ?? 'A seed shared with you', seed: shared.seed));
+  /// The seed this app was opened with from a share link, if any. Shown at
+  /// the top of the Favourites view, not in the conversation with Claude.
+  SharedSeed? shared;
+
+  void addShared(SharedSeed seed) {
+    shared = seed;
     notifyListeners();
   }
 
   String promptFor(ChatEntry entry) {
-    if (entry.kind == EntryKind.shared) return entry.text;
     final i = entries.indexOf(entry);
     for (var j = i; j >= 0; j--) {
       if (entries[j].kind == EntryKind.user) return entries[j].text;
@@ -171,8 +171,7 @@ class AssistantController extends ChangeNotifier {
 
   bool isFavorite(ChatEntry entry) => entry.seed != null && favorites.contains(SeedCodec.encode(entry.seed!));
 
-  Future<bool> toggleFavorite(ChatEntry entry) =>
-      favorites.toggle(entry.seed!, title: promptFor(entry), summary: entry.kind == EntryKind.shared ? 'Shared with you' : entry.text);
+  Future<bool> toggleFavorite(ChatEntry entry) => favorites.toggle(entry.seed!, title: promptFor(entry), summary: entry.text);
 
   /// Link for [entry]'s seed, titled with the prompt that produced it.
   String shareLinkFor(ChatEntry entry) => ShareLink.forSeed(entry.seed!, title: promptFor(entry));
