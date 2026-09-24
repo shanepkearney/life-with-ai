@@ -24,6 +24,7 @@ class CpuEngine implements LifeEngine {
 
   @override
   Future<void> load(Grid grid, {int generation = 0}) async {
+    if (_disposed) return; // its isolate is gone and would never reply
     width = grid.width;
     height = grid.height;
     this.generation = generation;
@@ -34,23 +35,35 @@ class CpuEngine implements LifeEngine {
 
   @override
   Future<void> step([int generations = 1]) async {
+    if (_disposed) return;
     final r = await _stepper.step(generations);
     generation += generations;
     population = r.population;
     _setFrame(await imageFromRgba(r.rgba, width, height));
   }
 
+  /// A step or load can finish after [dispose] (its isolate reply or image
+  /// decode was already in flight); its image is then freed, not swapped in.
   void _setFrame(ui.Image next) {
+    if (_disposed) {
+      next.dispose();
+      return;
+    }
     frame?.dispose();
     frame = next;
   }
+
+  bool _disposed = false;
 
   @override
   Future<Grid> snapshot() => _stepper.snapshot();
 
   @override
   void dispose() {
+    if (_disposed) return;
+    _disposed = true;
     _stepper.dispose();
     frame?.dispose();
+    frame = null;
   }
 }

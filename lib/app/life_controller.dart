@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 
 import '../core/grid.dart';
+import '../core/timeline.dart';
 import '../engine/cpu_engine.dart';
 import '../engine/gpu_engine.dart';
 import '../engine/life_engine.dart';
@@ -13,12 +14,17 @@ import '../render/shaders.dart';
 enum BoardSize {
   small(256, 192),
   medium(512, 384),
-  large(1024, 768); // the original Java app's board
+  large(1024, 768), // the original Java app's board
+  portrait(192, 256); // phones: fills a tall screen instead of letterboxing a 4:3 board
 
   const BoardSize(this.width, this.height);
   final int width;
   final int height;
   String get label => '$width×$height';
+
+  /// The sizes each layout offers. Desktop keeps its original three.
+  static const desktop = [small, medium, large];
+  static const mobile = [portrait, small, medium];
 }
 
 /// One of the AI's `simulate` calls, replayed on the live board so the user
@@ -45,6 +51,19 @@ class LifeController extends ChangeNotifier {
   final Shaders _shaders;
   final GlowPipeline pipeline;
   late LifeEngine engine;
+
+  /// Where the current run began, with checkpoints for stepping backwards.
+  /// Restarted by anything that puts a new board down (a seed, clear, an
+  /// experiment, or drawing: an edit is a new beginning); kept across an
+  /// engine switch, which changes nothing about the board.
+  Timeline? timeline;
+
+  /// The generation "back to the start" returns to.
+  int get originGeneration => timeline?.originGeneration ?? 0;
+  bool get atBeginning => generation <= originGeneration;
+
+  /// Like stepping forward, stepping back works while paused.
+  bool get canStepBack => !running && timeline != null && !atBeginning;
 
   BoardSize boardSize = BoardSize.medium;
 
@@ -111,6 +130,7 @@ class LifeController extends ChangeNotifier {
   /// however many generations are due at [targetRate]: zero on most frames at
   /// slow speeds, several per frame at fast ones.
   Future<void> tick(double now) async {
+    if (_disposed) return;
     final dt = _lastTick == null ? 0.0 : (now - _lastTick!).clamp(0.0, 0.1);
     _lastTick = now;
     if (_busy) return;
@@ -130,9 +150,12 @@ class LifeController extends ChangeNotifier {
     if (_due > rate * 0.25) _due = 0;
     // An experiment stops on exactly the generation Claude simulated.
     if (experiment != null) n = min(n, experiment!.generations - generation);
+    // Stop each batch on the timeline's next checkpoint, so snapshots land on exact generations.
+    if (timeline != null) n = min(n, timeline!.nextSnapshotAfter(generation) - generation);
     _busy = true;
     try {
       await engine.step(n);
+      await _recordCheckpoint();
       _publish();
       _gensSinceSample += n;
       final ms = _rateClock.elapsedMilliseconds;
@@ -181,6 +204,7 @@ class LifeController extends ChangeNotifier {
 
   Future<void> _startExperiment(Experiment e) => _whileIdle(() async {
     await engine.load(e.seed);
+    timeline = Timeline(e.seed);
     experiment = e;
     boardTitle = "Claude's experiment ${e.number}";
     running = true;
@@ -229,6 +253,7 @@ class LifeController extends ChangeNotifier {
   }
 
   void _publish() {
+    if (_disposed) return;
     pipeline.update(engine.frame!);
     notifyListeners();
   }
@@ -236,8 +261,44 @@ class LifeController extends ChangeNotifier {
   /// Advances exactly one generation while paused.
   Future<void> stepOnce() => _whileIdle(() async {
     await engine.step(1);
+    await _recordCheckpoint();
     _publish();
   });
+
+  /// Goes back one generation while paused. The rules can't run backwards,
+  /// so this rebuilds it from the nearest checkpoint (at most 63 steps),
+  /// off the UI thread where the platform allows.
+  Future<void> stepBack() => _whileIdle(() async {
+    final t = timeline;
+    if (running || t == null || atBeginning) return;
+    final target = generation - 1;
+    final nearest = t.nearestAtOrBefore(target);
+    final steps = target - nearest.generation;
+    final board = steps == 0
+        ? nearest.board
+        : Grid.fromCells(
+            t.width,
+            t.height,
+            await compute(_advance, (cells: nearest.board.cells, width: t.width, height: t.height, steps: steps)),
+          );
+    await engine.load(board, generation: target);
+    _publish();
+  });
+
+  /// Returns to where the current run began, keeping its name and play state.
+  Future<void> rewindToStart() => _whileIdle(() async {
+    final t = timeline;
+    if (t == null || atBeginning) return;
+    await engine.load(t.origin, generation: t.originGeneration);
+    _due = 0;
+    _publish();
+  });
+
+  Future<void> _recordCheckpoint() async {
+    if (_disposed) return;
+    final t = timeline;
+    if (t != null && t.wantsSnapshot(generation)) t.record(generation, await engine.snapshot());
+  }
 
   void toggleRunning() {
     // Playing on from the end of an experiment is ordinary play at the user's speed.
@@ -297,6 +358,7 @@ class LifeController extends ChangeNotifier {
     _cancelExperiments();
     boardTitle = null; // callers that know the seed's name set it after loading
     await engine.load(grid);
+    timeline = Timeline(grid);
     _publish();
   });
 
@@ -324,6 +386,7 @@ class LifeController extends ChangeNotifier {
       SchedulerBinding.instance.addPostFrameCallback((_) async {
         _flushQueued = false;
         await engine.load(g, generation: engine.generation);
+        timeline = Timeline(g, generation: engine.generation); // an edit is a new beginning
         _publish();
       });
       SchedulerBinding.instance.ensureVisualUpdate();
@@ -346,8 +409,25 @@ class LifeController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
     engine.dispose();
     pipeline.dispose();
     super.dispose();
   }
+
+  /// Work already in flight (a step waiting on the isolate, a checkpoint
+  /// readback) can finish after dispose; it must then touch nothing.
+  bool _disposed = false;
+}
+
+/// Steps a board forward in a background isolate (inline on the web).
+Uint8List _advance(({Uint8List cells, int width, int height, int steps}) r) {
+  var a = Grid.fromCells(r.width, r.height, Uint8List.fromList(r.cells)), b = Grid(r.width, r.height);
+  for (var i = 0; i < r.steps; i++) {
+    a.stepInto(b);
+    final t = a;
+    a = b;
+    b = t;
+  }
+  return a.cells;
 }

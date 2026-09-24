@@ -20,7 +20,14 @@ void main() {
     expect((await b.run('place_pattern', {'name': 'nope', 'x': 0, 'y': 0})).isError, isTrue);
     expect((await b.run('place_pattern', {'name': 'glider', 'x': 'left', 'y': 0})).isError, isTrue);
     expect((await b.run('place_pattern', {'name': 'glider', 'x': 1, 'y': 1, 'rotation': 45})).isError, isTrue);
-    expect((await b.run('set_cells', {'cells': [[1]]})).isError, isTrue);
+    expect(
+      (await b.run('set_cells', {
+        'cells': [
+          [1],
+        ],
+      })).isError,
+      isTrue,
+    );
     expect((await b.run('simulate', {'generations': 99999})).isError, isTrue);
     expect((await b.run('teleport', {})).isError, isTrue);
     expect(b.seed.population, 0);
@@ -30,7 +37,10 @@ void main() {
     final b = bench(128, 128);
     await b.run('place_pattern', {'name': 'diehard', 'x': 60, 'y': 60});
     final before = b.seed.stateHash;
-    final o = await b.run('simulate', {'generations': 200, 'checkpoints': [0, 50]});
+    final o = await b.run('simulate', {
+      'generations': 200,
+      'checkpoints': [0, 50],
+    });
     expect(o.text, contains('died out at generation 130'));
     expect(o.text, contains('--- generation 50'));
     expect(b.seed.stateHash, before);

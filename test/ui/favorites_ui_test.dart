@@ -16,14 +16,27 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Heart a finished seed, find it in Favourites, play it, share it, delete it.
 void main() {
   http.Client scriptedApi() {
-    Map<String, dynamic> reply(List<Map<String, dynamic>> content) =>
-        {'content': content, 'stop_reason': 'tool_use', 'usage': {'input_tokens': 1, 'output_tokens': 1}};
+    Map<String, dynamic> reply(List<Map<String, dynamic>> content) => {
+      'content': content,
+      'stop_reason': 'tool_use',
+      'usage': {'input_tokens': 1, 'output_tokens': 1},
+    };
     final responses = [
       reply([
-        {'type': 'tool_use', 'id': 't1', 'name': 'place_pattern', 'input': {'name': 'glider', 'x': 20, 'y': 20}},
+        {
+          'type': 'tool_use',
+          'id': 't1',
+          'name': 'place_pattern',
+          'input': {'name': 'glider', 'x': 20, 'y': 20},
+        },
       ]),
       reply([
-        {'type': 'tool_use', 'id': 't2', 'name': 'finish', 'input': {'summary': 'A glider drifts away.'}},
+        {
+          'type': 'tool_use',
+          'id': 't2',
+          'name': 'finish',
+          'input': {'summary': 'A glider drifts away.'},
+        },
       ]),
     ];
     return MockClient((_) async => http.Response(jsonEncode(responses.removeAt(0)), 200));
@@ -47,7 +60,13 @@ void main() {
       assistant = AssistantController(life, favorites, httpClient: scriptedApi())..apiKey = 'sk-test';
       await assistant.send('One glider please');
     });
-    await tester.pumpWidget(MaterialApp(home: Scaffold(body: Row(children: [AssistantPanel(assistant: assistant)]))));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Row(children: [AssistantPanel(assistant: assistant)]),
+        ),
+      ),
+    );
     await tester.pump();
 
     // Heart it on the finish card.
@@ -55,12 +74,12 @@ void main() {
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
     await tester.pump();
     expect(find.byTooltip('Remove from favourites'), findsOneWidget);
-    expect(find.byTooltip('Favourites (1)'), findsOneWidget);
+    expect(find.bySemanticsLabel('Favourites, 1 saved'), findsOneWidget, reason: 'the tab shows the count');
 
     // Recall it: the panel switches to Favourites.
-    await tester.tap(find.byTooltip('Favourites (1)'));
+    await tester.tap(find.bySemanticsLabel('Favourites, 1 saved'));
     await tester.pump();
-    expect(find.text('Favourites'), findsOneWidget);
+    expect(find.byTooltip('New chat'), findsNothing, reason: 'the Assistant toolbar belongs to its own tab');
     expect(find.text('One glider please'), findsOneWidget);
     expect(find.text('A glider drifts away.'), findsOneWidget);
 
@@ -94,9 +113,9 @@ void main() {
     expect(assistant.favorites.items.single.title, 'One glider please');
 
     // Back to the chat.
-    await tester.tap(find.byTooltip('Back to chat'));
+    await tester.tap(find.text('Seed assistant'));
     await tester.pump();
-    expect(find.text('Seed assistant'), findsOneWidget);
+    expect(find.byTooltip('New chat'), findsOneWidget, reason: 'the Assistant tab and its toolbar are back');
 
     await tester.pumpWidget(const SizedBox());
     life.dispose();

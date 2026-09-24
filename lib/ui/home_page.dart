@@ -2,22 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
+import '../app/assistant_controller.dart';
 import '../app/favorites.dart';
 import '../app/life_controller.dart';
 import '../core/seed_codec.dart';
+import 'about_modal.dart';
+import 'assistant_panel.dart';
+import 'breakpoints.dart';
 import 'control_bar.dart';
 import 'experiment_overlay.dart';
 import 'hud.dart';
 import 'life_canvas.dart';
-import 'theme.dart';
+import 'mobile_controls.dart';
+import 'mobile_sheet.dart';
 import 'toasts.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key, required this.controller, this.sidePanel, this.notice, this.favorites});
+  const HomePage({super.key, required this.controller, this.assistant, this.notice, this.favorites});
 
   final LifeController controller;
   final FavoritesStore? favorites;
-  final Widget? sidePanel;
+
+  /// Shown as a side panel on desktop and a bottom sheet on phones.
+  final AssistantController? assistant;
   final String? notice;
 
   @override
@@ -87,89 +94,142 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           focusNode: _focus,
           autofocus: true,
           onKeyEvent: (e) {
-            if (e is! KeyDownEvent || e.logicalKey != LogicalKeyboardKey.space) return;
+            final key = e.logicalKey;
+            if (e is! KeyDownEvent && e is! KeyRepeatEvent) return;
+            if (key != LogicalKeyboardKey.space && key != LogicalKeyboardKey.arrowLeft && key != LogicalKeyboardKey.arrowRight) return;
             // Key events bubble up from the chat box; a space typed there is text, not play/pause.
             final focused = FocusManager.instance.primaryFocus?.context;
             final typing =
                 focused != null && (focused.widget is EditableText || focused.findAncestorWidgetOfExactType<EditableText>() != null);
             if (typing) return;
-            c.toggleRunning();
+            // Holding an arrow repeats, scrubbing through generations; space doesn't repeat.
+            if (key == LogicalKeyboardKey.space) {
+              if (e is KeyDownEvent) c.toggleRunning();
+            } else if (!c.running) {
+              key == LogicalKeyboardKey.arrowLeft ? c.stepBack() : c.stepOnce();
+            }
           },
           child: ListenableBuilder(
             listenable: c,
-            builder: (context, _) => Row(
-              children: [
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              'LIFE',
-                              style: Neon.mono.copyWith(
-                                fontSize: 18,
-                                letterSpacing: 6,
-                                color: Neon.cyan,
-                                shadows: const [Shadow(color: Neon.cyan, blurRadius: 14)],
-                              ),
-                            ),
-                            Text(
-                              ' with AI',
-                              style: Neon.mono.copyWith(
-                                fontSize: 18,
-                                color: Neon.magenta,
-                                shadows: const [Shadow(color: Neon.magenta, blurRadius: 14)],
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            // Scale the stats down rather than overflow on narrow windows.
-                            Expanded(
-                              child: Align(
-                                alignment: Alignment.centerRight,
-                                child: FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: Hud(controller: c),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Expanded(
-                          child: Stack(
-                            children: [
-                              Positioned.fill(
-                                child: LifeCanvas(controller: c, clock: _clock, erase: _erase),
-                              ),
-                              Positioned(top: 12, left: 12, child: ExperimentOverlay(controller: c)),
-                              // Bottom of the board area: always above the controls, however they wrap.
-                              Positioned(
-                                left: 12,
-                                right: 12,
-                                bottom: 12,
-                                child: Center(child: ToastView(controller: _toasts)),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        ControlBar(
-                          controller: c,
-                          erase: _erase,
-                          onEraseChanged: (v) => setState(() => _erase = v),
-                          onSaveMoment: widget.favorites == null ? null : _saveMoment,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                if (widget.sidePanel != null) widget.sidePanel!,
-              ],
-            ),
+            // The phone layout only below the breakpoint; everything wider is the desktop layout, unchanged.
+            builder: (context, _) => LayoutBuilder(builder: (context, box) => Breakpoints.isMobile(box.biggest) ? _mobile(c) : _desktop(c)),
           ),
         ),
+      ),
+    );
+  }
+
+  /// The desktop layout: board and controls beside the assistant panel.
+  Widget _desktop(LifeController c) => Row(
+    children: [
+      Expanded(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  // The logo and ⓘ open the about panel: who made this, and Conway's rules.
+                  const LogoButton(),
+                  const SizedBox(width: 12),
+                  // Scale the stats down rather than overflow on narrow windows.
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Hud(controller: c),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Expanded(child: _board(c)),
+              const SizedBox(height: 12),
+              ControlBar(
+                controller: c,
+                erase: _erase,
+                onEraseChanged: (v) => setState(() => _erase = v),
+                onSaveMoment: widget.favorites == null ? null : _saveMoment,
+              ),
+            ],
+          ),
+        ),
+      ),
+      if (widget.assistant != null) AssistantPanel(assistant: widget.assistant!),
+    ],
+  );
+
+  /// The board with its overlays, shared by both layouts.
+  Widget _board(LifeController c) => Stack(
+    children: [
+      Positioned.fill(
+        child: LifeCanvas(controller: c, clock: _clock, erase: _erase),
+      ),
+      Positioned(top: 12, left: 12, child: ExperimentOverlay(controller: c)),
+      // Bottom of the board area: always above the controls, however they wrap.
+      Positioned(
+        left: 12,
+        right: 12,
+        bottom: 12,
+        child: Center(child: ToastView(controller: _toasts)),
+      ),
+    ],
+  );
+
+  /// The phone layout: board on top, a one-row control strip, and the
+  /// assistant in a bottom sheet that peeks and swipes up over the board.
+  Widget _mobile(LifeController c) {
+    const peek = 100.0; // handle + the panel's title bar
+    return SafeArea(
+      child: Stack(
+        children: [
+          Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 8, 10, 0),
+                child: Row(
+                  children: [
+                    const LogoButton(size: 15, letterSpacing: 4),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Hud(controller: c, compact: true),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: _board(c)),
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: MobileControls(
+                  controller: c,
+                  erase: _erase,
+                  onEraseChanged: (v) => setState(() => _erase = v),
+                  onSaveMoment: widget.favorites == null ? null : _saveMoment,
+                ),
+              ),
+              // Room for the sheet's resting height, so it never hides the controls.
+              SizedBox(height: widget.assistant == null ? 8 : peek + 8),
+            ],
+          ),
+          if (widget.assistant != null)
+            MobileSheet(
+              peekHeight: peek,
+              builder: (context, expanded, open) =>
+                  AssistantPanel(assistant: widget.assistant!, embedded: true, showActions: expanded, onOpen: open),
+            ),
+        ],
       ),
     );
   }

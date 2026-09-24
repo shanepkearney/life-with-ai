@@ -7,7 +7,7 @@ import 'app/life_controller.dart';
 import 'app/share_link.dart';
 import 'engine/life_engine.dart';
 import 'render/shaders.dart';
-import 'ui/assistant_panel.dart';
+import 'ui/breakpoints.dart';
 import 'ui/home_page.dart';
 import 'ui/theme.dart';
 
@@ -17,8 +17,10 @@ Future<void> main() async {
     await bootstrap(
       launchUri: Uri.base,
       engine: const String.fromEnvironment('ENGINE') == 'cpu' ? EngineKind.cpu : EngineKind.gpu,
-      // Dev/demo convenience: --dart-define=AUTOPLAY=true starts the simulation running.
-      autoplay: const bool.fromEnvironment('AUTOPLAY'),
+      // The board plays on load: a still board reads as broken, a moving one sells the glow.
+      // --dart-define=NO_AUTOPLAY=true starts paused. (bootstrap() itself defaults to paused,
+      // so tests stay deterministic.)
+      autoplay: !const bool.fromEnvironment('NO_AUTOPLAY'),
     ),
   );
 }
@@ -27,6 +29,9 @@ Future<void> main() async {
 /// network and a chosen launch URL, so they exercise the real wiring.
 Future<LifeApp> bootstrap({Uri? launchUri, http.Client? httpClient, EngineKind engine = EngineKind.gpu, bool autoplay = false}) async {
   final life = LifeController(await Shaders.load());
+  // Phones start on a portrait board sized for them: at 512 cells across, a phone gets under a pixel per cell.
+  final view = WidgetsBinding.instance.platformDispatcher.implicitView;
+  if (view != null && Breakpoints.isMobile(view.physicalSize / view.devicePixelRatio)) life.boardSize = BoardSize.portrait;
   await life.init(engine: engine);
   final favorites = FavoritesStore();
   await favorites.load();
@@ -67,11 +72,6 @@ class LifeApp extends StatelessWidget {
   );
 
   Route<void> _home() => MaterialPageRoute<void>(
-    builder: (_) => HomePage(
-      controller: controller,
-      notice: notice,
-      favorites: assistant.favorites,
-      sidePanel: AssistantPanel(assistant: assistant),
-    ),
+    builder: (_) => HomePage(controller: controller, notice: notice, favorites: assistant.favorites, assistant: assistant),
   );
 }

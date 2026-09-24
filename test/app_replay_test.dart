@@ -14,12 +14,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Claude's final seed, and each experiment it ran, can be replayed from the chat.
 void main() {
   Map<String, dynamic> reply(List<Map<String, dynamic>> content) => {
-        'content': content,
-        'stop_reason': 'tool_use',
-        'usage': {'input_tokens': 10, 'output_tokens': 10},
-      };
-  Map<String, dynamic> tool(String id, String name, Map<String, dynamic> input) =>
-      {'type': 'tool_use', 'id': id, 'name': name, 'input': input};
+    'content': content,
+    'stop_reason': 'tool_use',
+    'usage': {'input_tokens': 10, 'output_tokens': 10},
+  };
+  Map<String, dynamic> tool(String id, String name, Map<String, dynamic> input) => {
+    'type': 'tool_use',
+    'id': id,
+    'name': name,
+    'input': input,
+  };
 
   /// One scripted run: place a glider, simulate 8 generations, finish.
   http.Client scriptedApi() {
@@ -28,7 +32,9 @@ void main() {
         tool('t1', 'place_pattern', {'name': 'glider', 'x': 20, 'y': 20}),
         tool('t2', 'simulate', {'generations': 8}),
       ]),
-      reply([tool('t3', 'finish', {'summary': 'A glider drifts away.'})]),
+      reply([
+        tool('t3', 'finish', {'summary': 'A glider drifts away.'}),
+      ]),
     ];
     return MockClient((_) async => http.Response(jsonEncode(responses.removeAt(0)), 200));
   }
@@ -81,7 +87,13 @@ void main() {
     late LifeController life;
     late AssistantController assistant;
     await tester.runAsync(() async => (life, assistant) = await runOnce());
-    await tester.pumpWidget(MaterialApp(home: Scaffold(body: Row(children: [AssistantPanel(assistant: assistant)]))));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Row(children: [AssistantPanel(assistant: assistant)]),
+        ),
+      ),
+    );
     await tester.pump();
 
     expect(find.text('Replay seed'), findsOneWidget);

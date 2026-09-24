@@ -26,7 +26,15 @@ abstract final class Neon {
         overlayColor: cyan.withValues(alpha: 0.12),
         trackHeight: 2,
       ),
-      tooltipTheme: const TooltipThemeData(waitDuration: Duration(milliseconds: 400)),
+      tooltipTheme: TooltipThemeData(
+        waitDuration: const Duration(milliseconds: 400),
+        textStyle: mono.copyWith(fontSize: 11),
+        decoration: BoxDecoration(
+          color: const Color(0xF20B0E17),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: border),
+        ),
+      ),
       // Only used where there's no Toasts ancestor (a widget tested on its own).
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
