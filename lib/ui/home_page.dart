@@ -253,6 +253,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 LogicalKeyboardKey.space,
                 LogicalKeyboardKey.arrowLeft,
                 LogicalKeyboardKey.arrowRight,
+                LogicalKeyboardKey.arrowUp,
+                LogicalKeyboardKey.arrowDown,
                 LogicalKeyboardKey.keyF,
                 LogicalKeyboardKey.keyB,
                 LogicalKeyboardKey.escape,
@@ -268,6 +270,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 // F (and B, as before) expand the board or bring everything back; Esc leaves.
                 if (key == LogicalKeyboardKey.keyF || key == LogicalKeyboardKey.keyB) _setBoardOnly(!_boardOnly);
                 if (key == LogicalKeyboardKey.escape && _boardOnly) _setBoardOnly(false);
+                return;
+              }
+              // ↑ and ↓ set the speed, but only in full screen or while the board has the keyboard:
+              // anywhere else they scroll (the Community list, the chat).
+              if (key == LogicalKeyboardKey.arrowUp || key == LogicalKeyboardKey.arrowDown) {
+                if (e is KeyUpEvent) return;
+                if (_boardOnly || FocusManager.instance.primaryFocus == _focus) c.nudgeSpeed(key == LogicalKeyboardKey.arrowUp ? 1 : -1);
                 return;
               }
               // Holding an arrow repeats, scrubbing through generations; space doesn't repeat.
@@ -351,7 +360,12 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   Widget _board(LifeController c) => Stack(
     children: [
       Positioned.fill(
-        child: LifeCanvas(controller: c, clock: _clock, erase: _erase),
+        // A click on the board gives it the keyboard back (↑ and ↓ set the speed), from the chat, say.
+        child: Listener(
+          behavior: HitTestBehavior.translucent,
+          onPointerDown: (_) => _focus.requestFocus(),
+          child: LifeCanvas(controller: c, clock: _clock, erase: _erase),
+        ),
       ),
       Positioned(top: 12, left: 12, child: ExperimentOverlay(controller: c)),
       // Bottom of the board area: always above the controls, however they wrap.

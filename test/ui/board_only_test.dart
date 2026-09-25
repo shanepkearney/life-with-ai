@@ -210,6 +210,25 @@ void main() {
     expect(fs.calls, isEmpty);
   });
 
+  testWidgets('↑ and ↓ set the speed, on the board and in full screen', (tester) async {
+    final fs = FakeFullScreen();
+    await start(tester, fs);
+    final start0 = life.speedIndex;
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.pump();
+    expect(life.speedIndex, start0 + 1, reason: 'the board has the keyboard');
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pump();
+    expect(life.speedIndex, start0 - 1, reason: 'in full screen too');
+    for (var i = 0; i < 30; i++) {
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    }
+    expect(life.speedIndex, 0, reason: 'it stops at the slowest');
+  });
+
   testWidgets('F expands the board and brings everything back; B does too', (tester) async {
     final fs = FakeFullScreen();
     await start(tester, fs);

@@ -491,6 +491,10 @@ class LifeController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// One step faster (or slower, for a negative [steps]) on whichever slider is
+  /// showing: a board's speed, or the endless plane's pace and jump.
+  void nudgeSpeed(int steps) => giant != null ? setGiantSpeed(giant!.speed + steps) : setSpeedIndex(speedIndex + steps);
+
   void setSpeedIndex(int index) {
     speedIndex = index.clamp(0, speedLevels.length - 1);
     _due = 0;

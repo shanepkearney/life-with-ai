@@ -431,7 +431,8 @@ The board plays on load. Dev flags: `--dart-define=NO_AUTOPLAY=true` starts paus
 Speed is a rate in generations per second (1–960, geometric steps), not "generations per frame",
 so it runs the same on 60 Hz and 120 Hz displays; `test/app_speed_test.dart` checks both.
 
-Controls: space = play/pause; ← and → step while paused; **F** (or **B**) = full screen, just the board; Esc leaves
+Controls: space = play/pause; ← and → step while paused; ↑ and ↓ = faster and slower (in full screen, or after
+clicking the board); **F** (or **B**) = full screen, just the board; Esc leaves
 it; drag on the board to draw (toggle the pencil to erase).
 
 ## License
