@@ -226,6 +226,6 @@ void main() {
     patternLibrary['r_pentomino']!.stampOnto(phoneSeed, 90, 120);
     app = await startOn(tester, const Size(1440, 920), launchUri: Uri.parse(ShareLink.forSeed(phoneSeed, title: 'From a phone')));
     expect(app.controller.boardSize, BoardSize.portrait);
-    expect(find.byTooltip('Board size · 192×256'), findsOneWidget, reason: "the desktop size icon's tooltip names the adopted size");
+    expect(find.text('SIZE 192×256', findRichText: true), findsOneWidget, reason: "the desktop HUD names the adopted size");
   });
 }

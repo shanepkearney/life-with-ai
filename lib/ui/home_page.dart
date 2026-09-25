@@ -12,7 +12,6 @@ import '../app/screenshot/screenshot.dart';
 import '../core/seed_codec.dart';
 import 'about_modal.dart';
 import 'assistant_panel.dart';
-import 'bar_popup.dart';
 import 'board_only.dart';
 import 'breakpoints.dart';
 import 'broken_link_dialog.dart';
@@ -336,10 +335,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       ),
                     ),
                     const SizedBox(width: 8),
-                    // Right of the stats, flush with the board's right edge, the view of the
-                    // board: zoom, its size (the plane has none), Board only and full screen.
-                    ZoomMenu(controller: c),
-                    if (c.giant == null) SizeMenu(controller: c),
+                    // Right of the stats, flush with the board's right edge: Board only and full screen.
+                    // (Size is chosen in the stats; zoom is in the control bar.)
                     _boardOnlyButton(),
                     ?_fullScreenButton(),
                   ],

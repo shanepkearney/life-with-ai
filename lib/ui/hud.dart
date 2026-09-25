@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../app/life_controller.dart';
 import '../engine/life_engine.dart';
 import 'control_bar.dart' show ruleChoices, ruleTip;
+import 'screen_board.dart';
 import 'theme.dart';
 
 /// Live stats. Generations/sec is the number to watch when switching engines.
@@ -51,6 +52,19 @@ class Hud extends StatelessWidget {
             stat('GEN/S', c.running ? _grouped(c.gensPerSecond.round()) : '—', Neon.amber),
             // On the plane, what's playing and how close in: it replaces the board's own chip here.
             if (c.giant case final g?) stat('PATTERN', _short(g.name), Neon.text),
+            // The plane has no board to size.
+            if (c.giant == null)
+              _HudMenu<BoardSize>(
+                key: const Key('hud-size'),
+                stat: stat('SIZE', c.boardSize.shortLabel, Neon.text, gap: 0),
+                tooltip: 'Board size · ${c.boardSize.label}',
+                value: c.boardSize,
+                items: [
+                  for (final s in boardSizeChoices(context, c.boardSize, phone: false))
+                    (value: s, text: s.label, detail: '${_grouped(s.width * s.height)} cells'),
+                ],
+                onSelected: (s) => s == c.boardSize ? null : c.setBoardSize(s),
+              ),
             // A giant pattern runs on HashLife's endless plane only: no menu there.
             _HudMenu<EngineKind>(
               key: const Key('hud-engine'),

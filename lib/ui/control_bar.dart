@@ -5,6 +5,7 @@ import '../app/life_controller.dart';
 import '../core/life_rule.dart';
 import 'colors_dialog.dart';
 import 'theme.dart';
+import 'zoom_controls.dart';
 
 class ControlBar extends StatelessWidget {
   const ControlBar({super.key, required this.controller, required this.erase, required this.onEraseChanged, this.onSaveMoment});
@@ -88,8 +89,12 @@ class ControlBar extends StatelessWidget {
                 ),
               ),
             ),
-          // The board's colors, and its glow, in one dialog. Engine and rule are
-          // chosen from the HUD at the top; zoom and size sit beside it.
+          const _Divider(),
+          // − Fit +, on a board or the plane; the HUD shows how far in.
+          _Labeled(label: 'Zoom', child: ZoomControls(controller: c)),
+          const _Divider(),
+          // The board's colors, and its glow, in one dialog. Engine, rule and size
+          // are chosen from the HUD at the top.
           _PaletteButton(controller: c),
         ],
       ),

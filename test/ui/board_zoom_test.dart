@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_with_ai/app/life_controller.dart';
 import 'package:life_with_ai/render/shaders.dart';
+import 'package:life_with_ai/ui/control_bar.dart';
 import 'package:life_with_ai/ui/home_page.dart';
 import 'package:life_with_ai/ui/life_canvas.dart';
 import 'package:life_with_ai/ui/theme.dart';
@@ -31,14 +32,11 @@ void main() {
 
   Rect boardRect(WidgetTester tester) => tester.getRect(find.descendant(of: find.byType(LifeCanvas), matching: find.byType(RepaintBoundary)).first);
 
-  testWidgets("a board zooms from the top bar's magnifying glass and the mouse wheel, and drawing lands under the pointer", (tester) async {
+  testWidgets("a board zooms from the control bar's − Fit + and the mouse wheel, and drawing lands under the pointer", (tester) async {
     await start(tester);
     expect(life.boardView.zoom, 1);
-    // The zoom controls live in the top bar, behind the magnifying glass.
-    expect(find.byTooltip('Zoom out (−)'), findsNothing);
-    await tester.tap(find.byIcon(Icons.zoom_in_rounded));
-    await tester.pump();
-    expect(tester.getRect(find.text('Fit')).top, greaterThan(tester.getRect(find.byIcon(Icons.zoom_in_rounded)).bottom), reason: 'it opens below the top bar');
+    // − Fit + sit in the control bar, always there.
+    expect(find.descendant(of: find.byType(ControlBar), matching: find.byTooltip('Zoom in (+)')), findsOneWidget);
     expect(tester.widget<TextButton>(find.widgetWithText(TextButton, 'Fit')).onPressed, isNull, reason: 'nothing to fit at ×1');
 
     await tester.tap(find.byTooltip('Zoom in (+)'));
@@ -53,14 +51,11 @@ void main() {
     await tester.tap(find.text('Fit'));
     await tester.pump();
     expect(life.boardView.zoom, 1);
-    expect(find.text('Fit'), findsOneWidget, reason: 'the menu stays open between presses');
 
     // At ×2, centred, a quarter of the way across the screen is 3/8 of the way across the board.
     await tester.tap(find.byTooltip('Zoom in (+)'));
     await tester.pump();
-    await tester.tap(find.byIcon(Icons.zoom_in_rounded)); // closes the menu
-    await tester.pump();
-    expect(find.text('Fit'), findsNothing);
+    expect(find.text('ZOOM ×2', findRichText: true), findsOneWidget, reason: 'the HUD shows how far in');
     await tester.tapAt(r.topLeft + Offset(r.width / 4, r.height / 4));
     for (var i = 0; i < 5; i++) {
       await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));

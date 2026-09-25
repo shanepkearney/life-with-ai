@@ -298,21 +298,15 @@ void main() {
     await tester.tap(find.byTooltip('Jump ×1,024 generations (→)'));
     await pumpUntil(tester, () => life.generation == before + 1024, reason: 'one jump of 1,024');
 
-    // Zoom in with the bar's magnifying glass and its +, pan by dragging, and Fit brings it all back.
+    // Zoom in with the control bar's +, pan by dragging, and Fit brings it all back.
     final zoom = g.zoom;
-    await tester.tap(find.byIcon(Icons.zoom_in_rounded));
-    await frames(tester, 200);
     await tester.tap(find.byTooltip('Zoom in (+)'));
     await frames(tester, 200);
     expect(g.zoom, zoom + 1);
-    await tester.tap(find.byIcon(Icons.zoom_in_rounded)); // closes the menu, so the drag reaches the plane
-    await frames(tester, 200);
     final x = g.centreX;
     await tester.dragFrom(tester.getCenter(find.byType(LifeCanvas)), const Offset(-200, 0));
     await frames(tester, 300);
     expect(g.centreX, greaterThan(x), reason: 'dragging left moves the view right');
-    await tester.tap(find.byIcon(Icons.zoom_in_rounded));
-    await frames(tester, 200);
     await tester.tap(find.text('Fit'));
     await frames(tester, 300);
     expect(g.zoom, zoom);

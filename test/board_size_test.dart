@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:life_with_ai/app/life_controller.dart';
 import 'package:life_with_ai/core/grid.dart';
 import 'package:life_with_ai/render/shaders.dart';
-import 'package:life_with_ai/ui/bar_popup.dart';
+import 'package:life_with_ai/ui/hud.dart';
 import 'package:life_with_ai/ui/theme.dart';
 
 void main() {
@@ -76,7 +76,7 @@ void main() {
       expect(life.boardSize, BoardSize.medium);
     });
 
-    testWidgets("the top bar's size icon offers Fit screen for this display, and applies it", (tester) async {
+    testWidgets("the HUD's size menu offers Fit screen for this display, and applies it", (tester) async {
       tester.view.physicalSize = const Size(1600, 400);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
@@ -84,16 +84,16 @@ void main() {
         MaterialApp(
           theme: Neon.theme(),
           home: Scaffold(
-            // At the top, as in the app's top bar: the popup opens below it.
             body: Align(
               alignment: Alignment.topLeft,
-              child: ListenableBuilder(listenable: life, builder: (_, _) => SizeMenu(controller: life)),
+              child: ListenableBuilder(listenable: life, builder: (_, _) => Hud(controller: life)),
             ),
           ),
         ),
       );
-      await tester.tap(find.byIcon(Icons.aspect_ratio_rounded));
-      await tester.pump();
+      expect(find.text('SIZE 512×384', findRichText: true), findsOneWidget);
+      await tester.tap(find.byKey(const Key('hud-size')));
+      await tester.pumpAndSettle();
       expect(find.text('512×384'), findsOneWidget, reason: 'the current size, among the choices');
       final fit = find.textContaining('Fit screen · ').last;
       expect(fit, findsOneWidget);
@@ -101,7 +101,7 @@ void main() {
       await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
       await tester.pumpAndSettle();
       expect(life.boardSize.fitsScreen, isTrue);
-      expect(find.text('512×384'), findsNothing, reason: 'choosing closes the popup');
+      expect(find.text('512×384'), findsNothing, reason: 'choosing closes the menu');
     });
   });
 }
