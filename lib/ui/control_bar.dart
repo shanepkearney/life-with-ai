@@ -201,18 +201,29 @@ class _PaletteButton extends StatelessWidget {
 
   final LifeController controller;
 
-  // A standard icon button, shaped like the rest of the bar, filled with the board's own
-  // colors: a gradient through its heat colors that follows the palette. The faintest is
-  // left out: it's close to the board's background, too dark for an icon's thin strokes.
+  // A standard button, sized like the bar's icons, showing the board's own colors: a
+  // rounded square with a diagonal gradient through its heat colors, following the palette,
+  // and glowing as much as the board does (none at 0, stronger up to 2).
   @override
   Widget build(BuildContext context) => Tooltip(
     message: 'Board colors and glow · ${controller.palette.name}',
     child: IconButton(
       onPressed: () => showColorsDialog(context, controller),
-      icon: ShaderMask(
-        blendMode: BlendMode.srcIn,
-        shaderCallback: (bounds) => LinearGradient(colors: controller.palette.heat.sublist(1)).createShader(bounds),
-        child: const Icon(Icons.palette_rounded, color: Colors.white),
+      icon: Container(
+        width: 22,
+        height: 22,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: controller.palette.heat),
+          boxShadow: [
+            if (controller.pipeline.glow > 0)
+              BoxShadow(
+                color: controller.palette.heat[2].withValues(alpha: (0.45 * controller.pipeline.glow).clamp(0.0, 0.9)),
+                blurRadius: 10 * controller.pipeline.glow,
+              ),
+          ],
+        ),
       ),
     ),
   );
