@@ -120,7 +120,7 @@ class MobileControls extends StatelessWidget {
                     side: const BorderSide(color: Neon.border),
                   ),
                   showSelectedIcon: false,
-                  segments: [for (final k in EngineKind.values) ButtonSegment(value: k, label: Text(k.label))],
+                  segments: [for (final k in EngineKind.values) ButtonSegment(value: k, tooltip: '${k.label}: ${k.about}', label: Text(k.short))],
                   selected: {c.engineKind},
                   onSelectionChanged: (s) => c.switchEngine(s.first),
                 ),

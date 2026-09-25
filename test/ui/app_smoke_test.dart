@@ -28,7 +28,9 @@ void main() {
 
       expect(find.text('Assistant'), findsOneWidget);
       expect(find.text('Add your Anthropic API key'), findsOneWidget);
-      expect(find.text('GPU · shader'), findsWidgets);
+      for (final engine in ['CPU', 'GPU', 'HashLife']) {
+        expect(find.text(engine), findsWidgets, reason: 'the engine switch');
+      }
 
       // Without a key, sending opens the settings dialog instead of calling the API.
       await tester.tap(find.textContaining('Two glider fleets'));

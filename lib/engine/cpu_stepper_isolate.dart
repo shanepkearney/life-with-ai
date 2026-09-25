@@ -5,14 +5,16 @@ import 'dart:typed_data';
 import '../core/grid.dart';
 import 'cpu_stepper.dart';
 
-CpuStepper create() => _IsolateStepper();
+CpuStepper create({bool hashLife = false}) => _IsolateStepper(hashLife);
 
 /// Messages are records sent over a SendPort; the board travels as
 /// TransferableTypedData so a 3 MB frame is moved, not copied.
 class _IsolateStepper implements CpuStepper {
-  _IsolateStepper() {
+  _IsolateStepper(this._hashLife) {
     _ready = _spawn();
   }
+
+  final bool _hashLife;
 
   late final Future<SendPort> _ready;
   final _replies = ReceivePort();
@@ -41,7 +43,7 @@ class _IsolateStepper implements CpuStepper {
   }
 
   @override
-  Future<void> load(Grid grid) => _call(('load', grid.width, grid.height, TransferableTypedData.fromList([grid.cells])));
+  Future<void> load(Grid grid) => _call(('load', grid.width, grid.height, _hashLife, TransferableTypedData.fromList([grid.cells])));
 
   @override
   Future<StepResult> step(int generations) async {
@@ -65,17 +67,18 @@ class _IsolateStepper implements CpuStepper {
 void _worker(SendPort out) {
   final inbox = ReceivePort();
   out.send(inbox.sendPort);
-  StepperState? state;
+  Stepping? state;
   inbox.listen((msg) {
     switch (msg) {
-      case ('load', int w, int h, TransferableTypedData t):
-        state = StepperState(Grid.fromCells(w, h, t.materialize().asUint8List()));
+      case ('load', int w, int h, bool hashLife, TransferableTypedData t):
+        // HashLife keeps its table of squares between loads only within one board.
+        state = Stepping(Grid.fromCells(w, h, t.materialize().asUint8List()), hashLife: hashLife);
         out.send(null);
       case ('step', int n):
         final r = state!.advance(n);
         out.send((TransferableTypedData.fromList([r.rgba]), r.population));
       case ('snapshot',):
-        final g = state!.a;
+        final g = state!.board;
         out.send((g.width, g.height, TransferableTypedData.fromList([Uint8List.fromList(g.cells)])));
     }
   });

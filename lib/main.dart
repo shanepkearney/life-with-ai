@@ -19,7 +19,7 @@ Future<void> main() async {
   runApp(
     await bootstrap(
       launchUri: Uri.base,
-      engine: const String.fromEnvironment('ENGINE') == 'cpu' ? EngineKind.cpu : EngineKind.gpu,
+      engine: EngineKind.values.asNameMap()[const String.fromEnvironment('ENGINE')] ?? EngineKind.gpu,
       // The board plays on load: a still board reads as broken, a moving one sells the glow.
       // --dart-define=NO_AUTOPLAY=true starts paused. (bootstrap() itself defaults to paused,
       // so tests stay deterministic.)

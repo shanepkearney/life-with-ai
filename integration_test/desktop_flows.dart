@@ -128,11 +128,17 @@ void main() {
     await tester.tap(find.byTooltip('Play (space)'));
     await pumpUntil(tester, () => life.generation >= 20, reason: 'GPU engine advancing');
 
-    await tester.tap(find.text('CPU · isolate'));
+    await tester.tap(find.text('CPU'));
     await pumpUntil(tester, () => life.engineKind == EngineKind.cpu, reason: 'engine swap');
     final genAtSwap = life.generation;
     await pumpUntil(tester, () => life.generation >= genAtSwap + 20, reason: 'CPU engine advancing');
     expect(find.textContaining('CPU · isolate'), findsWidgets);
+
+    await tester.tap(find.text('HashLife'));
+    await pumpUntil(tester, () => life.engineKind == EngineKind.hashlife, reason: 'swap to HashLife');
+    final genAtHash = life.generation;
+    await pumpUntil(tester, () => life.generation >= genAtHash + 20, reason: 'HashLife advancing');
+    expect(find.textContaining('HashLife · tree'), findsWidgets);
   });
 
   testWidgets('at the default window size the controls fit on one row', (tester) async {
