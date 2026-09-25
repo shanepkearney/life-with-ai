@@ -60,6 +60,12 @@ void main() {
     expect(gun.source.toString(), 'https://conwaylife.com/wiki/Gosper_glider_gun');
     expect((gun.seed!.width, gun.seed!.height), (512, 384));
     expect(gun.seed!.population, 36);
+    expect(gun.playsOnPlane, isTrue, reason: 'its glider stream would wrap around and wreck it on a board');
+    expect(gun.shareLink, isNull);
+    final primer = CommunitySeed.parse(File('community/seeds/primer.rle').readAsStringSync());
+    expect((primer.pattern.cells.length, primer.pattern.width, primer.pattern.height), (2953, 440, 294), reason: 'as the LifeWiki lists it');
+    expect(primer.license, 'GFDL 1.2, from the LifeWiki');
+    expect((primer.endless, primer.giant, primer.discoverer), (true, false, 'Dean Hickerson, 1991'));
     // A classic behaves as it should: the pulsar is period 3.
     final pulsar = CommunitySeed.parse(File('community/seeds/pulsar.rle').readAsStringSync()).seed!;
     expect(pulsar.step().step().step().stateHash, pulsar.stateHash);
@@ -104,6 +110,9 @@ bo\$2bo\$3o!''';
       'no live cells': (t) => t.replaceFirst('bo\$2bo\$3o!', '3b!'),
       'a pattern off its board': (t) => t.replaceFirst('x = 3, y = 3, rule = B3/S23', '#CXRLE Pos=10,10\nx = 3, y = 3, rule = B3/S23:T11,11'),
       'two names': (t) => t.replaceFirst('#N Glider', '#N Glider\n#N Another'),
+      'an unknown place to play': (t) => t.replaceFirst('#C Added:', '#C Plays on: the moon\n#C Added:'),
+      'the plane and a board of its own': (t) => t.replaceFirst('#C Added:', '#C Plays on: endless plane\n#C Added:').replaceFirst('rule = B3/S23', 'rule = B3/S23:T64,64'),
+      'an empty license': (t) => t.replaceFirst('#C Added:', '#C License:\n#C Added:'),
     };
     for (final MapEntry(key: what, value: spoil) in bad.entries) {
       test('rejects $what', () => expect(() => CommunitySeed.parse(spoil(good)), throwsFormatException));

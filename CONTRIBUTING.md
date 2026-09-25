@@ -47,6 +47,8 @@ obo$10bo5bo7bo$11bo3bo$12b2o!
 | `#C …` | Required: what happens as it plays, up to 400 characters in all. Use as many `#C` lines as you like. |
 | `#C Prompt: …` | Optional, up to 160 characters: the prompt, when the assistant made it. |
 | `#C Source: https://…` | Required when `#O` isn't you: where the pattern comes from. |
+| `#C License: …` | When the source's license isn't CC BY 4.0, name it, e.g. `GFDL 1.2, from the LifeWiki`. |
+| `#C Plays on: endless plane` | For a pattern that sends things out (a gun's gliders, Primer's spaceships): on a wrap-around board they'd come back and wreck it, so it plays on HashLife's endless plane instead. |
 | `#C Added: YYYY-MM-DD by @you` | Required, once: the date and your GitHub username. The tab lists the newest first. |
 | `#CXRLE Pos=x,y` | Optional, with a torus in the rule (`rule = B3/S23:T512,384`): the exact board a seed made in the app was on, and where it sat. The Submit button writes both. |
 | the pattern | Conway's rule (`B3/S23`), LifeHistory or LifeSuper, with at least one live cell. |
@@ -60,10 +62,11 @@ Everything is shown as plain text: the app never renders it as HTML or Markdown.
 - **Your own seeds:** by submitting one, you license it under
   [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) and confirm it's yours to license. Anyone may then
   share and reuse it, crediting you (see [community/LICENSE.md](community/LICENSE.md)).
-- **Patterns found by others:** add only well-known patterns from sources that share them openly, such as
-  the [LifeWiki](https://conwaylife.com/wiki/), with the discoverer in `#O` and the page in `#C Source:`.
+- **Patterns found by others:** add only patterns from sources that share them openly, with the discoverer in
+  `#O` and the page in `#C Source:`. The [LifeWiki](https://conwaylife.com/wiki/)'s content is under the
+  GNU Free Documentation License 1.2, so a pattern file taken from it carries `#C License: GFDL 1.2, from the LifeWiki`.
   The pattern stays credited to its discoverer, not to you; the description you write is licensed under
-  CC BY 4.0. If a pattern's page or file says it may not be shared, leave it out.
+  CC BY 4.0. If a pattern's page or file says it may not be shared, or says nothing about sharing, leave it out.
 - **Code:** the project's code is under the [MIT license](LICENSE), and code contributions are accepted under it
   too: by submitting a code change, you license it under the MIT license.
 
