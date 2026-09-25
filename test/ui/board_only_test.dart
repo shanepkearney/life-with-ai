@@ -130,9 +130,14 @@ void main() {
     await tester.tap(find.descendant(of: find.byType(BoardOnlyView), matching: find.text('512×384')));
     await tester.pump(const Duration(milliseconds: 400));
     await tester.tap(find.textContaining('Fit screen · ').last);
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
+    // The board is read back and recentered on the new size: wait for it to land.
+    for (var i = 0; i < 300 && life.timeline?.width != life.boardSize.width; i++) {
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 10)));
+      await tester.pump(); // the read-back and the load both need frames to finish
+    }
     await tester.pump(const Duration(milliseconds: 400));
     expect(life.boardSize.fitsScreen, isTrue);
+    expect(life.timeline?.width, life.boardSize.width, reason: 'the new board is loaded');
     expect(find.byType(BoardOnlyView), findsOneWidget, reason: 'still in Board only');
   });
 

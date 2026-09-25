@@ -503,9 +503,15 @@ class LifeController extends ChangeNotifier {
     });
   }
 
+  /// A new board size keeps the pattern, centered on it, and its name.
   Future<void> setBoardSize(BoardSize size) async {
     boardSize = size;
-    await randomize();
+    if (giant != null) return randomize(); // a giant pattern has no board to keep
+    final title = boardTitle;
+    final board = await engine.snapshot();
+    if (_disposed) return; // closed while the board was read back
+    await load(board.recenteredOn(size.width, size.height));
+    boardTitle = title;
   }
 
   Future<void> randomize([double density = 0.25]) {
@@ -522,6 +528,7 @@ class LifeController extends ChangeNotifier {
   /// Replaces the board (used by reset, drawing, and the AI assistant). Any
   /// experiment replay stops: the board now shows something else.
   Future<void> load(Grid grid) => _whileIdle(() async {
+    if (_disposed) return; // closed while waiting its turn
     _leaveGiant();
     _cancelExperiments();
     _leaveSharedColorsFor(grid);
