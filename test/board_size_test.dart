@@ -45,7 +45,24 @@ void main() {
     testWidgets('switches to a screen-shaped board', (tester) async {
       await tester.runAsync(() => life.setBoardSize(BoardSize.fitScreen(1512, 982)));
       expect((life.width, life.height), (756, 491));
-      expect(life.population, greaterThan(0), reason: 'a fresh random board of the new size');
+      expect(life.population, greaterThan(0), reason: 'the board it had, on the new size');
+    });
+
+    testWidgets('a new size keeps the pattern, centered, and its name', (tester) async {
+      final glider = Grid(512, 384)
+        ..set(11, 10, true)
+        ..set(12, 11, true)
+        ..set(10, 12, true)
+        ..set(11, 12, true)
+        ..set(12, 12, true);
+      await tester.runAsync(() => life.playSeed(glider, title: 'Glider'));
+      await tester.runAsync(() => life.setBoardSize(BoardSize.small));
+      final g = await tester.runAsync(() => life.engine.snapshot());
+      expect((g!.width, g.height), (BoardSize.small.width, BoardSize.small.height));
+      expect(g.population, 5, reason: 'the same glider, not a random board');
+      final box = g.boundingBox!;
+      expect((box.x, box.y), ((g.width - 3) ~/ 2, (g.height - 3) ~/ 2), reason: 'in the middle');
+      expect(life.boardTitle, 'Glider');
     });
 
     testWidgets("a shared seed keeps its exact size, and a screen-shaped board keeps its name for its own seeds", (tester) async {

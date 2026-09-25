@@ -113,4 +113,26 @@ void main() {
     final g = _with('block', w: 4, h: 4, x: 1, y: 1);
     expect(g.toAscii(), '    \n ## \n ## \n    \n');
   });
+
+  group('recenteredOn', () {
+    test('puts the pattern in the middle of a bigger board', () {
+      final g = Grid(20, 10)..set(1, 1, true)..set(3, 2, true);
+      final r = g.recenteredOn(41, 31);
+      expect(r.population, 2);
+      expect(r.boundingBox, (x: 19, y: 14, width: 3, height: 2));
+    });
+
+    test('keeps the middle of a pattern too big for the new board', () {
+      final g = Grid(20, 20);
+      for (var x = 0; x < 20; x++) {
+        g.set(x, 10, true);
+      }
+      final r = g.recenteredOn(10, 10);
+      expect(r.boundingBox, (x: 0, y: 4, width: 10, height: 1));
+    });
+
+    test('an empty board stays empty', () {
+      expect(Grid(8, 8).recenteredOn(16, 16).population, 0);
+    });
+  });
 }

@@ -102,6 +102,23 @@ class Grid {
     return (x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1);
   }
 
+  /// This board's pattern on a new [boardWidth]x[boardHeight] board: the box
+  /// around its live cells in the middle. A board too small for the pattern
+  /// keeps the pattern's middle. An empty board gives an empty board.
+  Grid recenteredOn(int boardWidth, int boardHeight) {
+    final out = Grid(boardWidth, boardHeight);
+    final box = boundingBox;
+    if (box == null) return out;
+    final w = box.width < boardWidth ? box.width : boardWidth;
+    final h = box.height < boardHeight ? box.height : boardHeight;
+    final sx = box.x + (box.width - w) ~/ 2, sy = box.y + (box.height - h) ~/ 2;
+    final dx = (boardWidth - w) ~/ 2, dy = (boardHeight - h) ~/ 2;
+    for (var y = 0; y < h; y++) {
+      out.cells.setRange((dy + y) * boardWidth + dx, (dy + y) * boardWidth + dx + w, cells, (sy + y) * width + sx);
+    }
+    return out;
+  }
+
   /// FNV-1a over the cell bytes; used to detect still lifes and oscillators.
   int get stateHash {
     var h = 0x811c9dc5;
