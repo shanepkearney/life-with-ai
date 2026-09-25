@@ -153,8 +153,8 @@ class _BoardOnlyViewState extends State<BoardOnlyView> {
             ),
             button(Icons.skip_next_rounded, 'Step one generation (→)', c.running ? null : c.stepOnce),
             divider(),
-            _sizeMenu(c),
-            divider(),
+            // A pattern on the endless plane has no board to size.
+            if (c.giant == null) ...[_sizeMenu(c), divider()],
             button(Icons.close_rounded, 'Leave board only (Esc)', widget.onExit),
           ],
         ),

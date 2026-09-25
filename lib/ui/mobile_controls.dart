@@ -160,28 +160,31 @@ class MobileControls extends StatelessWidget {
                       ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                label('Board size'),
-                const SizedBox(height: 6),
-                SegmentedButton<BoardSize>(
-                  style: SegmentedButton.styleFrom(
-                    selectedBackgroundColor: Neon.cyan.withValues(alpha: 0.18),
-                    selectedForegroundColor: Neon.cyan,
-                    side: const BorderSide(color: Neon.border),
+                // A pattern on the endless plane has no board to size.
+                if (c.giant == null) ...[
+                  const SizedBox(height: 16),
+                  label('Board size'),
+                  const SizedBox(height: 6),
+                  SegmentedButton<BoardSize>(
+                    style: SegmentedButton.styleFrom(
+                      selectedBackgroundColor: Neon.cyan.withValues(alpha: 0.18),
+                      selectedForegroundColor: Neon.cyan,
+                      side: const BorderSide(color: Neon.border),
+                    ),
+                    showSelectedIcon: false,
+                    segments: [
+                      for (final s in {...BoardSize.mobile, screenBoardFor(context), c.boardSize})
+                        ButtonSegment(
+                          value: s,
+                          tooltip: s.label,
+                          // Four segments share a phone's width: "Fit screen" would wrap.
+                          label: Text(s.fitsScreen ? 'Fit' : s.label, style: Neon.mono),
+                        ),
+                    ],
+                    selected: {c.boardSize},
+                    onSelectionChanged: (s) => c.setBoardSize(s.first),
                   ),
-                  showSelectedIcon: false,
-                  segments: [
-                    for (final s in {...BoardSize.mobile, screenBoardFor(context), c.boardSize})
-                      ButtonSegment(
-                        value: s,
-                        tooltip: s.label,
-                        // Four segments share a phone's width: "Fit screen" would wrap.
-                        label: Text(s.fitsScreen ? 'Fit' : s.label, style: Neon.mono),
-                      ),
-                  ],
-                  selected: {c.boardSize},
-                  onSelectionChanged: (s) => c.setBoardSize(s.first),
-                ),
+                ],
               ],
             ),
           ),
