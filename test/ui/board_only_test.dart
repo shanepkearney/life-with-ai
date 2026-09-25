@@ -51,7 +51,7 @@ void main() {
   }
 
   bool barShown(WidgetTester tester) => !tester.widget<IgnorePointer>(
-    find.ancestor(of: find.byTooltip('Leave board only (Esc)'), matching: find.byType(IgnorePointer)).first,
+    find.ancestor(of: find.byTooltip('Exit full screen (Esc)'), matching: find.byType(IgnorePointer)).first,
   ).ignoring;
 
   testWidgets('Board only shows just the board, goes full screen, and the ✕ brings everything back', (tester) async {
@@ -59,7 +59,7 @@ void main() {
     await start(tester, fs);
     expect(find.byType(ControlBar), findsOneWidget);
 
-    await tester.tap(find.byTooltip('Board only (B)'));
+    await tester.tap(find.byTooltip('Full screen (F)'));
     await tester.pump();
     expect(find.byType(BoardOnlyView), findsOneWidget);
     expect(find.byType(ControlBar), findsNothing, reason: 'nothing but the board');
@@ -74,7 +74,7 @@ void main() {
     await tester.pump();
     expect(life.boardView.zoom, 2);
 
-    await tester.tap(find.byTooltip('Leave board only (Esc)'));
+    await tester.tap(find.byTooltip('Exit full screen (Esc)'));
     await tester.pump();
     expect(find.byType(BoardOnlyView), findsNothing);
     expect(find.byType(ControlBar), findsOneWidget);
@@ -83,7 +83,7 @@ void main() {
 
   testWidgets('the bar fades after a moment of stillness and comes back with the mouse', (tester) async {
     await start(tester, FakeFullScreen());
-    await tester.tap(find.byTooltip('Board only (B)'));
+    await tester.tap(find.byTooltip('Full screen (F)'));
     await tester.pump();
     await tester.pump(BoardOnlyView.linger + const Duration(milliseconds: 400));
     expect(barShown(tester), isFalse);
@@ -99,7 +99,7 @@ void main() {
   testWidgets('a tap wakes the bar instead of drawing', (tester) async {
     await start(tester, FakeFullScreen());
     if (life.running) life.toggleRunning(); // paused, so any change would be a drawn cell
-    await tester.tap(find.byTooltip('Board only (B)'));
+    await tester.tap(find.byTooltip('Full screen (F)'));
     await tester.pump();
     await tester.pump(BoardOnlyView.linger + const Duration(milliseconds: 400));
     final before = life.population;
@@ -112,7 +112,7 @@ void main() {
 
   testWidgets("the bar's playback buttons work", (tester) async {
     await start(tester, FakeFullScreen());
-    await tester.tap(find.byTooltip('Board only (B)'));
+    await tester.tap(find.byTooltip('Full screen (F)'));
     await tester.pump();
     if (life.running) {
       await tester.tap(find.byTooltip('Pause (space)'));
@@ -131,7 +131,7 @@ void main() {
 
   testWidgets("the bar's size menu changes the board, Fit screen included", (tester) async {
     await start(tester, FakeFullScreen());
-    await tester.tap(find.byTooltip('Board only (B)'));
+    await tester.tap(find.byTooltip('Full screen (F)'));
     await tester.pump();
     expect(find.descendant(of: find.byType(BoardOnlyView), matching: find.text('512×384')), findsOneWidget);
     await tester.tap(find.descendant(of: find.byType(BoardOnlyView), matching: find.text('512×384')));
@@ -166,7 +166,7 @@ void main() {
   testWidgets('leaving full screen some other way (Esc in a browser, the green button) leaves Board only too', (tester) async {
     final fs = FakeFullScreen();
     await start(tester, fs);
-    await tester.tap(find.byTooltip('Board only (B)'));
+    await tester.tap(find.byTooltip('Full screen (F)'));
     await tester.pump();
     fs.active.value = false; // the browser or window left full screen by itself
     await tester.pump();
@@ -176,44 +176,44 @@ void main() {
   testWidgets('if full screen is refused, Board only still fills the window', (tester) async {
     final fs = FakeFullScreen(refuse: true);
     await start(tester, fs);
-    await tester.tap(find.byTooltip('Board only (B)'));
+    await tester.tap(find.byTooltip('Full screen (F)'));
     await tester.pump();
     expect(find.byType(BoardOnlyView), findsOneWidget);
-    await tester.tap(find.byTooltip('Leave board only (Esc)'));
+    await tester.tap(find.byTooltip('Exit full screen (Esc)'));
     await tester.pump();
     expect(fs.calls, [true], reason: "it never went full screen, so there's nothing to leave");
   });
 
-  testWidgets('without full screen (an iPhone), there is no ⛶ and Board only just fills the window', (tester) async {
+  testWidgets('without full screen (an iPhone), ⛶ still expands the board: it just fills the window', (tester) async {
     final fs = FakeFullScreen(supported: false);
     await start(tester, fs);
-    expect(find.byTooltip('Full screen (F)'), findsNothing);
-    await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
-    await tester.tap(find.byTooltip('Board only (B)'));
+    await tester.tap(find.byTooltip('Full screen (F)'));
     await tester.pump();
     expect(find.byType(BoardOnlyView), findsOneWidget);
     expect(fs.calls, isEmpty);
   });
 
-  testWidgets('⛶ and F toggle full screen for the whole app', (tester) async {
+  testWidgets('F expands the board and brings everything back; B does too', (tester) async {
     final fs = FakeFullScreen();
     await start(tester, fs);
-    await tester.tap(find.byTooltip('Full screen (F)'));
-    await tester.pump();
-    expect(fs.active.value, isTrue);
-    expect(find.byTooltip('Exit full screen (F)'), findsOneWidget);
-    expect(find.byType(ControlBar), findsOneWidget, reason: 'the whole app, not Board only');
     await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
     await tester.pump();
+    expect(find.byType(BoardOnlyView), findsOneWidget, reason: 'the board, not the whole app');
+    expect(fs.active.value, isTrue);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
+    await tester.pump();
+    expect(find.byType(ControlBar), findsOneWidget);
     expect(fs.active.value, isFalse);
-    expect(fs.calls, [true, false]);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyB);
+    await tester.pump();
+    expect(find.byType(BoardOnlyView), findsOneWidget);
+    expect(find.byIcon(Icons.grid_on_rounded), findsNothing, reason: 'one button for it: ⛶');
   });
 
-  testWidgets('on a phone: the header offers Board only, and it works', (tester) async {
+  testWidgets('on a phone: the header offers ⛶, and it expands the board', (tester) async {
     final fs = FakeFullScreen();
     await start(tester, fs, size: const Size(390, 844));
-    expect(find.byTooltip('Full screen (F)'), findsNothing, reason: 'Board only goes full screen itself; the header is tight');
-    await tester.tap(find.byTooltip('Board only (B)'));
+    await tester.tap(find.byTooltip('Full screen (F)'));
     await tester.pump();
     expect(find.byType(BoardOnlyView), findsOneWidget);
     expect(fs.calls, [true]);

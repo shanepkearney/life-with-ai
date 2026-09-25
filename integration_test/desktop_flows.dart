@@ -107,12 +107,12 @@ void main() {
     // Windowed (no full screen): this checks the view; the test above checks
     // the real window, and the widget tests check how the two go together.
     final app = await start(tester, fullScreen: NoFullScreen());
-    await tester.tap(find.byTooltip('Board only (B)'));
+    await tester.tap(find.byTooltip('Full screen (F)'));
     await frames(tester, 300);
     expect(find.byType(ControlBar), findsNothing);
-    expect(find.byTooltip('Leave board only (Esc)'), findsOneWidget);
+    expect(find.byTooltip('Exit full screen (Esc)'), findsOneWidget);
     // Real fonts: the bar's five buttons sit within the window.
-    final bar = tester.getRect(find.byTooltip('Leave board only (Esc)'));
+    final bar = tester.getRect(find.byTooltip('Exit full screen (Esc)'));
     expect(bar.right, lessThanOrEqualTo(tester.view.physicalSize.width / tester.view.devicePixelRatio));
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await frames(tester, 300);
@@ -287,7 +287,7 @@ void main() {
     expect(life.engineKind, EngineKind.hashlife);
     expect(g.zoom, lessThan(0), reason: 'fitted: 5,000 cells across needs several cells a pixel');
     expect(find.textContaining('endless plane'), findsWidgets); // the corner label; the HUD may be scaled or compact on a small screen
-    expect(find.textContaining('Jump ×'), findsOneWidget, reason: 'the speed slider is the jump size');
+    expect(find.text('  ×1K'), findsOneWidget, reason: 'the speed slider is the jump size, a thousand at first');
 
     // Jumps: pause, then one step of 2^10.
     if (life.running) life.toggleRunning();

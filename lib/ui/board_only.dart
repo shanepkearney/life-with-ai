@@ -164,7 +164,7 @@ class _BoardOnlyViewState extends State<BoardOnlyView> {
             divider(),
             // A pattern on the endless plane has no board to size.
             if (c.giant == null) ...[_sizeMenu(c), divider()],
-            button(Icons.close_rounded, 'Leave board only (Esc)', widget.onExit),
+            button(Icons.fullscreen_exit_rounded, 'Exit full screen (Esc)', widget.onExit),
           ],
         ),
       ),

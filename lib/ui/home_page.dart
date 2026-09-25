@@ -215,22 +215,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     }
   }
 
-  Widget? _fullScreenButton({double size = 18}) {
-    if (!_fullScreen.supported) return null;
-    final on = _fullScreen.active.value;
-    return IconButton(
-      tooltip: on ? 'Exit full screen (F)' : 'Full screen (F)',
-      visualDensity: VisualDensity.compact,
-      onPressed: () => _fullScreen.set(!on),
-      icon: Icon(on ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded, size: size + 2, color: Neon.muted),
-    );
-  }
-
-  Widget _boardOnlyButton({double size = 18}) => IconButton(
-    tooltip: 'Board only (B)',
+  /// ⛶ expands the board: just the board and a fading bar, full screen where
+  /// the platform allows it, filling the window where it doesn't (an iPhone).
+  Widget _fullScreenButton({double size = 18}) => IconButton(
+    tooltip: 'Full screen (F)',
     visualDensity: VisualDensity.compact,
     onPressed: () => _setBoardOnly(true),
-    icon: Icon(Icons.grid_on_rounded, size: size, color: Neon.muted), // the board; ⛶ is full screen
+    icon: Icon(Icons.fullscreen_rounded, size: size + 2, color: Neon.muted),
   );
 
   @override
@@ -274,9 +265,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               if (typing) return;
               if (key == LogicalKeyboardKey.keyF || key == LogicalKeyboardKey.keyB || key == LogicalKeyboardKey.escape) {
                 if (e is! KeyDownEvent) return;
-                if (key == LogicalKeyboardKey.keyB) _setBoardOnly(!_boardOnly);
+                // F (and B, as before) expand the board or bring everything back; Esc leaves.
+                if (key == LogicalKeyboardKey.keyF || key == LogicalKeyboardKey.keyB) _setBoardOnly(!_boardOnly);
                 if (key == LogicalKeyboardKey.escape && _boardOnly) _setBoardOnly(false);
-                if (key == LogicalKeyboardKey.keyF && _fullScreen.supported) _fullScreen.set(!_fullScreen.active.value);
                 return;
               }
               // Holding an arrow repeats, scrubbing through generations; space doesn't repeat.
@@ -335,10 +326,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       ),
                     ),
                     const SizedBox(width: 8),
-                    // Right of the stats, flush with the board's right edge: Board only and full screen.
+                    // Right of the stats, flush with the board's right edge: expand the board.
                     // (Size is chosen in the stats; zoom is in the control bar.)
-                    _boardOnlyButton(),
-                    ?_fullScreenButton(),
+                    _fullScreenButton(),
                   ],
                 ),
               ),
@@ -396,8 +386,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     ),
                     ?_macDownloadButton(size: 15),
                     _screenshotButton(size: 15),
-                    // No separate ⛶ here: space is tight, and Board only goes full screen by itself.
-                    _boardOnlyButton(size: 15),
+                    _fullScreenButton(size: 15),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Align(
