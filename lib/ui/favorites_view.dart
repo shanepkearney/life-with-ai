@@ -11,6 +11,7 @@ import '../app/screenshot/save_png.dart';
 import '../app/share_link.dart';
 import '../app/telemetry.dart';
 import '../core/grid.dart';
+import '../core/life_rule.dart';
 import '../core/rle.dart';
 import '../core/seed_codec.dart';
 import 'about_modal.dart';
@@ -45,23 +46,23 @@ class _FavoritesViewState extends State<FavoritesView> {
 
   Future<void> _play(Favorite f) async {
     setState(() => _playing = f.code);
-    await widget.life.playSeed(f.seed, title: f.title, source: SeedSource.favorite);
+    await widget.life.playSeed(f.seed, title: f.title, source: SeedSource.favorite, rule: f.rule);
   }
 
-  Future<void> _copyLink(Favorite f) => _copyLinkFor(f.seed, f.title, note: f.linkNote);
+  Future<void> _copyLink(Favorite f) => _copyLinkFor(f.seed, f.title, note: f.linkNote, rule: f.rule);
 
   /// The favorite as RLE, on its board, so Golly (or this app) reopens it exactly.
   Future<void> _download(Favorite f) async {
     final name = CommunitySeed.fileNameFor(f.title).replaceFirst(RegExp(r'^\.rle$'), 'favorite.rle');
-    final rle = Rle.encode(f.seed, name: f.title, comments: [?f.linkNote], onBoard: true);
+    final rle = Rle.encode(f.seed, name: f.title, comments: [?f.linkNote], onBoard: true, rule: f.rule);
     final saved = await widget.saveFile(Uint8List.fromList(utf8.encode(rle)), name, 'application/x-life');
     if (!mounted) return;
     Toasts.show(context, saved == null ? "Downloads can't be saved on this device yet." : 'Saved $name to ${saved.label}');
   }
 
-  Future<void> _copyLinkFor(Grid seed, String title, {String? note}) async {
+  Future<void> _copyLinkFor(Grid seed, String title, {String? note, LifeRule rule = LifeRule.conway}) async {
     // In the colors it's showing in: the receiver sees what the sender saw.
-    final link = ShareLink.forSeed(seed, title: title, note: note, palette: widget.life.palette);
+    final link = ShareLink.forSeed(seed, title: title, note: note, palette: widget.life.palette, rule: rule);
     await Clipboard.setData(ClipboardData(text: link));
     if (!mounted) return;
     final long = link.length > ShareLink.comfortableLength;
@@ -97,7 +98,7 @@ class _FavoritesViewState extends State<FavoritesView> {
       context,
       'Removed "${f.title}"',
       actionLabel: 'Undo',
-      onAction: () => widget.favorites.toggle(f.seed, title: f.title, summary: f.summary),
+      onAction: () => widget.favorites.toggle(f.seed, title: f.title, summary: f.summary, rule: f.rule),
     );
   }
 
@@ -178,7 +179,7 @@ class _FavoritesViewState extends State<FavoritesView> {
                 IconButton(
                   tooltip: saved ? 'Remove from favorites' : 'Add to favorites',
                   visualDensity: VisualDensity.compact,
-                  onPressed: () => widget.favorites.toggle(shared.seed, title: title, summary: shared.note ?? Favorite.sharedSummary),
+                  onPressed: () => widget.favorites.toggle(shared.seed, title: title, summary: shared.note ?? Favorite.sharedSummary, rule: shared.rule),
                   icon: Icon(
                     saved ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                     size: 18,
@@ -195,7 +196,7 @@ class _FavoritesViewState extends State<FavoritesView> {
                 ),
                 const Spacer(),
                 TextButton.icon(
-                  onPressed: () => widget.life.playSeed(shared.seed.copy(), title: title),
+                  onPressed: () => widget.life.playSeed(shared.seed.copy(), title: title, rule: shared.rule),
                   icon: const Icon(Icons.replay_rounded, size: 16),
                   label: Text('Replay seed', style: Neon.mono.copyWith(fontSize: 11, color: null)),
                   style: TextButton.styleFrom(foregroundColor: Neon.magenta, visualDensity: VisualDensity.compact),

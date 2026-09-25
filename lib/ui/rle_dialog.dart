@@ -23,7 +23,7 @@ Future<String?> showRleDialog(BuildContext context, LifeController life) async {
   final moment = life.giant != null ? null : await life.captureMoment();
   final text = moment == null || moment.seed.population == 0
       ? ''
-      : Rle.encode(moment.seed, name: life.boardTitle, comments: _comments(life, moment.seed));
+      : Rle.encode(moment.seed, name: life.boardTitle, comments: _comments(life, moment.seed), rule: life.rule);
   if (!context.mounted) return null;
   final loaded = await showGeneralDialog<String>(
     context: context,
@@ -47,7 +47,7 @@ Future<String?> showRleDialog(BuildContext context, LifeController life) async {
 /// Where the board came from, as `#C` lines: the generation, and a link that
 /// opens this exact board in the app (when it's short enough to paste).
 List<String> _comments(LifeController life, Grid seed) {
-  final link = ShareLink.forSeed(seed, title: life.boardTitle);
+  final link = ShareLink.forSeed(seed, title: life.boardTitle, rule: life.rule);
   return [
     'Generation ${life.generation} on a ${life.boardSize.width}x${life.boardSize.height} board.',
     if (link.length <= ShareLink.comfortableLength) 'Open it in Life with AI: $link' else 'Made with Life with AI: ${ShareLink.site}',
@@ -108,6 +108,10 @@ class _RlePanelState extends State<_RlePanel> {
       return setState(() => _error = e.message);
     }
     if (!giant) giant = !await widget.life.playPattern(pattern);
+    if (giant && pattern.rule.birthFromNothing) {
+      // Too big for a board, and a rule the endless plane can't hold.
+      return setState(() => _error = 'This pattern is too big for a board, and its rule (${pattern.rule.notation}) brings empty space to life, which the endless plane can\'t run.');
+    }
     if (giant) await widget.life.openGiant(pattern);
     if (!mounted) return;
     Navigator.of(context).pop(pattern.name ?? 'Pasted pattern');

@@ -4,12 +4,13 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/grid.dart';
+import '../core/life_rule.dart';
 import '../core/seed_codec.dart';
 
 /// A hearted seed. Stored as its [SeedCodec] code, so a favorite and a share
 /// link are the same data.
 class Favorite {
-  Favorite({required this.code, required this.title, required this.summary, required this.savedAt});
+  Favorite({required this.code, required this.title, required this.summary, required this.savedAt, this.rule = LifeRule.conway});
 
   final String code;
 
@@ -19,6 +20,9 @@ class Favorite {
   /// Claude's finish summary, or a stock line for seeds saved another way.
   final String summary;
   final DateTime savedAt;
+
+  /// The rule it was saved under: Conway's unless it was playing by another.
+  final LifeRule rule;
 
   /// Stock summaries: they describe how a seed was saved, not the seed itself.
   static const momentSummary = 'Saved from the board.';
@@ -31,17 +35,25 @@ class Favorite {
   /// rebuilds far more often than favorites change.
   late final Grid seed = SeedCodec.decode(code);
 
-  Map<String, Object> toJson() => {'code': code, 'title': title, 'summary': summary, 'savedAt': savedAt.toIso8601String()};
+  // Conway's rule is stored as nothing, so favorites saved before rules existed read the same.
+  Map<String, Object> toJson() => {
+    'code': code,
+    'title': title,
+    'summary': summary,
+    'savedAt': savedAt.toIso8601String(),
+    if (!rule.isConway) 'rule': rule.notation,
+  };
 
   static Favorite? fromJson(Object? json) {
     if (json is! Map) return null;
-    final code = json['code'], title = json['title'], summary = json['summary'], at = json['savedAt'];
+    final code = json['code'], title = json['title'], summary = json['summary'], at = json['savedAt'], rule = json['rule'];
     if (code is! String || SeedCodec.tryDecode(code) == null) return null;
     return Favorite(
       code: code,
       title: title is String ? title : 'Untitled seed',
       summary: summary is String ? summary : '',
       savedAt: (at is String ? DateTime.tryParse(at) : null) ?? DateTime.now(),
+      rule: (rule is String ? LifeRule.parse(rule) : null) ?? LifeRule.conway,
     );
   }
 }
@@ -97,7 +109,7 @@ class FavoritesStore extends ChangeNotifier {
 
   /// Hearts [seed], or un-hearts it if it is already a favorite. Returns
   /// whether it is a favorite afterwards.
-  Future<bool> toggle(Grid seed, {required String title, required String summary}) async {
+  Future<bool> toggle(Grid seed, {required String title, required String summary, LifeRule rule = LifeRule.conway}) async {
     final code = SeedCodec.encode(seed);
     if (contains(code)) {
       _items.removeWhere((f) => f.code == code);
@@ -105,13 +117,13 @@ class FavoritesStore extends ChangeNotifier {
       await _save();
       return false;
     }
-    await add(seed, title: title, summary: summary);
+    await add(seed, title: title, summary: summary, rule: rule);
     return true;
   }
 
   /// Saves [seed] unless an identical one is already saved. Returns whether it
   /// was added. Throws [FavoriteTooLarge] rather than risk the collection.
-  Future<bool> add(Grid seed, {required String title, required String summary}) async {
+  Future<bool> add(Grid seed, {required String title, required String summary, LifeRule rule = LifeRule.conway}) async {
     final code = SeedCodec.encode(seed);
     if (contains(code)) return false;
     if (code.length > maxCodeLength) {
@@ -120,7 +132,7 @@ class FavoritesStore extends ChangeNotifier {
     if (_totalLength + code.length > maxTotalLength) {
       throw FavoriteTooLarge('Favorites are full. Delete a few large ones to make room.');
     }
-    _items.insert(0, Favorite(code: code, title: title, summary: summary, savedAt: DateTime.now()));
+    _items.insert(0, Favorite(code: code, title: title, summary: summary, savedAt: DateTime.now(), rule: rule));
     if (_items.length > maxFavorites) _items.removeRange(maxFavorites, _items.length);
     notifyListeners();
     await _save();

@@ -106,7 +106,7 @@ bo\$2bo\$3o!''';
       'a user with a trailing hyphen': (t) => t.replaceFirst('@octocat', '@octocat-'),
       "someone else's find with no source": (t) => t.replaceFirst('#O octocat', '#O Richard Guy, 1969'),
       'a source that is not https': (t) => t.replaceFirst('#O octocat', '#O Richard Guy, 1969\n#C Source: http://example.com'),
-      'another rule': (t) => t.replaceFirst('B3/S23', 'B36/S23'),
+      'a rule of another family': (t) => t.replaceFirst('B3/S23', 'B34twz/S23'),
       'no live cells': (t) => t.replaceFirst('bo\$2bo\$3o!', '3b!'),
       'a pattern off its board': (t) => t.replaceFirst('x = 3, y = 3, rule = B3/S23', '#CXRLE Pos=10,10\nx = 3, y = 3, rule = B3/S23:T11,11'),
       'two names': (t) => t.replaceFirst('#N Glider', '#N Glider\n#N Another'),

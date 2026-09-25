@@ -4,6 +4,7 @@ import '../app/giant_mode.dart';
 import '../app/life_controller.dart';
 import '../engine/life_engine.dart';
 import 'colors_dialog.dart';
+import 'control_bar.dart' show RuleMenu;
 import 'screen_board.dart';
 import 'theme.dart';
 
@@ -130,6 +131,10 @@ class MobileControls extends StatelessWidget {
                   selected: {c.engineKind},
                   onSelectionChanged: c.giant != null ? null : (s) => c.switchEngine(s.first),
                 ),
+                const SizedBox(height: 16),
+                label('Rule'),
+                const SizedBox(height: 6),
+                RuleMenu(controller: c, width: 220), // room here for the full name
                 const SizedBox(height: 16),
                 // Clear and RLE live here on phones, to keep the strip to one row.
                 Wrap(

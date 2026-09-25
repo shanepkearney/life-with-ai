@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:life_with_ai/app/favorites.dart';
 import 'package:life_with_ai/app/life_controller.dart';
 import 'package:life_with_ai/core/grid.dart';
+import 'package:life_with_ai/core/life_rule.dart';
 import 'package:life_with_ai/core/patterns.dart';
 import 'package:life_with_ai/render/board_palette.dart';
 import 'package:life_with_ai/render/shaders.dart';
@@ -128,7 +129,7 @@ void main() {
       MaterialApp(
         theme: Neon.theme(),
         home: Scaffold(
-          body: FavoritesView(favorites: favorites, life: life, shared: (seed: seed, title: 'A glider', note: null, palette: BoardPalette.ember)),
+          body: FavoritesView(favorites: favorites, life: life, shared: (seed: seed, title: 'A glider', note: null, palette: BoardPalette.ember, rule: LifeRule.conway)),
         ),
       ),
     );

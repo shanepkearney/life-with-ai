@@ -116,7 +116,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     final moment = await widget.controller.captureMoment();
     if (moment.seed.population == 0) return say('The board is empty, so there is nothing to save.');
     try {
-      final added = await favorites.add(moment.seed, title: moment.title, summary: Favorite.momentSummary);
+      final added = await favorites.add(moment.seed, title: moment.title, summary: Favorite.momentSummary, rule: widget.controller.rule);
       if (!added) return say('That exact board is already in your favorites.');
       final code = SeedCodec.encode(moment.seed);
       say(

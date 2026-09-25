@@ -1,4 +1,5 @@
 import 'grid.dart';
+import 'life_rule.dart';
 import 'seed_codec.dart';
 
 /// A pattern too big to read: [width] x [height] cells, from its header when
@@ -14,7 +15,15 @@ class RleTooBig extends FormatException {
 /// A pattern read from RLE text: its live cells relative to its own top-left
 /// corner, plus the name and comments from its `#N` and `#C` lines.
 class RlePattern {
-  RlePattern({required this.width, required this.height, required this.cells, this.name, this.comments = const [], this.torus});
+  RlePattern({
+    required this.width,
+    required this.height,
+    required this.cells,
+    this.name,
+    this.comments = const [],
+    this.torus,
+    this.rule = LifeRule.conway,
+  });
 
   final int width;
   final int height;
@@ -25,6 +34,10 @@ class RlePattern {
   /// The board it was made for, from a rule like `B3/S23:T48,12`. Such a
   /// pattern relies on wrapping at exactly those edges.
   final ({int width, int height})? torus;
+
+  /// The rule it runs by: Conway's unless its header names another
+  /// birth/survival rule, such as HighLife's `B36/S23`.
+  final LifeRule rule;
 
   /// A [boardWidth] x [boardHeight] board with this pattern in the middle.
   Grid centeredOn(int boardWidth, int boardHeight) {
@@ -71,7 +84,14 @@ abstract final class Rle {
   /// also records the board, the way Golly does: its size as a torus in the
   /// rule (`B3/S23:T512,384`) and where the pattern sits (`#CXRLE Pos=x,y`),
   /// so the seed comes back exactly, wrap-around included.
-  static String encode(Grid grid, {String? name, String? origin, List<String> comments = const [], bool onBoard = false}) {
+  static String encode(
+    Grid grid, {
+    String? name,
+    String? origin,
+    List<String> comments = const [],
+    bool onBoard = false,
+    LifeRule rule = LifeRule.conway,
+  }) {
     final box = grid.boundingBox;
     final out = StringBuffer();
     if (name != null && name.trim().isNotEmpty) out.writeln('#N ${_oneLine(name)}');
@@ -82,7 +102,7 @@ abstract final class Rle {
       }
     }
     if (onBoard) out.writeln('#CXRLE Pos=${box?.x ?? 0},${box?.y ?? 0}');
-    out.writeln('x = ${box?.width ?? 0}, y = ${box?.height ?? 0}, rule = B3/S23${onBoard ? ':T${grid.width},${grid.height}' : ''}');
+    out.writeln('x = ${box?.width ?? 0}, y = ${box?.height ?? 0}, rule = ${rule.notation}${onBoard ? ':T${grid.width},${grid.height}' : ''}');
     final body = '${SeedCodec.encode(grid).split('_').last.replaceAll('-', r'$')}!';
     out.write(_wrap(body));
     return out.toString();
@@ -99,7 +119,7 @@ abstract final class Rle {
     final comments = <String>[];
     final body = StringBuffer();
     var sawHeader = false;
-    ({bool multiState, ({int width, int height})? torus}) header = (multiState: false, torus: null);
+    ({bool multiState, ({int width, int height})? torus, LifeRule rule}) header = (multiState: false, torus: null, rule: LifeRule.conway);
     var declared = (width: 0, height: 0);
     // The header's size when it's bigger (it's the whole pattern), else what was read.
     RleTooBig tooBig(int w, int h) => RleTooBig(declared.width > w ? declared.width : w, declared.height > h ? declared.height : h);
@@ -127,7 +147,7 @@ abstract final class Rle {
     final cells = <(int, int)>[];
     final chars = body.toString();
     var x = 0, y = 0, run = 0, width = 0, height = 0;
-    RlePattern finish() => _finish(cells, width, height, name, comments, header.torus);
+    RlePattern finish() => _finish(cells, width, height, name, comments, header.torus, header.rule);
     for (var i = 0; i < chars.length; i++) {
       final ch = chars[i];
       final code = ch.codeUnitAt(0);
@@ -177,7 +197,15 @@ abstract final class Rle {
 
   /// Crops to the live cells, so leading blank rows or columns don't push
   /// the pattern off center.
-  static RlePattern _finish(List<(int, int)> cells, int width, int height, String? name, List<String> comments, ({int width, int height})? torus) {
+  static RlePattern _finish(
+    List<(int, int)> cells,
+    int width,
+    int height,
+    String? name,
+    List<String> comments,
+    ({int width, int height})? torus,
+    LifeRule rule,
+  ) {
     if (cells.isEmpty) throw const FormatException('There are no live cells in this pattern.');
     var minX = width, minY = height;
     for (final (x, y) in cells) {
@@ -191,28 +219,31 @@ abstract final class Rle {
       name: name,
       comments: comments,
       torus: torus,
+      rule: rule,
     );
   }
 
   /// Accepts Conway's rule however it's written (`B3/S23`, `b3/s23`, the old
   /// `23/3`, `Life`), its marked-up forms LifeHistory and LifeSuper, and a
   /// Golly topology after a colon: `:T48,12` is a 48x12 torus.
-  static ({bool multiState, ({int width, int height})? torus}) _readHeader(String header) {
+  static ({bool multiState, ({int width, int height})? torus, LifeRule rule}) _readHeader(String header) {
     // The rule comes last, and a topology's own comma belongs to it.
     final m = RegExp(r'rule\s*=\s*(.*)$', caseSensitive: false).firstMatch(header);
-    if (m == null) return (multiState: false, torus: null); // no rule means Life
+    if (m == null) return (multiState: false, torus: null, rule: LifeRule.conway); // no rule means Life
     final parts = m.group(1)!.replaceAll(' ', '').split(':');
     final rule = parts.first;
-    const conway = {'b3/s23', 's23/b3', '23/3', 'life', 'conway'};
+    const conway = {'life', 'conway'};
     const markedUp = {'lifehistory', 'lifesuper', 'b3/s23history', 'b3/s23super'};
     final lower = rule.toLowerCase();
-    if (!conway.contains(lower) && !markedUp.contains(lower)) {
-      throw FormatException("This pattern uses the rule $rule. Life with AI only runs Conway's rule, B3/S23.");
+    // Any birth/survival rule (Conway's included, however it's written); by name, Life and its marked-up forms.
+    final parsed = conway.contains(lower) || markedUp.contains(lower) ? LifeRule.conway : LifeRule.parse(rule);
+    if (parsed == null) {
+      throw FormatException("This pattern uses the rule $rule. Life with AI runs birth/survival rules like B3/S23 (Conway's) or B36/S23 (HighLife).");
     }
     final t = parts.length > 1 ? RegExp(r'^T(\d+),(\d+)$', caseSensitive: false).firstMatch(parts[1]) : null;
     final w = t == null ? 0 : int.parse(t.group(1)!), h = t == null ? 0 : int.parse(t.group(2)!);
     final torus = w > 0 && h > 0 && w <= maxSide && h <= maxSide ? (width: w, height: h) : null;
-    return (multiState: markedUp.contains(lower), torus: torus);
+    return (multiState: markedUp.contains(lower), torus: torus, rule: parsed);
   }
 
   /// Breaks [body] into lines of at most [lineLength], never inside a count.
