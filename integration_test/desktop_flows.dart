@@ -174,8 +174,9 @@ void main() {
   });
 
   testWidgets('messages never cover the controls, even when the controls wrap', (tester) async {
-    // Narrow enough that the control bar wraps onto two rows (as in the bug report).
-    tester.view.physicalSize = const Size(1100, 900) * tester.view.devicePixelRatio;
+    // Narrow enough that the control bar wraps onto two rows (as in the bug report): the
+    // narrowest desktop window, now that engine, rule and glow have left the bar.
+    tester.view.physicalSize = const Size(900, 900) * tester.view.devicePixelRatio;
     addTearDown(tester.view.resetPhysicalSize);
     await start(tester);
     final wrap = tester.renderObject<RenderWrap>(find.descendant(of: find.byType(ControlBar), matching: find.byType(Wrap)));
@@ -362,7 +363,7 @@ void main() {
     final life = app.controller;
     expect(life.palette, BoardPalette.ember, reason: 'drawn in the sender\'s colors');
     expect(life.ownPalette, BoardPalette.neon, reason: 'but not made the viewer\'s own');
-    expect(find.byTooltip('Board colors · Ember'), findsOneWidget);
+    expect(find.byTooltip('Board colors and glow · Ember'), findsOneWidget);
 
     await tester.tap(find.text('Keep'));
     await pumpUntil(tester, () => life.sharedPalette == null, reason: 'kept');

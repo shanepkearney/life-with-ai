@@ -88,16 +88,8 @@ class ControlBar extends StatelessWidget {
                 ),
               ),
             ),
-          _Labeled(
-            label: 'Glow',
-            child: SizedBox(
-              width: 56,
-              child: Slider(padding: const EdgeInsets.symmetric(horizontal: 10), value: c.pipeline.glow, min: 0, max: 2, onChanged: c.setGlow),
-            ),
-          ),
-          // With the glow it colors. The sliders and dividers gave up a few pixels
-          // for it: at the default window size the bar has none to spare.
-          // Engine and rule are chosen from the HUD at the top; zoom and size sit beside it.
+          // The board's colors, and its glow, in one dialog. Engine and rule are
+          // chosen from the HUD at the top; zoom and size sit beside it.
           _PaletteButton(controller: c),
         ],
       ),
@@ -158,7 +150,7 @@ class _PaletteButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Tooltip(
-    message: 'Board colors · ${controller.palette.name}',
+    message: 'Board colors and glow · ${controller.palette.name}',
     child: InkWell(
       borderRadius: BorderRadius.circular(8),
       onTap: () => showColorsDialog(context, controller),

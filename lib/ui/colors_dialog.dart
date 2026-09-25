@@ -131,7 +131,19 @@ class _ColorsPanelState extends State<_ColorsPanel> {
                   Row(children: [for (var i = 0; i < 6; i++) Expanded(child: _colorWell(i))]),
                   const SizedBox(height: 12),
                   _editor(),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
+                  // How strongly crowded regions glow: 0 is none, 1 the default, 2 twice as bright.
+                  Text('GLOW · ${widget.life.pipeline.glow.toStringAsFixed(1)}', style: label),
+                  Slider(
+                    value: widget.life.pipeline.glow,
+                    max: 2,
+                    divisions: 20,
+                    onChanged: (v) {
+                      widget.life.setGlow(v);
+                      setState(() {});
+                    },
+                  ),
+                  const SizedBox(height: 4),
                   Row(
                     children: [
                       TextButton.icon(

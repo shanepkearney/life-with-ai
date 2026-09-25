@@ -100,9 +100,7 @@ class MobileControls extends StatelessWidget {
                     onChanged: (v) => c.setSpeedIndex(v.round()),
                   ),
                 ],
-                label('Glow'),
-                Slider(value: c.pipeline.glow, max: 2, onChanged: c.setGlow),
-                // The colors editor needs the board to preview on, so the sheet makes way.
+                // The colors editor (with the glow) needs the board to preview on, so the sheet makes way.
                 InkWell(
                   borderRadius: BorderRadius.circular(8),
                   onTap: () {
