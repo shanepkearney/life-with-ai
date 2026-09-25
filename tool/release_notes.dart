@@ -7,7 +7,6 @@
 // every commit, including the ones pushed straight to main before the project
 // used pull requests. A hand-written intro in .github/releases/v<version>.md,
 // if there is one, goes above the list.
-import 'dart:convert';
 import 'dart:io';
 
 import 'next_version.dart';
@@ -121,19 +120,18 @@ void main(List<String> args) {
   final newSeeds = <SeedCredit>[];
   for (final block in added.split('\x1e').where((b) => b.trim().isNotEmpty).toList().reversed) {
     final [sha, ...paths] = block.trim().split('\n').where((l) => l.isNotEmpty).toList();
-    for (final path in paths.where((p) => p.endsWith('.json'))) {
-      Map<String, Object?> entry;
+    for (final path in paths.where((p) => p.endsWith('.rle'))) {
+      final String text;
       try {
-        entry = jsonDecode(git(['show', 'HEAD:$path'])) as Map<String, Object?>;
+        text = git(['show', 'HEAD:$path']);
       } catch (_) {
         continue; // since removed, or unreadable: nothing to credit
       }
-      newSeeds.add((
-        name: '${entry['name'] ?? path.split('/').last}',
-        author: '${entry['author'] ?? 'unknown'}',
-        sha: sha.substring(0, 7),
-        pr: prOf[sha],
-      ));
+      final name = RegExp(r'^#N\s*(.+)$', multiLine: true).firstMatch(text)?[1]?.trim();
+      final author = RegExp(r'^#C\s*Added:.*\bby\s+@(\S+)', multiLine: true).firstMatch(text)?[1];
+      // The JSON-to-RLE move re-added every seed: one that was in the last release as .json isn't new.
+      if (previousTag != null && _existsAt(previousTag, path.replaceFirst(RegExp(r'\.rle$'), '.json'))) continue;
+      newSeeds.add((name: name ?? path.split('/').last, author: author ?? 'unknown', sha: sha.substring(0, 7), pr: prOf[sha]));
     }
   }
 
@@ -148,3 +146,6 @@ void main(List<String> args) {
     ),
   );
 }
+
+/// Whether [path] existed at [ref].
+bool _existsAt(String ref, String path) => Process.runSync('git', ['cat-file', '-e', '$ref:$path']).exitCode == 0;

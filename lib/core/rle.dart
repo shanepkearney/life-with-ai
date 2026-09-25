@@ -66,17 +66,23 @@ abstract final class Rle {
   static const maxSideUnbounded = 1 << 24;
   static const maxLiveCellsUnbounded = 20000000;
 
-  /// [grid]'s live cells as RLE, cropped to their bounding box.
-  static String encode(Grid grid, {String? name, List<String> comments = const []}) {
+  /// [grid]'s live cells as RLE, cropped to their bounding box, with an
+  /// optional name (`#N`), origin (`#O`: who found it) and comments. [onBoard]
+  /// also records the board, the way Golly does: its size as a torus in the
+  /// rule (`B3/S23:T512,384`) and where the pattern sits (`#CXRLE Pos=x,y`),
+  /// so the seed comes back exactly, wrap-around included.
+  static String encode(Grid grid, {String? name, String? origin, List<String> comments = const [], bool onBoard = false}) {
     final box = grid.boundingBox;
     final out = StringBuffer();
     if (name != null && name.trim().isNotEmpty) out.writeln('#N ${_oneLine(name)}');
+    if (origin != null && origin.trim().isNotEmpty) out.writeln('#O ${_oneLine(origin)}');
     for (final c in comments) {
       for (final line in c.split('\n')) {
         out.writeln('#C ${line.trim()}'.trimRight());
       }
     }
-    out.writeln('x = ${box?.width ?? 0}, y = ${box?.height ?? 0}, rule = B3/S23');
+    if (onBoard) out.writeln('#CXRLE Pos=${box?.x ?? 0},${box?.y ?? 0}');
+    out.writeln('x = ${box?.width ?? 0}, y = ${box?.height ?? 0}, rule = B3/S23${onBoard ? ':T${grid.width},${grid.height}' : ''}');
     final body = '${SeedCodec.encode(grid).split('_').last.replaceAll('-', r'$')}!';
     out.write(_wrap(body));
     return out.toString();

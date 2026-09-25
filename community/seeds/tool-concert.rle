@@ -1,0 +1,13 @@
+#N Tool Concert
+#O shanepkearney
+#C Nine small patterns on a 3x3 grid, arranged symmetrically around a
+#C flower at the center. Each blooms into a ring, and the stage settles
+#C into a fixed constellation.
+#C Prompt: A symmetrical bloom you would see at a tool concert.
+#C Added: 2026-09-22 by @shanepkearney
+#CXRLE Pos=186,120
+x = 145, y = 147, rule = B3/S23:T512,384
+70b3o$70bobo$3o67bobo71bo$140b3obo$bo142bo$bo$bo60$66b3o3b3o2$64bo4bob
+o4bo$64bo4bobo4bo$4b3o57bo4bobo4bo59b3o$4bo61b3o3b3o63bo$4b3o129b3o$
+66b3o3b3o$64bo4bobo4bo$64bo4bobo4bo$64bo4bobo4bo2$66b3o3b3o60$70bobo$
+70bobo$70b3o2$o140bo$ob3o136bo$o140bo2$140b3o!

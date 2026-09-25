@@ -1,0 +1,21 @@
+#N Neon Frame
+#O shanepkearney
+#C A single hollow rectangle. Its edges fold into a stack of glowing bars
+#C with four magenta hotspots, then open into a mirrored diamond of
+#C sparks that throws gliders from its tips.
+#C Added: 2026-09-21 by @shanepkearney
+#CXRLE Pos=120,150
+x = 200, y = 127, rule = B3/S23:T512,384
+200o$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o
+198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o
+198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o
+198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o
+198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o
+198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o
+198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o
+198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o
+198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o
+198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o
+198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o
+198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o198bo$o
+198bo$o198bo$o198bo$o198bo$o198bo$o198bo$200o!

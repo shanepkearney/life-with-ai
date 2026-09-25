@@ -1,0 +1,10 @@
+#N Oscillator Garden
+#O shanepkearney
+#C Four R-pentominoes in 4-fold rotational symmetry. They erupt, swirl
+#C into a pinwheel, and leave a wide garden of blinkers and still lifes
+#C behind.
+#C Prompt: A symmetric bloom that slowly settles into a garden of oscillators
+#C Added: 2026-09-24 by @shanepkearney
+#CXRLE Pos=216,152
+x = 83, y = 83, rule = B3/S23:T512,384
+b2o78bo$2o78b3o$bo80bo78$o80bo$3o78b2o$bo78b2o!

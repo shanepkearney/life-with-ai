@@ -74,7 +74,7 @@ diamond of sparks that throws gliders from its tips.
 
 ## The app
 
-| Favorites: every seed you keep, with Claude's summary. Click one to play it; 🔗 copies its share link and 🌐 submits it to the community | The Community tab: seeds people found, credited to their GitHub, newest first |
+| Favorites: every seed you keep, with Claude's summary. Click one to play it; 🔗 copies its share link, ⬇ downloads it as RLE and 🌐 submits it to the community | The Community tab: patterns people contributed, credited to their GitHub or discoverer, newest first |
 |---|---|
 | ![The Favorites tab with five seeds Claude designed, the pool-with-a-diver seed playing on the board, and the "Submit to the community" tooltip](readme/app-favorites.png) | ![The Community tab listing four seeds with their credits and prompts, Oscillator Garden playing on the board](readme/app-community.png) |
 | **Hotspots: crowded regions run from cyan through magenta to amber** | **A broken or cut-off link explains itself, and offers the Community tab** |
@@ -314,21 +314,30 @@ it cell for cell with the plain rules, after single steps and after jumps of up 
 
 ## Community seeds
 
-The **Community** tab lists seeds that people found and contributed, each credited `by @username` with a
-link to the finder's GitHub profile. Each seed is one file in [`community/seeds/`](community/seeds),
-bundled into the app, so a merged pull request goes live with the next Pages deploy. One file per seed
-means submissions in flight never conflict with each other.
+The **Community** tab lists patterns people contributed. Each is a standard
+[RLE](https://conwaylife.com/wiki/Run_Length_Encoded) file in [`community/seeds/`](community/seeds), bundled
+into the app, so a merged pull request goes live with the next Pages deploy, and Golly or LifeViewer open the
+same files unchanged. Seeds made in the app are credited `by @username` with a link to the finder's GitHub;
+classics such as the Gosper glider gun are credited to their discoverer (`Found by Bill Gosper, 1970`), with
+a button to their source page. Every card downloads its `.rle` file; seeds small enough to travel in a link
+also copy one, and giant patterns play on HashLife's endless plane.
 
-To submit one, heart it, then press 🌐 on its card in Favorites. That opens GitHub's new-file page with
-the entry filled in: the contributor adds their username and proposes the file, and GitHub forks the repo
-and opens the pull request for them. A seed too long for GitHub's URL has its entry copied to the
-clipboard instead. [CONTRIBUTING.md](CONTRIBUTING.md) covers the format and the manual route.
+A seed made in the app keeps its exact board and place on it, recorded the way Golly does: the board as a
+torus in the rule (`B3/S23:T512,384`) and the position in a `#CXRLE Pos=` line. The four original seeds were
+converted from the earlier JSON format this way, and a test proves each one matches cell for cell. A pattern
+from elsewhere plays centered on the medium board, or the smallest larger one that holds it.
 
-Every pull request runs `test/community_seeds_test.dart`. It checks that the JSON parses, the file is
-named after the seed, and the author is a valid GitHub username. The link must be a share link for this
-site, with a non-empty seed on one of the app's board sizes. Lengths must be within limits, and no name
-or seed may repeat. Its failure messages are written for the contributor. The app parses entries the
-same way at load and skips a bad one rather than failing the tab, and it shows every field as plain text.
+To submit one, heart it, then press 🌐 on its card in Favorites. That opens GitHub's new-file page with the
+`.rle` file filled in: the contributor adds their username and proposes the file, and GitHub forks the repo
+and opens the pull request for them. A file too long for GitHub's URL is copied to the clipboard instead.
+[CONTRIBUTING.md](CONTRIBUTING.md) covers the format, the manual route and licensing (your own seeds are
+CC BY 4.0; classics must credit their discoverer and an open source).
+
+Every pull request runs `test/community_seeds_test.dart`. It checks each file parses as RLE of Conway's rule,
+is named after its `#N` line, credits `#O` and a valid GitHub username in its `Added` line, gives a source
+when someone else found it, fits its board, and repeats no name or pattern. Its failure messages are written
+for the contributor. The app parses files the same way at load and skips a bad one rather than failing the
+tab, and it shows every field as plain text.
 
 ## Testing
 
