@@ -51,6 +51,11 @@ class Hud extends StatelessWidget {
             stat('GEN/S', c.running ? _grouped(c.gensPerSecond.round()) : '—', Neon.amber),
             // On the plane, what's playing and how close in: it replaces the board's own chip here.
             if (c.giant case final g?) stat('PATTERN', _short(g.name), Neon.text),
+            // How far in: before the menus, so SIZE, ENGINE and RULE stay side by side.
+            if (c.giant case final g?)
+              stat('ZOOM', g.zoomShort, Neon.cyan)
+            else if (c.boardView.zoomed)
+              stat('ZOOM', c.boardView.label, Neon.cyan),
             // The plane has no board to size.
             if (c.giant == null)
               _HudMenu<BoardSize>(
@@ -73,10 +78,6 @@ class Hud extends StatelessWidget {
               items: [for (final k in EngineKind.values) (value: k, text: k.label, detail: k.about)],
               onSelected: c.giant != null ? null : c.switchEngine,
             ),
-            if (c.giant case final g?)
-              stat('ZOOM', g.zoomShort, Neon.cyan)
-            else if (c.boardView.zoomed)
-              stat('ZOOM', c.boardView.label, Neon.cyan),
             // Always shown; amber when it isn't Conway's, a reminder that this isn't standard Life.
             _HudMenu(
               key: const Key('hud-rule'),
