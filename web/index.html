@@ -55,8 +55,124 @@
 
   <!-- ANALYTICS: the Pages build replaces this line with the Cloudflare Web
        Analytics beacon (cookieless). Local builds leave it as a comment. -->
+
+  <!-- The splash: the app's own glider loader (lib/ui/glider_loader.dart), drawn here
+       in plain JS so it shows from the first paint, before any Flutter code arrives.
+       It fades to the app on Flutter's first frame, which comes once everything is
+       ready: main() runs the app only after bootstrap() has loaded it. -->
+  <style>
+    html, body { margin: 0; height: 100%; background: #05060A; }
+    #splash {
+      position: fixed; inset: 0; z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      background: #05060A;
+      transition: opacity 1000ms ease;
+    }
+    #splash.gone { opacity: 0; pointer-events: none; }
+    #splash canvas { width: 64px; height: 64px; }
+  </style>
 </head>
 <body>
+  <div id="splash" role="status" aria-label="Loading Life with AI"><canvas width="64" height="64"></canvas></div>
+  <script>
+    (function () {
+      var splash = document.getElementById('splash');
+      var canvas = splash.querySelector('canvas');
+      var size = 64, dpr = window.devicePixelRatio || 1;
+      canvas.width = size * dpr;
+      canvas.height = size * dpr;
+      var ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
+
+      // The glider's four phases, found by running B3/S23, as GliderLoader does.
+      function step(live) {
+        var n = {}, next = [];
+        live.forEach(function (c) {
+          for (var dy = -1; dy <= 1; dy++) for (var dx = -1; dx <= 1; dx++) {
+            if (!dx && !dy) continue;
+            var k = (c[0] + dx) + ',' + (c[1] + dy);
+            n[k] = (n[k] || 0) + 1;
+          }
+        });
+        var alive = {};
+        live.forEach(function (c) { alive[c[0] + ',' + c[1]] = true; });
+        Object.keys(n).forEach(function (k) {
+          if (n[k] === 3 || (n[k] === 2 && alive[k])) next.push(k.split(',').map(Number));
+        });
+        return next;
+      }
+      var phases = [], g = [[1, 0], [2, 1], [0, 2], [1, 2], [2, 2]]; // bob$2bo$3o
+      for (var i = 0; i < 4; i++) { phases.push(g); g = step(g); }
+      // Each phase relative to its generation's shift (it moves one cell every four).
+      function at(gen) {
+        var shift = Math.floor(gen / 4), p = phases[((gen % 4) + 4) % 4];
+        return p.map(function (c) { return [c[0] + shift, c[1] + shift]; });
+      }
+
+      var cyan = [0, 229, 255], magenta = [255, 43, 214], amber = [255, 161, 20];
+      function mix(a, b, t) { return a.map(function (v, i) { return Math.round(v + (b[i] - v) * t); }); }
+      function rgba(c, a) { return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a + ')'; }
+
+      var cell = size / 5; // the view is 5 cells across; the 3x3 glider sits in the middle
+      function drawCell(c, camera, color, alpha, glow) {
+        var x = (c[0] - camera + 1) * cell + cell * 0.1, y = (c[1] - camera + 1) * cell + cell * 0.1, s = cell * 0.8, r = cell * 0.22;
+        ctx.shadowBlur = glow ? 2 * Math.max(2, cell * 0.3) : 0;
+        ctx.shadowColor = rgba(color, 0.6);
+        ctx.fillStyle = rgba(color, alpha);
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + s, y, x + s, y + s, r);
+        ctx.arcTo(x + s, y + s, x, y + s, r);
+        ctx.arcTo(x, y + s, x, y, r);
+        ctx.arcTo(x, y, x + s, y, r);
+        ctx.fill();
+      }
+
+      function draw(loop) { // loop: generations into this loop, 0..4
+        ctx.clearRect(0, 0, size, size);
+        var now = Math.floor(loop), camera = loop / 4; // the camera follows, so it flies in place
+        var live = at(now), key = {};
+        live.forEach(function (c) { key[c[0] + ',' + c[1]] = true; });
+        // A ghost where cells just died: a hint of motion.
+        at(now - 1).forEach(function (c) { if (!key[c[0] + ',' + c[1]]) drawCell(c, camera, cyan, 0.18, false); });
+        // Tail to leading edge: cyan, magenta, amber, as in the icon.
+        var sums = live.map(function (c) { return c[0] + c[1]; });
+        var lo = Math.min.apply(null, sums), hi = Math.max.apply(null, sums);
+        live.forEach(function (c) {
+          var t = (c[0] + c[1] - lo) / (hi - lo);
+          drawCell(c, camera, t < 0.5 ? mix(cyan, magenta, t * 2) : mix(magenta, amber, (t - 0.5) * 2), 1, true);
+        });
+      }
+
+      var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var running = true;
+      if (still) {
+        draw(0);
+      } else {
+        var start = performance.now();
+        (function frame(t) {
+          if (!running) return;
+          draw((((t - start) / (4 * 170)) % 1) * 4); // four generations a loop, 170ms each
+          requestAnimationFrame(frame);
+        })(start);
+      }
+
+      // Flutter's first frame: the app is ready, so fade to it, but never before two whole
+      // loops of the glider (~1.4s): a splash that flashes by looks like a glitch.
+      var shownAt = performance.now(), minimum = 2 * 4 * 170;
+      window.addEventListener('flutter-first-frame', function () {
+        setTimeout(fade, Math.max(0, minimum - (performance.now() - shownAt)));
+      }, { once: true });
+
+      function fade() {
+        splash.classList.add('gone');
+        // Gone once faded; a background tab may never report the fade's end, so a timer makes sure.
+        function remove() { running = false; splash.remove(); }
+        splash.addEventListener('transitionend', remove, { once: true });
+        setTimeout(remove, 1300);
+      }
+    })();
+  </script>
   <!--
     You can customize the "flutter_bootstrap.js" script.
     This is useful to provide a custom configuration to the Flutter loader
