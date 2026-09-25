@@ -3,9 +3,13 @@ import 'dart:ui' as ui;
 
 /// Compiled fragment programs, loaded once at startup and shared.
 class Shaders {
-  Shaders._(this.lifeStep, this.trail, this.density, this.composite);
+  Shaders._(this.lifeStep, this.lifeStepRule, this.trail, this.density, this.composite);
 
+  /// Conway's rule, the fast path.
   final ui.FragmentProgram lifeStep;
+
+  /// Any birth/survival rule, from its masks.
+  final ui.FragmentProgram lifeStepRule;
   final ui.FragmentProgram trail;
   final ui.FragmentProgram density;
   final ui.FragmentProgram composite;
@@ -13,11 +17,12 @@ class Shaders {
   static Future<Shaders> load() async {
     final programs = await Future.wait([
       ui.FragmentProgram.fromAsset('shaders/life_step.frag'),
+      ui.FragmentProgram.fromAsset('shaders/life_step_rule.frag'),
       ui.FragmentProgram.fromAsset('shaders/trail.frag'),
       ui.FragmentProgram.fromAsset('shaders/density.frag'),
       ui.FragmentProgram.fromAsset('shaders/composite.frag'),
     ]);
-    return Shaders._(programs[0], programs[1], programs[2], programs[3]);
+    return Shaders._(programs[0], programs[1], programs[2], programs[3], programs[4]);
   }
 }
 

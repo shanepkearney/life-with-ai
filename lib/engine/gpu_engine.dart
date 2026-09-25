@@ -10,9 +10,12 @@ import 'life_engine.dart';
 /// ("ping-pong"). The board never touches the CPU except for [snapshot] and
 /// the throttled population readback.
 class GpuEngine implements LifeEngine {
-  GpuEngine(this._program);
+  GpuEngine(this._shaders);
 
-  final ui.FragmentProgram _program;
+  final Shaders _shaders;
+
+  /// The rule's processor's shader, chosen once at [load].
+  late ui.FragmentProgram _program = _shaders.lifeStep;
   DateTime _lastCount = DateTime.fromMillisecondsSinceEpoch(0);
 
   /// Passes chained onto [frame] since it was last detached (see [detach]).
@@ -39,6 +42,7 @@ class GpuEngine implements LifeEngine {
   Future<void> load(Grid grid, {int generation = 0, LifeRule rule = LifeRule.conway}) async {
     if (_disposed) return;
     this.rule = rule;
+    _program = rule.processor.program(_shaders);
     width = grid.width;
     height = grid.height;
     this.generation = generation;
@@ -59,10 +63,9 @@ class GpuEngine implements LifeEngine {
       // mutating a shared instance could change a pass that hasn't run yet.
       final shader = _program.fragmentShader()
         ..setFloat(0, width.toDouble())
-        ..setFloat(1, height.toDouble())
-        ..setFloat(2, rule.birth.toDouble())
-        ..setFloat(3, rule.survival.toDouble())
-        ..setImageSampler(0, frame!, filterQuality: ui.FilterQuality.none);
+        ..setFloat(1, height.toDouble());
+      rule.processor.setUniforms(shader, rule);
+      shader.setImageSampler(0, frame!, filterQuality: ui.FilterQuality.none);
       final next = renderPass(shader, width, height);
       frame!.dispose(); // safe: the pending picture holds its own reference
       frame = next;
@@ -114,4 +117,20 @@ class GpuEngine implements LifeEngine {
     frame?.dispose();
     frame = null;
   }
+}
+
+/// The GPU side of each [RuleProcessor]: its shader, and the uniforms it
+/// takes after the board size. (The core stays free of dart:ui.)
+extension RuleProcessorGpu on RuleProcessor {
+  ui.FragmentProgram program(Shaders shaders) => switch (this) {
+    RuleProcessor.conway => shaders.lifeStep,
+    RuleProcessor.anyRule => shaders.lifeStepRule,
+  };
+
+  void setUniforms(ui.FragmentShader shader, LifeRule rule) => switch (this) {
+    RuleProcessor.conway => null,
+    RuleProcessor.anyRule => shader
+      ..setFloat(2, rule.birth.toDouble())
+      ..setFloat(3, rule.survival.toDouble()),
+  };
 }

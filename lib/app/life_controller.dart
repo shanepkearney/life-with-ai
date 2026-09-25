@@ -185,7 +185,7 @@ class LifeController extends ChangeNotifier {
     await randomize();
   }
 
-  LifeEngine _create(EngineKind kind) => kind == EngineKind.gpu ? GpuEngine(_shaders.lifeStep) : CpuEngine(kind: kind);
+  LifeEngine _create(EngineKind kind) => kind == EngineKind.gpu ? GpuEngine(_shaders) : CpuEngine(kind: kind);
 
   /// Called every display frame with the ticker's clock in seconds. Steps
   /// however many generations are due at [targetRate]: zero on most frames at
@@ -249,6 +249,7 @@ class LifeController extends ChangeNotifier {
     } else {
       final seed = _pendingHandOff!;
       _pendingHandOff = null;
+      rule = LifeRule.conway;
       await _loadAndRun(seed, title: _pendingHandOffTitle);
     }
   }
@@ -265,6 +266,7 @@ class LifeController extends ChangeNotifier {
   }
 
   Future<void> _startExperiment(Experiment e) => _whileIdle(() async {
+    rule = LifeRule.conway; // Claude designs, and tests, by Conway's rule
     _leaveGiant();
     _leaveSharedColorsFor(e.seed);
     // Claude designs for Conway's rule, and its experiments ran by it.
@@ -285,6 +287,7 @@ class LifeController extends ChangeNotifier {
       _pendingHandOffTitle = title;
       return;
     }
+    rule = LifeRule.conway; // Claude's designs are Conway seeds
     await _loadAndRun(seed, title: title);
   }
 
@@ -301,8 +304,10 @@ class LifeController extends ChangeNotifier {
   /// Loads [seed] at generation 0 and plays it at the user's speed. Seeds from
   /// favorites and share links carry their own board size; adopt it. Opening
   /// it from somewhere worth counting passes [source] (replays don't).
-  Future<void> playSeed(Grid seed, {String? title, SeedSource? source, String? communityName}) {
+  Future<void> playSeed(Grid seed, {String? title, SeedSource? source, String? communityName, LifeRule rule = LifeRule.conway}) {
     if (source != null) onSeedOpened?.call(seed, source, communityName: communityName);
+    // A seed runs by the rule it was made with: favorites, links and community seeds carry theirs.
+    this.rule = rule;
     // Keep a screen-shaped board if the seed is that size; otherwise take the seed's.
     if (seed.width != boardSize.width || seed.height != boardSize.height) boardSize = BoardSize.of(seed.width, seed.height);
     return _loadAndRun(seed, title: title);
@@ -318,6 +323,7 @@ class LifeController extends ChangeNotifier {
         : BoardSize.holding(pattern.width, pattern.height, current: boardSize);
     if (size == null) return false;
     boardSize = size;
+    rule = pattern.rule;
     await _loadAndRun(pattern.centeredOn(size.width, size.height), title: pattern.name);
     return true;
   }
@@ -402,6 +408,21 @@ class LifeController extends ChangeNotifier {
     pipeline.glow = value;
     notifyListeners();
   }
+
+  // ---- Rules --------------------------------------------------------------------
+
+  /// Runs the board by [next] from here on, as it is, at its generation: like
+  /// an edit, a new beginning for rewind. Not while a giant pattern is loaded.
+  Future<void> setRule(LifeRule next) => _whileIdle(() async {
+    if (giant != null || next == rule) return;
+    _cancelExperiments();
+    final board = await engine.snapshot();
+    rule = next;
+    await engine.load(board, generation: engine.generation, rule: next);
+    timeline = Timeline(board, generation: engine.generation, rule: next);
+    pipeline.clearTrail();
+    _publish();
+  });
 
   // ---- Board colors ---------------------------------------------------------
 
@@ -526,6 +547,9 @@ class LifeController extends ChangeNotifier {
 
   /// Loads [pattern] onto the endless plane and plays it, fitted to the screen.
   Future<void> openGiant(RlePattern pattern) => _whileIdle(() async {
+    // An endless plane can't hold a rule that brings empty space to life.
+    if (pattern.rule.birthFromNothing) throw ArgumentError('${pattern.rule.notation} brings empty space to life, which an endless plane can\'t hold.');
+    rule = pattern.rule;
     _cancelExperiments();
     _leaveGiant();
     final g = GiantMode(pattern.name ?? 'Giant pattern', newGiantRunner())
@@ -763,9 +787,10 @@ class LifeController extends ChangeNotifier {
 /// Steps a board forward in a background isolate (inline on the web).
 Uint8List _advance(({Uint8List cells, int width, int height, int steps, int birth, int survival}) r) {
   final rule = LifeRule(r.birth, r.survival);
+  final step = rule.processor.step;
   var a = Grid.fromCells(r.width, r.height, Uint8List.fromList(r.cells)), b = Grid(r.width, r.height);
   for (var i = 0; i < r.steps; i++) {
-    a.stepInto(b, rule);
+    step(a, b, rule);
     final t = a;
     a = b;
     b = t;

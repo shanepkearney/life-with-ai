@@ -16,7 +16,7 @@ void main() {
     testWidgets('${kind.name}: a load or step that finishes after dispose is harmless', (tester) async {
       await tester.runAsync(() async {
         final shaders = await Shaders.load();
-        LifeEngine make() => kind == EngineKind.cpu ? CpuEngine() : GpuEngine(shaders.lifeStep);
+        LifeEngine make() => kind == EngineKind.cpu ? CpuEngine() : GpuEngine(shaders);
 
         // Work refused after dispose, and disposing twice, are both fine.
         final e = make();

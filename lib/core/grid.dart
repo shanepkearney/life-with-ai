@@ -38,12 +38,17 @@ class Grid {
   /// Advances one generation into [out] (which must be a different grid of
   /// the same size) and returns it, by [rule]. Double-buffering avoids
   /// allocating per step.
+  /// The rule's [RuleProcessor] does the work; no rule is decided here.
   Grid stepInto(Grid out, [LifeRule rule = LifeRule.conway]) {
     assert(out.width == width && out.height == height && !identical(out, this));
-    if (!rule.isConway) return _stepByTable(out, rule.table);
-    final src = cells;
+    return rule.processor.step(this, out, rule);
+  }
+
+  /// Conway's rule, B3/S23, as a fixed loop: [RuleProcessor.conway].
+  static Grid stepConway(Grid g, Grid out, LifeRule _) {
+    final src = g.cells;
     final dst = out.cells;
-    final w = width;
+    final w = g.width, height = g.height;
     for (var y = 0; y < height; y++) {
       final up = ((y - 1 + height) % height) * w;
       final mid = y * w;
@@ -60,12 +65,13 @@ class Grid {
     return out;
   }
 
-  /// Any rule: the next state is looked up by `alive * 9 + neighbors`.
-  /// Conway keeps its own loop above, unchanged, as the fast path.
-  Grid _stepByTable(Grid out, Uint8List table) {
-    final src = cells;
+  /// Any rule, the next state looked up by `alive * 9 + neighbors`:
+  /// [RuleProcessor.anyRule].
+  static Grid stepByTable(Grid g, Grid out, LifeRule rule) {
+    final table = rule.table;
+    final src = g.cells;
     final dst = out.cells;
-    final w = width;
+    final w = g.width, height = g.height;
     for (var y = 0; y < height; y++) {
       final up = ((y - 1 + height) % height) * w;
       final mid = y * w;

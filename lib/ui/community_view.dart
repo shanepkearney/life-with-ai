@@ -39,7 +39,7 @@ class _CommunityViewState extends State<CommunityView> {
     setState(() => _playing = s);
     // Too big for any board, or sending things out that would wrap around and wreck it: the endless plane.
     if (s.playsOnPlane) return widget.life.openGiant(s.pattern);
-    await widget.life.playSeed(s.seed!.copy(), title: s.name, source: SeedSource.community, communityName: s.name);
+    await widget.life.playSeed(s.seed!.copy(), title: s.name, source: SeedSource.community, communityName: s.name, rule: s.pattern.rule);
   }
 
   Future<void> _copyLink(CommunitySeed s) async {
@@ -174,7 +174,7 @@ class _CommunityViewState extends State<CommunityView> {
                             IconButton(
                               tooltip: saved ? 'Remove from favorites' : 'Add to favorites',
                               visualDensity: VisualDensity.compact,
-                              onPressed: () => widget.favorites.toggle(board, title: s.name, summary: s.description),
+                              onPressed: () => widget.favorites.toggle(board, title: s.name, summary: s.description, rule: s.pattern.rule),
                               icon: Icon(saved ? Icons.favorite_rounded : Icons.favorite_border_rounded, size: 16, color: Neon.magenta),
                             ),
                           if (s.source case final source?)

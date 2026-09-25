@@ -70,6 +70,7 @@ flutter:
 
   shaders:
     - shaders/life_step.frag
+    - shaders/life_step_rule.frag
     - shaders/trail.frag
     - shaders/density.frag
     - shaders/composite.frag

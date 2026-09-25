@@ -143,11 +143,11 @@ void main() {
     await start(tester);
     await openDialog(tester);
 
-    await tester.enterText(find.byType(TextField), 'x = 3, y = 3, rule = B36/S23\nbob\$2bo\$3o!');
+    await tester.enterText(find.byType(TextField), 'x = 3, y = 3, rule = B34twz/S23\nbob\$2bo\$3o!');
     await tester.tap(find.text('Load'));
     await settle(tester);
     expect(find.text('Pattern as RLE'), findsOneWidget);
-    expect(find.textContaining('uses the rule B36/S23'), findsOneWidget);
+    expect(find.textContaining('uses the rule B34twz/S23'), findsOneWidget);
 
     // Bigger than the endless plane allows, by its header alone.
     await tester.enterText(find.byType(TextField), 'x = 99999999, y = 1\n3o!');

@@ -1,11 +1,12 @@
 import '../core/grid.dart';
+import '../core/life_rule.dart';
 import '../core/seed_codec.dart';
 import '../render/board_palette.dart';
 
 /// What a share link carries: the seed, and optionally the prompt that made it,
 /// a note about it (Claude's summary, or a favorite's description) and the
 /// sender's board colors.
-typedef SharedSeed = ({Grid seed, String? title, String? note, BoardPalette? palette});
+typedef SharedSeed = ({Grid seed, String? title, String? note, BoardPalette? palette, LifeRule rule});
 
 /// Share links carry the whole seed in the URL fragment:
 /// `…/#seed=<code>&title=<prompt>&colors=<palette>&note=<description>`.
@@ -29,10 +30,12 @@ abstract final class ShareLink {
   /// The seed always travels whole. A note only fills whatever room is left
   /// under [comfortableLength], shortened with an ellipsis to fit, and is
   /// dropped when the seed (and title) already use it all.
-  static String forSeed(Grid seed, {String? title, String? note, BoardPalette? palette}) {
+  static String forSeed(Grid seed, {String? title, String? note, BoardPalette? palette, LifeRule rule = LifeRule.conway}) {
     final colors = palette?.linkForm;
     final base = _link({
       'seed': SeedCodec.encode(seed),
+      // Conway's rule travels as nothing: every link made before rules existed is Conway.
+      if (!rule.isConway) 'rule': rule.notation,
       if (title != null && title.trim().isNotEmpty) 'title': _clean(title),
       'colors': ?colors,
     });
@@ -92,7 +95,15 @@ abstract final class ShareLink {
       return value == null || value.isEmpty ? null : value;
     }
 
-    return (seed: seed, title: text('title', maxTitleLength), note: text('note', maxNoteLength), palette: BoardPalette.fromWire(params['colors']));
+    // A rule the app can't run (a mistyped link) falls back to Conway's rather than losing the seed.
+    final rule = params['rule'] == null ? null : LifeRule.parse(params['rule']!);
+    return (
+      seed: seed,
+      title: text('title', maxTitleLength),
+      note: text('note', maxNoteLength),
+      palette: BoardPalette.fromWire(params['colors']),
+      rule: rule ?? LifeRule.conway,
+    );
   }
 
   /// Plain text only: no control characters or line breaks, capped in length.

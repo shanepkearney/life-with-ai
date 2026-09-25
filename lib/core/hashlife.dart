@@ -37,7 +37,7 @@ final class HashNode {
 /// Free of Flutter imports, like [Grid], so it runs in an isolate and in
 /// plain `dart test`.
 class HashLife {
-  HashLife({this.maxNodes = 1 << 21, this.rule = LifeRule.conway}) : _next4x4 = _tableFor(rule) {
+  HashLife({this.maxNodes = 1 << 21, this.rule = LifeRule.conway}) : _next4x4 = _tableFor(rule), _emptyStaysEmpty = !rule.birthFromNothing {
     _empty.add(off);
     _registerLeaves();
   }
@@ -88,6 +88,9 @@ class HashLife {
   /// The rule every step follows. A square's remembered futures are only
   /// true for one rule, so a HashLife instance keeps to one.
   final LifeRule rule;
+
+  /// Decided once from [rule]: an all-dead square stays dead unless the rule is B0.
+  final bool _emptyStaysEmpty;
 
   static final off = HashNode._(0, 0, null, null, null, null, 0);
   static final on = HashNode._(1, 0, null, null, null, null, 1);
@@ -162,7 +165,7 @@ class HashLife {
   HashNode advance(HashNode n, int j) {
     assert(n.level >= 2 && j >= 0 && j <= n.level - 2);
     // Empty space stays empty, unless the rule brings it to life (B0).
-    if (n.population == 0 && !rule.birthFromNothing) return empty(n.level - 1);
+    if (n.population == 0 && _emptyStaysEmpty) return empty(n.level - 1);
     final memo = n._next;
     if (memo != null && n._nextStep == j) return memo;
     final HashNode result;
