@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app/giant_mode.dart';
 import '../app/life_controller.dart';
+import '../core/life_rule.dart';
 import '../engine/life_engine.dart';
 import 'colors_dialog.dart';
 import 'screen_board.dart';
@@ -51,7 +52,8 @@ class ControlBar extends StatelessWidget {
             tip: erase ? 'Drawing erases — tap to draw' : 'Drawing adds cells — tap to erase',
             onTap: giant != null ? null : () => onEraseChanged(!erase),
           ),
-          if (onSaveMoment != null) _Icon(icon: Icons.favorite_border_rounded, tip: 'Save this moment to favorites', onTap: giant != null ? null : onSaveMoment),
+          if (onSaveMoment != null)
+            _Icon(icon: Icons.favorite_border_rounded, tip: 'Save this moment to favorites', onTap: giant != null ? null : onSaveMoment),
           const _Divider(),
           if (giant == null)
             _Labeled(
@@ -91,57 +93,39 @@ class ControlBar extends StatelessWidget {
             label: 'Glow',
             child: SizedBox(
               width: 56,
-              child: Slider(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                value: c.pipeline.glow,
-                min: 0,
-                max: 2,
-                onChanged: c.setGlow,
-              ),
+              child: Slider(padding: const EdgeInsets.symmetric(horizontal: 10), value: c.pipeline.glow, min: 0, max: 2, onChanged: c.setGlow),
             ),
           ),
           // With the glow it colors. The sliders and dividers gave up a few pixels
           // for it: at the default window size the bar has none to spare.
           _PaletteButton(controller: c),
           const _Divider(),
-          SegmentedButton<EngineKind>(
-            style: SegmentedButton.styleFrom(
-              visualDensity: VisualDensity.compact,
-              selectedBackgroundColor: Neon.cyan.withValues(alpha: 0.18),
-              selectedForegroundColor: Neon.cyan,
-              side: const BorderSide(color: Neon.border),
-              // Three engines in the room two had: the bar has no spare pixels at 1440x920.
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-            ),
-            showSelectedIcon: false,
-            segments: [
-              for (final k in EngineKind.values)
-                ButtonSegment(
-                  value: k,
-                  tooltip: '${k.label}: ${k.about}',
-                  label: Text(k.short, style: const TextStyle(fontSize: 12)),
-                ),
-            ],
-            selected: {c.engineKind},
-            // A giant pattern runs on HashLife's endless plane only.
-            onSelectionChanged: giant != null ? null : (s) => c.switchEngine(s.first),
-          ),
-          const SizedBox(width: 4), // with the Wrap's gap: 8px off the engine toggle, like the dividers
           DropdownButtonHideUnderline(
             child: DropdownButton<BoardSize>(
               value: c.boardSize,
               isDense: true,
               style: Neon.mono,
               dropdownColor: const Color(0xFF0B0E17),
-              items: [
-                for (final s in sizes) DropdownMenuItem(value: s, child: Text(s.label)),
-              ],
+              items: [for (final s in sizes) DropdownMenuItem(value: s, child: Text(s.label))],
               // Closed, it shows the short name: the full "Fit screen · 1512×982"
               // would widen the button and wrap the bar onto a second row.
               selectedItemBuilder: (_) => [for (final s in sizes) Center(child: Text(s.shortLabel))],
               onChanged: (s) => s == null ? null : c.setBoardSize(s),
             ),
           ),
+          const SizedBox(width: 4), // with the Wrap's gap: 8px between the menus, like the dividers
+          // Size, engine, rule: what the board is, what runs it, and by what rule.
+          // Engine and rule as compact menus: three engine buttons and a rule list won't fit side by side.
+          CompactMenu<EngineKind>(
+            width: 70,
+            value: c.engineKind,
+            label: c.engineKind.short,
+            tooltip: giant != null ? 'A giant pattern runs on HashLife' : '${c.engineKind.label}: ${c.engineKind.about}',
+            items: [for (final k in EngineKind.values) (value: k, text: k.short, detail: k.about)],
+            // A giant pattern runs on HashLife's endless plane only.
+            onSelected: giant != null ? null : c.switchEngine,
+          ),
+          RuleMenu(controller: c),
         ],
       ),
     );
@@ -190,8 +174,7 @@ class _Divider extends StatelessWidget {
   @override
   // Its own margin: icon buttons carry built-in padding, but the labels and the
   // engine toggle beside a divider don't, so the Wrap's gap alone looks cramped.
-  Widget build(BuildContext context) =>
-      Container(width: 1, height: 24, margin: const EdgeInsets.symmetric(horizontal: 6), color: Neon.border);
+  Widget build(BuildContext context) => Container(width: 1, height: 24, margin: const EdgeInsets.symmetric(horizontal: 6), color: Neon.border);
 }
 
 /// The board's colors as a small swatch; opens the colors dialog.
@@ -206,10 +189,112 @@ class _PaletteButton extends StatelessWidget {
     child: InkWell(
       borderRadius: BorderRadius.circular(8),
       onTap: () => showColorsDialog(context, controller),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 12),
-        child: PaletteSwatch(controller.palette, width: 22, height: 12),
-      ),
+      child: Padding(padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 12), child: PaletteSwatch(controller.palette, width: 22, height: 12)),
     ),
   );
+}
+
+/// The rule the board runs by: the well-known ones by name, plus whatever
+/// rule a loaded pattern brought. Locked while a giant pattern is loaded.
+class RuleMenu extends StatelessWidget {
+  const RuleMenu({super.key, required this.controller, this.width});
+
+  final LifeController controller;
+
+  /// Fixed, or else just wide enough for "Conway": longer names end in "…".
+  final double? width;
+
+  /// "Conway" in the menu's font, plus its arrow.
+  static double conwayWidth(BuildContext context) {
+    final painter = TextPainter(
+      text: TextSpan(text: 'Conway', style: Neon.mono),
+      textDirection: TextDirection.ltr,
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout();
+    final w = painter.width;
+    painter.dispose();
+    return w.ceilToDouble() + 26; // the 24px arrow, and a hair so "Conway" never ellipsizes
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    final current = c.rule;
+    final named = [for (final n in LifeRule.named) (value: n.rule, text: '${n.name}  ${n.rule.notation}', detail: n.about)];
+    return CompactMenu<LifeRule>(
+      width: width ?? conwayWidth(context),
+      value: current,
+      label: current.label,
+      // Amber off Conway's: a reminder this isn't standard Life.
+      color: current.isConway ? Neon.text : Neon.amber,
+      tooltip: c.giant != null
+          ? 'The rule is fixed while a giant pattern is loaded'
+          : '${current.label} (${current.notation}): ${LifeRule.named.where((n) => n.rule == current).map((n) => n.about).firstOrNull ?? 'a rule from a pattern'}',
+      items: [...named, if (current.name == null) (value: current, text: current.notation, detail: 'The rule of the pattern you loaded')],
+      onSelected: c.giant != null ? null : c.setRule,
+    );
+  }
+}
+
+/// A menu button that shows only the current choice, in a fixed [width], and
+/// opens a list as wide as its items need. (A DropdownButton sizes itself to
+/// its widest item, which the control bar has no room for.)
+class CompactMenu<T> extends StatelessWidget {
+  const CompactMenu({
+    super.key,
+    required this.width,
+    required this.value,
+    required this.label,
+    required this.items,
+    required this.onSelected,
+    this.tooltip,
+    this.color,
+  });
+
+  final double width;
+  final T value;
+  final String label;
+  final List<({T value, String text, String detail})> items;
+  final ValueChanged<T>? onSelected;
+  final String? tooltip;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onSelected != null;
+    return PopupMenuButton<T>(
+      tooltip: tooltip,
+      enabled: enabled,
+      initialValue: value,
+      color: const Color(0xFF0B0E17),
+      onSelected: onSelected,
+      itemBuilder: (_) => [
+        for (final i in items)
+          PopupMenuItem<T>(
+            value: i.value,
+            child: Tooltip(
+              message: i.detail,
+              child: Text(i.text, style: Neon.mono.copyWith(color: i.value == value ? Neon.cyan : Neon.text)),
+            ),
+          ),
+      ],
+      child: SizedBox(
+        width: width,
+        height: 32,
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Neon.mono.copyWith(color: enabled ? (color ?? Neon.text) : Neon.muted),
+              ),
+            ),
+            Icon(Icons.arrow_drop_down_rounded, color: enabled ? Neon.muted : Neon.muted.withValues(alpha: 0.4)),
+          ],
+        ),
+      ),
+    );
+  }
 }

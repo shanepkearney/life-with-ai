@@ -22,6 +22,7 @@ abstract final class CommunitySubmit {
       // A favorite's title is the prompt it was made from, when Claude made it.
       prompt: f.linkNote != null && title.length <= CommunitySeed.maxPrompt ? title : null,
       seed: f.seed,
+      rule: f.rule,
     );
   }
 

@@ -46,6 +46,8 @@ class Hud extends StatelessWidget {
           if (!compact) ...[
             stat('GEN/S', c.running ? _grouped(c.gensPerSecond.round()) : '—', Neon.amber),
             stat('ENGINE', c.giant != null ? 'HashLife · endless plane' : c.engineKind.label, Neon.text),
+            // Only when it isn't Conway's: a reminder that this isn't standard Life.
+            if (!c.rule.isConway) stat('RULE', c.rule.label, Neon.amber),
           ],
         ],
       ),

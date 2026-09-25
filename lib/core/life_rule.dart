@@ -34,6 +34,32 @@ final class LifeRule {
   /// so no stepping loop or shader ever checks which rule it is running.
   RuleProcessor get processor => isConway ? RuleProcessor.conway : RuleProcessor.anyRule;
 
+  /// The well-known rules, by name, for choosing one. Conway's first.
+  static final named = <({String name, LifeRule rule, String about})>[
+    (name: 'Conway', rule: conway, about: 'The Game of Life: born with 3, survives with 2 or 3'),
+    (name: 'HighLife', rule: parse('B36/S23')!, about: 'Almost Life, with a pattern that copies itself'),
+    (name: 'Day & Night', rule: parse('B3678/S34678')!, about: 'The same with every cell flipped: life inside solid regions too'),
+    (name: 'Seeds', rule: parse('B2/S')!, about: 'Every cell dies each step; tiny patterns explode'),
+    (name: 'Life without Death', rule: parse('B3/S012345678')!, about: 'Nothing ever dies: it grows ladders and vines'),
+    (name: 'Maze', rule: parse('B3/S12345')!, about: 'Grows into maze-like corridors'),
+    (name: 'Replicator', rule: parse('B1357/S1357')!, about: 'Every pattern copies itself, over and over'),
+    (name: '2×2', rule: parse('B36/S125')!, about: 'Patterns built from 2×2 blocks'),
+    (name: 'Morley', rule: parse('B368/S245')!, about: 'Rich in spaceships ("Move")'),
+    (name: 'Anneal', rule: parse('B4678/S35678')!, about: 'Noise melts into smooth, shifting blobs'),
+    (name: 'Diamoeba', rule: parse('B35678/S5678')!, about: 'Amoeba-like diamonds'),
+  ];
+
+  /// Its well-known name, or null.
+  String? get name {
+    for (final n in named) {
+      if (n.rule == this) return n.name;
+    }
+    return null;
+  }
+
+  /// The name if it has one, else the notation: "HighLife", "B2/S3".
+  String get label => name ?? notation;
+
   /// Born from nothing: with B0 a dead cell among dead neighbors comes alive,
   /// so an endless plane would fill at once. Boards cope; HashLife's plane can't.
   bool get birthFromNothing => birth & 1 != 0;

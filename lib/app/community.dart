@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 
 import '../core/grid.dart';
+import '../core/life_rule.dart';
 import '../core/rle.dart';
 import 'life_controller.dart';
 import 'share_link.dart';
@@ -93,7 +94,7 @@ class CommunitySeed {
 
   /// A seed link, for seeds played on a board; null on the plane, which a
   /// link can't describe.
-  String? get shareLink => playsOnPlane ? null : ShareLink.forSeed(_board!, title: name, note: description);
+  String? get shareLink => playsOnPlane ? null : ShareLink.forSeed(_board!, title: name, note: description, rule: pattern.rule);
 
   static const maxName = 40, maxDescription = 400, maxPrompt = ShareLink.maxTitleLength, maxDiscoverer = 80;
 
@@ -194,6 +195,11 @@ class CommunitySeed {
       board = size == null ? null : pattern.centeredOn(size.width, size.height);
     }
 
+    // An endless plane can't hold a rule that brings empty space to life.
+    if ((playsOn != null || board == null) && pattern.rule.birthFromNothing) {
+      throw FormatException('${pattern.rule.notation} brings empty space to life, so it can\'t play on the endless plane.');
+    }
+
     return CommunitySeed._(
       name: n,
       author: author,
@@ -226,6 +232,7 @@ class CommunitySeed {
     String? discoverer,
     Uri? source,
     required Grid seed,
+    LifeRule rule = LifeRule.conway,
   }) {
     String two(int n) => n.toString().padLeft(2, '0');
     final comments = [
@@ -234,7 +241,7 @@ class CommunitySeed {
       if (source != null) 'Source: $source',
       'Added: ${added.year}-${two(added.month)}-${two(added.day)} by @$author',
     ];
-    return '${Rle.encode(seed, name: name, origin: discoverer ?? author, comments: comments, onBoard: true)}\n';
+    return '${Rle.encode(seed, name: name, origin: discoverer ?? author, comments: comments, onBoard: true, rule: rule)}\n';
   }
 
   /// Description lines of about 70 characters, split between words.

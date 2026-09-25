@@ -171,8 +171,8 @@ void main() {
 
   test('other rules and multi-state patterns are refused with a reason', () {
     expect(
-      () => Rle.decode('x = 3, y = 3, rule = B36/S23\nbob\$2bo\$3o!'),
-      throwsA(isA<FormatException>().having((e) => e.message, 'message', allOf(contains('B36/S23'), contains('B3/S23')))),
+      () => Rle.decode('x = 3, y = 3, rule = B34twz/S23\nbob\$2bo\$3o!'),
+      throwsA(isA<FormatException>().having((e) => e.message, 'message', allOf(contains('B34twz/S23'), contains('B3/S23')))),
     );
     expect(() => Rle.decode('x = 3, y = 1, rule = Generations\n3A!'), throwsA(isA<FormatException>()));
     expect(() => Rle.decode('x = 3, y = 1\n2oA!'), throwsA(isA<FormatException>().having((e) => e.message, 'message', contains('"A"'))));
@@ -229,7 +229,18 @@ void main() {
       expect(() => Rle.decode(otherRuleSample), throwsA(isA<FormatException>().having((e) => e.message, 'message', contains('B34q/S23-k'))));
     });
 
-    test('marker states are only letters in LifeHistory or LifeSuper, never in plain Life', () {
+    test('other birth/survival rules are read, and written back', () {
+    final p = Rle.decode('#N Replicator\nx = 5, y = 5, rule = B36/S23\n2b3o\$bo2bo\$o3bo\$o2bo\$3o!');
+    expect(p.rule.notation, 'B36/S23');
+    expect(p.rule.name, 'HighLife');
+    expect(Rle.decode('x = 3, y = 1, rule = S23/B36\n3o!').rule.name, 'HighLife', reason: 'survival first, too');
+    final g = p.centeredOn(20, 20);
+    expect(Rle.encode(g, rule: p.rule), contains('rule = B36/S23'));
+    expect(Rle.decode(Rle.encode(g, rule: p.rule)).rule, p.rule);
+    expect(Rle.decode('x = 3, y = 1, rule = LifeHistory\n3A!').rule.isConway, isTrue);
+  });
+
+  test('marker states are only letters in LifeHistory or LifeSuper, never in plain Life', () {
       expect(() => Rle.decode('x = 3, y = 1, rule = B3/S23\n3A!'), throwsFormatException);
       expect(Rle.decode('x = 3, y = 1, rule = LifeHistory\n3A!').cells, hasLength(3));
       expect(Rle.decode('x = 2, y = 1, rule = LifeSuper\npApB!').cells, hasLength(1), reason: 'state 25 is alive, 26 is not');

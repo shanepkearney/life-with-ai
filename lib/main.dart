@@ -62,7 +62,7 @@ Future<LifeApp> bootstrap({
     final shared = ShareLink.parse(launchUri);
     if (shared != null) {
       try {
-        await life.playSeed(shared.seed, title: shared.title, source: SeedSource.shareLink);
+        await life.playSeed(shared.seed, title: shared.title, source: SeedSource.shareLink, rule: shared.rule);
         assistant.addShared(shared);
         // The sender's colors, for this visit: the Shared with you card offers to keep them.
         final colors = shared.palette;
