@@ -100,20 +100,23 @@ class ControlBar extends StatelessWidget {
           // for it: at the default window size the bar has none to spare.
           _PaletteButton(controller: c),
           const _Divider(),
-          DropdownButtonHideUnderline(
-            child: DropdownButton<BoardSize>(
-              value: c.boardSize,
-              isDense: true,
-              style: Neon.mono,
-              dropdownColor: const Color(0xFF0B0E17),
-              items: [for (final s in sizes) DropdownMenuItem(value: s, child: Text(s.label))],
-              // Closed, it shows the short name: the full "Fit screen · 1512×982"
-              // would widen the button and wrap the bar onto a second row.
-              selectedItemBuilder: (_) => [for (final s in sizes) Center(child: Text(s.shortLabel))],
-              onChanged: (s) => s == null ? null : c.setBoardSize(s),
+          // A pattern on the endless plane has no board to size: picking one would replace it.
+          if (giant == null) ...[
+            DropdownButtonHideUnderline(
+              child: DropdownButton<BoardSize>(
+                value: c.boardSize,
+                isDense: true,
+                style: Neon.mono,
+                dropdownColor: const Color(0xFF0B0E17),
+                items: [for (final s in sizes) DropdownMenuItem(value: s, child: Text(s.label))],
+                // Closed, it shows the short name: the full "Fit screen · 1512×982"
+                // would widen the button and wrap the bar onto a second row.
+                selectedItemBuilder: (_) => [for (final s in sizes) Center(child: Text(s.shortLabel))],
+                onChanged: (s) => s == null ? null : c.setBoardSize(s),
+              ),
             ),
-          ),
-          const SizedBox(width: 4), // with the Wrap's gap: 8px between the menus, like the dividers
+            const SizedBox(width: 4), // with the Wrap's gap: 8px between the menus, like the dividers
+          ],
           // Size, engine, rule: what the board is, what runs it, and by what rule.
           // Engine and rule as compact menus: three engine buttons and a rule list won't fit side by side.
           CompactMenu<EngineKind>(

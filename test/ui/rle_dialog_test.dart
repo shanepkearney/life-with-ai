@@ -180,6 +180,7 @@ void main() {
     expect(life.engineKind, EngineKind.hashlife);
     expect(life.canStepBack, isFalse, reason: 'no rewind history on the plane');
     expect(find.textContaining('on an endless plane, run by HashLife'), findsOneWidget);
+    expect(find.byType(DropdownButton<BoardSize>), findsNothing, reason: 'the plane has no board to size');
 
     // Anything that puts a normal board down leaves the plane.
     await tester.tap(find.byTooltip('Randomize'));
@@ -188,6 +189,8 @@ void main() {
     }
     expect(life.giant, isNull);
     expect(life.engineKind, isNot(EngineKind.hashlife), reason: 'back on the engine it was using');
+    await settle(tester);
+    expect(find.byType(DropdownButton<BoardSize>), findsOneWidget, reason: 'a board to size again');
   });
 
   testWidgets('on a phone it lives in the ⚙ sheet, and fits the screen', (tester) async {
