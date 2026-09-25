@@ -37,6 +37,19 @@ class GiantMode {
   static const giantJump = 10;
   static const maxJump = 24;
 
+  /// Slower than one generation a step as fast as HashLife goes: steps of one
+  /// generation paced at [paces]\[pace\] a second, like a board's speed. Null
+  /// runs flat out, [jump] generations a step.
+  int? pace;
+  static const paces = [1, 2, 4, 8, 15, 30, 60];
+
+  /// Generations a second while paced, else null.
+  int? get rate => pace == null ? null : paces[pace!];
+
+  /// One slider for both: the paced speeds below zero, then the jumps.
+  int get speed => pace == null ? jump : pace! - paces.length;
+  static const minSpeed = -7; // -paces.length
+
   /// On the web, where a jump runs on the UI thread, the jump actually taken
   /// shrinks while steps are slow, so the page stays responsive.
   int? limitedJump;
@@ -117,6 +130,12 @@ class GiantMode {
     final n = 1 << effectiveJump;
     return n < 1024 ? '$n' : (n < 1 << 20 ? '${n >> 10}K' : '${n >> 20}M');
   }
+
+  /// "Speed 15/s" or "Jump ×  1K": one width, for the bar's tight label.
+  String get speedShort => rate != null ? 'Speed ${'$rate'.padLeft(2)}/s' : 'Jump ×${jumpShort.padLeft(4)}';
+
+  /// "15 generations a second" or "×1,024 generations a step".
+  String get speedLabel => rate != null ? '$rate generations a second' : '$jumpLabel generations a step';
 
   /// "×1,024" for the jump readout.
   String get jumpLabel => '×${_grouped(1 << effectiveJump)}';

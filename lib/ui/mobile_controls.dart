@@ -82,8 +82,14 @@ class MobileControls extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (c.giant case final g?) ...[
-                  label('Jump · ${g.jumpLabel} generations a step'),
-                  Slider(value: g.jump.toDouble(), max: GiantMode.maxJump.toDouble(), divisions: GiantMode.maxJump, onChanged: (v) => c.setGiantJump(v.round())),
+                  label(g.rate != null ? 'Speed · ${g.speedLabel}' : 'Jump · ${g.speedLabel}'),
+                  Slider(
+                    value: g.speed.toDouble(),
+                    min: GiantMode.minSpeed.toDouble(),
+                    max: GiantMode.maxJump.toDouble(),
+                    divisions: GiantMode.maxJump - GiantMode.minSpeed,
+                    onChanged: (v) => c.setGiantSpeed(v.round()),
+                  ),
                 ] else ...[
                   label('Speed · ${c.targetRate} generations/s'),
                   Slider(

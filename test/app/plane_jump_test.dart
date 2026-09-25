@@ -17,4 +17,22 @@ void main() {
       life.dispose();
     });
   });
+
+  testWidgets('below ×1 the plane steps at a paced rate: at 1/s, two seconds are two generations', (tester) async {
+    await tester.runAsync(() async {
+      final life = LifeController(await Shaders.load())..newGiantRunner = GiantRunner.inline;
+      await life.init();
+      await life.openGiant(Rle.decode('#N Acorn\nx = 7, y = 3, rule = B3/S23\nbo\$3bo\$2o2b3o!'));
+      life.setGiantSpeed(GiantMode.minSpeed);
+      expect(life.giant!.rate, 1);
+      final start = life.giant!.generation;
+      for (var t = 0.0; t <= 2.0 + 1e-9; t += 0.05) {
+        await life.tick(t);
+      }
+      expect(life.giant!.generation - start, 2);
+      life.setGiantSpeed(0);
+      expect((life.giant!.rate, life.giant!.jump), (null, 0), reason: '×1 runs flat out again');
+      life.dispose();
+    });
+  });
 }
