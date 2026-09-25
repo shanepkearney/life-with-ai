@@ -88,9 +88,9 @@ void main() {
 
   testWidgets('Board only on a phone: the bar fits, fades, and a tap brings it back', (tester) async {
     await startOn(tester, const Size(375, 667));
-    await tester.tap(find.byTooltip('Board only (B)'));
+    await tester.tap(find.byTooltip('Full screen (F)'));
     await frames(tester, 300);
-    final leave = find.byTooltip('Leave board only (Esc)');
+    final leave = find.byTooltip('Exit full screen (Esc)');
     expect(tester.getRect(leave).right, lessThanOrEqualTo(375));
     await frames(tester, 3000); // longer than the bar lingers
     bool shown() => !tester.widget<IgnorePointer>(find.ancestor(of: leave, matching: find.byType(IgnorePointer)).first).ignoring;
@@ -226,6 +226,6 @@ void main() {
     patternLibrary['r_pentomino']!.stampOnto(phoneSeed, 90, 120);
     app = await startOn(tester, const Size(1440, 920), launchUri: Uri.parse(ShareLink.forSeed(phoneSeed, title: 'From a phone')));
     expect(app.controller.boardSize, BoardSize.portrait);
-    expect(find.text('192×256'), findsOneWidget, reason: 'the desktop dropdown shows the adopted size');
+    expect(find.text('SIZE: 192×256', findRichText: true), findsOneWidget, reason: "the desktop HUD names the adopted size");
   });
 }

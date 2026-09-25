@@ -117,10 +117,10 @@ void main() {
     // A test's tap isn't a real user gesture, so the browser refuses full
     // screen: Board only must fill the window anyway, and leave cleanly.
     await start(tester);
-    await tester.tap(find.byTooltip('Board only (B)'));
-    await pumpUntil(tester, () => find.byTooltip('Leave board only (Esc)').evaluate().isNotEmpty, reason: 'Board only');
+    await tester.tap(find.byTooltip('Full screen (F)'));
+    await pumpUntil(tester, () => find.byTooltip('Exit full screen (Esc)').evaluate().isNotEmpty, reason: 'Board only');
     expect(find.byTooltip('Save a screenshot'), findsNothing);
-    await tester.tap(find.byTooltip('Leave board only (Esc)'));
+    await tester.tap(find.byTooltip('Exit full screen (Esc)'));
     await pumpUntil(tester, () => find.byTooltip('Save a screenshot').evaluate().isNotEmpty, reason: 'back to the app');
   });
 

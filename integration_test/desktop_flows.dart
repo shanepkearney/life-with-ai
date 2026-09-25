@@ -15,8 +15,10 @@ import 'package:life_with_ai/core/rle.dart';
 import 'package:life_with_ai/engine/life_engine.dart';
 import 'package:life_with_ai/main.dart';
 import 'package:life_with_ai/render/board_palette.dart';
+import 'package:life_with_ai/ui/board_only.dart';
 import 'package:life_with_ai/ui/control_bar.dart';
 import 'package:life_with_ai/ui/life_canvas.dart';
+import 'package:life_with_ai/ui/section_wrap.dart';
 import 'package:life_with_ai/ui/hud.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -107,25 +109,27 @@ void main() {
     // Windowed (no full screen): this checks the view; the test above checks
     // the real window, and the widget tests check how the two go together.
     final app = await start(tester, fullScreen: NoFullScreen());
-    await tester.tap(find.byTooltip('Board only (B)'));
+    await tester.tap(find.byTooltip('Full screen (F)'));
     await frames(tester, 300);
-    expect(find.byType(ControlBar), findsNothing);
-    expect(find.byTooltip('Leave board only (Esc)'), findsOneWidget);
-    // Real fonts: the bar's five buttons sit within the window.
-    final bar = tester.getRect(find.byTooltip('Leave board only (Esc)'));
+    expect(find.byType(BoardOnlyView), findsOneWidget);
+    expect(find.byTooltip('Randomize'), findsNothing, reason: "the bar, less what edits the board");
+    expect(find.byTooltip('Exit full screen (Esc)'), findsOneWidget);
+    // Real fonts: the bar sits within the window.
+    final bar = tester.getRect(find.byTooltip('Exit full screen (Esc)'));
     expect(bar.right, lessThanOrEqualTo(tester.view.physicalSize.width / tester.view.devicePixelRatio));
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await frames(tester, 300);
-    expect(find.byType(ControlBar), findsOneWidget);
+    expect(find.byType(BoardOnlyView), findsNothing);
+    expect(find.byTooltip('Randomize'), findsOneWidget, reason: 'the whole bar again');
     expect(app.controller.generation, greaterThanOrEqualTo(0));
   });
 
-  /// Opens the engine menu and picks [engine]. The board keeps playing, so
-  /// this pumps for the menu's animation rather than waiting for it to settle.
-  Future<void> pickEngine(WidgetTester tester, String engine) async {
-    await tester.tap(find.byType(CompactMenu<EngineKind>));
+  /// Opens the HUD's engine menu and picks [engine]. The board keeps playing,
+  /// so this pumps for the menu's animation rather than waiting for it to settle.
+  Future<void> pickEngine(WidgetTester tester, EngineKind engine) async {
+    await tester.tap(find.byKey(const Key('hud-engine')));
     await tester.pump(const Duration(milliseconds: 400));
-    await tester.tap(find.text(engine).last);
+    await tester.tap(find.text(engine.label).last);
     await tester.pump(const Duration(milliseconds: 400));
   }
 
@@ -138,13 +142,13 @@ void main() {
     await tester.tap(find.byTooltip('Play (space)'));
     await pumpUntil(tester, () => life.generation >= 20, reason: 'GPU engine advancing');
 
-    await pickEngine(tester, 'CPU');
+    await pickEngine(tester, EngineKind.cpu);
     await pumpUntil(tester, () => life.engineKind == EngineKind.cpu, reason: 'engine swap');
     final genAtSwap = life.generation;
     await pumpUntil(tester, () => life.generation >= genAtSwap + 20, reason: 'CPU engine advancing');
     expect(find.textContaining('CPU · isolate'), findsWidgets);
 
-    await pickEngine(tester, 'HashLife');
+    await pickEngine(tester, EngineKind.hashlife);
     await pumpUntil(tester, () => life.engineKind == EngineKind.hashlife, reason: 'swap to HashLife');
     final genAtHash = life.generation;
     await pumpUntil(tester, () => life.generation >= genAtHash + 20, reason: 'HashLife advancing');
@@ -157,14 +161,9 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     await start(tester);
     await tester.pump();
-    // Every control sits on the same row: with centered wrapping, one row means one center line.
-    final wrap = tester.renderObject<RenderWrap>(find.descendant(of: find.byType(ControlBar), matching: find.byType(Wrap)));
-    final rows = <double>{};
-    wrap.visitChildren((c) {
-      final b = c as RenderBox;
-      rows.add(((b.parentData! as WrapParentData).offset.dy + b.size.height / 2).roundToDouble());
-    });
-    expect(rows, hasLength(1), reason: 'the control bar wraps onto ${rows.length} rows');
+    // Every section on one line.
+    final rows = tester.renderObject<RenderSectionWrap>(find.descendant(of: find.byType(ControlBar), matching: find.byType(SectionWrap))).lineCount;
+    expect(rows, 1, reason: 'the control bar wraps onto $rows rows');
     final hud = tester.renderObject<RenderBox>(find.byType(Hud));
     expect(hud.getMaxIntrinsicWidth(double.infinity), lessThanOrEqualTo(hud.size.width), reason: 'Hud would wrap');
     // Real fonts: all three tab labels fit whole, none cut short with an ellipsis.
@@ -174,17 +173,13 @@ void main() {
   });
 
   testWidgets('messages never cover the controls, even when the controls wrap', (tester) async {
-    // Narrow enough that the control bar wraps onto two rows (as in the bug report).
-    tester.view.physicalSize = const Size(1100, 900) * tester.view.devicePixelRatio;
+    // Narrow enough that the control bar wraps onto two rows (as in the bug report): the
+    // narrowest desktop window, now that engine, rule and glow have left the bar.
+    tester.view.physicalSize = const Size(900, 900) * tester.view.devicePixelRatio;
     addTearDown(tester.view.resetPhysicalSize);
     await start(tester);
-    final wrap = tester.renderObject<RenderWrap>(find.descendant(of: find.byType(ControlBar), matching: find.byType(Wrap)));
-    final rows = <double>{};
-    wrap.visitChildren((c) {
-      final b = c as RenderBox;
-      rows.add(((b.parentData! as WrapParentData).offset.dy + b.size.height / 2).roundToDouble());
-    });
-    expect(rows.length, greaterThan(1), reason: 'precondition: controls wrap');
+    final rows = tester.renderObject<RenderSectionWrap>(find.descendant(of: find.byType(ControlBar), matching: find.byType(SectionWrap))).lineCount;
+    expect(rows, greaterThan(1), reason: 'precondition: controls wrap');
 
     await tester.tap(find.byTooltip('Save this moment to favorites'));
     await pumpUntil(tester, () => find.textContaining('to favorites').evaluate().isNotEmpty, reason: 'toast shown');
@@ -286,7 +281,7 @@ void main() {
     expect(life.engineKind, EngineKind.hashlife);
     expect(g.zoom, lessThan(0), reason: 'fitted: 5,000 cells across needs several cells a pixel');
     expect(find.textContaining('endless plane'), findsWidgets); // the corner label; the HUD may be scaled or compact on a small screen
-    expect(find.textContaining('Jump ×'), findsOneWidget, reason: 'the speed slider is the jump size');
+    expect(find.text('  ×1K'), findsOneWidget, reason: 'the speed slider is the jump size, a thousand at first');
 
     // Jumps: pause, then one step of 2^10.
     if (life.running) life.toggleRunning();
@@ -297,7 +292,7 @@ void main() {
     await tester.tap(find.byTooltip('Jump ×1,024 generations (→)'));
     await pumpUntil(tester, () => life.generation == before + 1024, reason: 'one jump of 1,024');
 
-    // Zoom in with the + button, pan by dragging, and Fit brings it all back.
+    // Zoom in with the control bar's +, pan by dragging, and Fit brings it all back.
     final zoom = g.zoom;
     await tester.tap(find.byTooltip('Zoom in (+)'));
     await frames(tester, 200);
@@ -356,7 +351,7 @@ void main() {
     final life = app.controller;
     expect(life.palette, BoardPalette.ember, reason: 'drawn in the sender\'s colors');
     expect(life.ownPalette, BoardPalette.neon, reason: 'but not made the viewer\'s own');
-    expect(find.byTooltip('Board colors · Ember'), findsOneWidget);
+    expect(find.byTooltip('Board colors and glow · Ember'), findsOneWidget);
 
     await tester.tap(find.text('Keep'));
     await pumpUntil(tester, () => life.sharedPalette == null, reason: 'kept');

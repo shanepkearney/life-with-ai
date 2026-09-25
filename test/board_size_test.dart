@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:life_with_ai/app/life_controller.dart';
 import 'package:life_with_ai/core/grid.dart';
 import 'package:life_with_ai/render/shaders.dart';
-import 'package:life_with_ai/ui/control_bar.dart';
+import 'package:life_with_ai/ui/hud.dart';
 import 'package:life_with_ai/ui/theme.dart';
 
 void main() {
@@ -76,7 +76,7 @@ void main() {
       expect(life.boardSize, BoardSize.medium);
     });
 
-    testWidgets('the size dropdown offers Fit screen for this display, and applies it', (tester) async {
+    testWidgets("the HUD's size menu offers Fit screen for this display, and applies it", (tester) async {
       tester.view.physicalSize = const Size(1600, 400);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
@@ -84,21 +84,26 @@ void main() {
         MaterialApp(
           theme: Neon.theme(),
           home: Scaffold(
-            body: ListenableBuilder(
-              listenable: life,
-              builder: (_, _) => ControlBar(controller: life, erase: false, onEraseChanged: (_) {}),
+            body: Align(
+              alignment: Alignment.topLeft,
+              child: ListenableBuilder(listenable: life, builder: (_, _) => Hud(controller: life)),
             ),
           ),
         ),
       );
-      await tester.tap(find.text('512×384'));
+      expect(find.text('SIZE: 512×384', findRichText: true), findsOneWidget);
+      expect(find.byTooltip('Generation: how many steps the board has taken since this pattern began'), findsOneWidget);
+      expect(find.byTooltip('Population: how many cells are alive right now'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('hud-size')));
       await tester.pumpAndSettle();
+      expect(find.text('512×384'), findsOneWidget, reason: 'the current size, among the choices');
       final fit = find.textContaining('Fit screen · ').last;
       expect(fit, findsOneWidget);
       await tester.tap(fit);
       await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
       await tester.pumpAndSettle();
       expect(life.boardSize.fitsScreen, isTrue);
+      expect(find.text('512×384'), findsNothing, reason: 'choosing closes the menu');
     });
   });
 }

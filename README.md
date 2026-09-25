@@ -217,18 +217,18 @@ tabs, **Assistant**, **Favorites** and **Community**; tapping one opens the shee
 shows on its tab even while the sheet is closed. Phones start on a portrait 192×256 board, which
 fills a tall screen instead of letterboxing a 4:3 one.
 
-## Full screen and Board only
+## Full screen
 
-⛶ (or **F**) puts the whole app full screen: the browser's full screen on the web, the window's own in the macOS
-app. **Board only** (the grid button, or **B**) goes further: just the glowing board, edge to edge, and
-full screen too where the platform allows. Moving the mouse or tapping brings up a small playback bar (back to the start, step back, play or pause, step, the board size (Fit screen
-included), and ✕ to leave) along with the pointer; both fade after a couple of seconds
-of stillness. A tap only wakes the bar, never draws. **Esc**, the ✕, or leaving full screen any other way (a
-browser's own Esc, the window's green button) brings the app back.
+⛶ (or **F**) expands the board: just the glowing board, edge to edge, full screen where the platform allows (the
+browser's full screen on the web, the window's own in the macOS app). Moving the mouse or tapping brings up a small
+bar (back to the start, step back, play or pause, step, the speed, zoom out, Fit and zoom in, the board size (Fit
+screen included), and the button to leave) along with the pointer; both fade after a couple of seconds of
+stillness. A tap only wakes the bar, never draws. **Esc**, **F** again, the bar's button, or leaving full screen any
+other way (a browser's own Esc, the window's green button) brings the app back.
 
 To let a design run on the whole screen, pick **Fit screen** in the board size menu: a board shaped like your
-display at about two pixels a cell (756×491 on a 1512×982 MacBook), so Board only fills it with no black bars. An
-iPhone's browser can't go full screen, so there Board only simply fills the window.
+display at about two pixels a cell (756×491 on a 1512×982 MacBook), so full screen fills it with no black bars. An
+iPhone's browser can't go full screen, so there ⛶ simply fills the window with the board.
 
 ## Rewind
 
@@ -431,8 +431,9 @@ The board plays on load. Dev flags: `--dart-define=NO_AUTOPLAY=true` starts paus
 Speed is a rate in generations per second (1–960, geometric steps), not "generations per frame",
 so it runs the same on 60 Hz and 120 Hz displays; `test/app_speed_test.dart` checks both.
 
-Controls: space = play/pause; ← and → step while paused; **F** = full screen; **B** = Board only; Esc leaves Board
-only; drag on the board to draw (toggle the pencil to erase).
+Controls: space = play/pause; ← and → step while paused; ↑ and ↓ = faster and slower (in full screen, or after
+clicking the board); **F** (or **B**) = full screen, just the board; Esc leaves
+it; drag on the board to draw (toggle the pencil to erase).
 
 ## License
 

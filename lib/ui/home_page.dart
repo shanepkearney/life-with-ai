@@ -215,22 +215,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     }
   }
 
-  Widget? _fullScreenButton({double size = 18}) {
-    if (!_fullScreen.supported) return null;
-    final on = _fullScreen.active.value;
-    return IconButton(
-      tooltip: on ? 'Exit full screen (F)' : 'Full screen (F)',
-      visualDensity: VisualDensity.compact,
-      onPressed: () => _fullScreen.set(!on),
-      icon: Icon(on ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded, size: size + 2, color: Neon.muted),
-    );
-  }
-
-  Widget _boardOnlyButton({double size = 18}) => IconButton(
-    tooltip: 'Board only (B)',
+  /// ⛶ expands the board: just the board and a fading bar, full screen where
+  /// the platform allows it, filling the window where it doesn't (an iPhone).
+  Widget _fullScreenButton({double size = 18}) => IconButton(
+    tooltip: 'Full screen (F)',
     visualDensity: VisualDensity.compact,
     onPressed: () => _setBoardOnly(true),
-    icon: Icon(Icons.grid_on_rounded, size: size, color: Neon.muted), // the board; ⛶ is full screen
+    icon: Icon(Icons.fullscreen_rounded, size: size + 2, color: Neon.muted),
   );
 
   @override
@@ -262,6 +253,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 LogicalKeyboardKey.space,
                 LogicalKeyboardKey.arrowLeft,
                 LogicalKeyboardKey.arrowRight,
+                LogicalKeyboardKey.arrowUp,
+                LogicalKeyboardKey.arrowDown,
                 LogicalKeyboardKey.keyF,
                 LogicalKeyboardKey.keyB,
                 LogicalKeyboardKey.escape,
@@ -274,9 +267,16 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               if (typing) return;
               if (key == LogicalKeyboardKey.keyF || key == LogicalKeyboardKey.keyB || key == LogicalKeyboardKey.escape) {
                 if (e is! KeyDownEvent) return;
-                if (key == LogicalKeyboardKey.keyB) _setBoardOnly(!_boardOnly);
+                // F (and B, as before) expand the board or bring everything back; Esc leaves.
+                if (key == LogicalKeyboardKey.keyF || key == LogicalKeyboardKey.keyB) _setBoardOnly(!_boardOnly);
                 if (key == LogicalKeyboardKey.escape && _boardOnly) _setBoardOnly(false);
-                if (key == LogicalKeyboardKey.keyF && _fullScreen.supported) _fullScreen.set(!_fullScreen.active.value);
+                return;
+              }
+              // ↑ and ↓ set the speed, but only in full screen or while the board has the keyboard:
+              // anywhere else they scroll (the Community list, the chat).
+              if (key == LogicalKeyboardKey.arrowUp || key == LogicalKeyboardKey.arrowDown) {
+                if (e is KeyUpEvent) return;
+                if (_boardOnly || FocusManager.instance.primaryFocus == _focus) c.nudgeSpeed(key == LogicalKeyboardKey.arrowUp ? 1 : -1);
                 return;
               }
               // Holding an arrow repeats, scrubbing through generations; space doesn't repeat.
@@ -307,32 +307,36 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              Row(
-                children: [
-                  // The logo and ⓘ open the about panel: who made this, and Conway's rules.
-                  // It scales down before the buttons would overflow, just above the
-                  // phone breakpoint, as the phone header's logo does.
-                  const Flexible(
-                    child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: LogoButton()),
-                  ),
-                  // Beside the ⓘ: getting the app belongs with "about this app".
-                  ?_macDownloadButton(),
-                  _screenshotButton(),
-                  _rleButton(),
-                  _boardOnlyButton(),
-                  ?_fullScreenButton(),
-                  const SizedBox(width: 12),
-                  // Scale the stats down rather than overflow on narrow windows.
-                  Expanded(
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Hud(controller: c),
+              LayoutBuilder(
+                builder: (context, header) => Row(
+                  children: [
+                    // The logo and ⓘ open the about panel: who made this, and Conway's rules.
+                    // Capped at 30% of the header, it scales down before the buttons would
+                    // overflow, just above the phone breakpoint. Not a Flexible: a flex share
+                    // it didn't use was left empty at the row's end, pulling the view buttons
+                    // off the board's right edge.
+                    ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: header.maxWidth * 0.3),
+                      child: const FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: LogoButton()),
+                    ),
+                    // Beside the ⓘ: getting the app belongs with "about this app".
+                    ?_macDownloadButton(),
+                    _screenshotButton(),
+                    _rleButton(),
+                    const SizedBox(width: 12),
+                    // All the rest of the room; the stats scale down rather than overflow.
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Hud(controller: c),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                    // (Size is chosen in the stats; zoom and ⛶ are in the control bar.)
+                  ],
+                ),
               ),
               const SizedBox(height: 12),
               Expanded(child: _board(c)),
@@ -342,6 +346,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 erase: _erase,
                 onEraseChanged: (v) => setState(() => _erase = v),
                 onSaveMoment: widget.favorites == null ? null : _saveMoment,
+                onFullScreen: () => _setBoardOnly(true),
               ),
             ],
           ),
@@ -355,7 +360,12 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   Widget _board(LifeController c) => Stack(
     children: [
       Positioned.fill(
-        child: LifeCanvas(controller: c, clock: _clock, erase: _erase),
+        // A click on the board gives it the keyboard back (↑ and ↓ set the speed), from the chat, say.
+        child: Listener(
+          behavior: HitTestBehavior.translucent,
+          onPointerDown: (_) => _focus.requestFocus(),
+          child: LifeCanvas(controller: c, clock: _clock, erase: _erase),
+        ),
       ),
       Positioned(top: 12, left: 12, child: ExperimentOverlay(controller: c)),
       // Bottom of the board area: always above the controls, however they wrap.
@@ -388,8 +398,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     ),
                     ?_macDownloadButton(size: 15),
                     _screenshotButton(size: 15),
-                    // No separate ⛶ here: space is tight, and Board only goes full screen by itself.
-                    _boardOnlyButton(size: 15),
+                    _fullScreenButton(size: 15),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Align(

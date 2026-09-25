@@ -7,6 +7,7 @@ import 'package:life_with_ai/core/life_rule.dart';
 import 'package:life_with_ai/core/patterns.dart';
 import 'package:life_with_ai/render/board_palette.dart';
 import 'package:life_with_ai/render/shaders.dart';
+import 'package:life_with_ai/ui/control_bar.dart';
 import 'package:life_with_ai/ui/favorites_view.dart';
 import 'package:life_with_ai/ui/home_page.dart';
 import 'package:life_with_ai/ui/theme.dart';
@@ -50,9 +51,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
   }
 
-  testWidgets('the swatch beside Glow opens the colors, and a preset recolors the board at once', (tester) async {
+  testWidgets('the swatch opens the colors, a preset recolors the board at once, and the glow is set there too', (tester) async {
     await start(tester);
-    await tester.tap(find.byTooltip('Board colors · Neon'));
+    await tester.tap(find.byTooltip('Board colors and glow · Neon'));
     await settle(tester);
     expect(find.text('Board colors'), findsOneWidget);
     for (final p in BoardPalette.presets) {
@@ -60,6 +61,14 @@ void main() {
     }
     final reset = find.widgetWithText(TextButton, 'Reset to Neon');
     expect(tester.widget<TextButton>(reset).onPressed, isNull, reason: 'already Neon');
+
+    // The glow lives here now, not in the bar.
+    expect(find.text('GLOW · 1.0'), findsOneWidget);
+    expect(find.descendant(of: find.byType(ControlBar), matching: find.byType(Slider)), findsOneWidget, reason: 'the bar keeps only its speed slider');
+    await tester.drag(find.byType(Slider).last, const Offset(-400, 0));
+    await settle(tester);
+    expect(life.pipeline.glow, 0, reason: 'dragged all the way down: no glow');
+    expect(find.text('GLOW · 0.0'), findsOneWidget);
 
     await tester.tap(find.text('Ember'));
     await settle(tester);
@@ -70,12 +79,12 @@ void main() {
     await tester.tap(find.text('Done'));
     await settle(tester);
     expect(find.text('Board colors'), findsNothing);
-    expect(find.byTooltip('Board colors · Ember'), findsOneWidget);
+    expect(find.byTooltip('Board colors and glow · Ember'), findsOneWidget);
   });
 
   testWidgets('any color can be edited, by hex too, and Reset to Neon puts the theme back', (tester) async {
     await start(tester);
-    await tester.tap(find.byTooltip('Board colors · Neon'));
+    await tester.tap(find.byTooltip('Board colors and glow · Neon'));
     await settle(tester);
 
     await tester.tap(find.byTooltip('Background'));
@@ -105,10 +114,11 @@ void main() {
     await start(tester, size: const Size(390, 844));
     await tester.tap(find.byTooltip('Speed, glow and engine'));
     await settle(tester);
+    expect(find.text('Speed 15/s'), findsOneWidget, reason: 'the sheet is open');
     await tester.tap(find.text('Colors'));
     await settle(tester);
     expect(find.text('Board colors'), findsOneWidget);
-    expect(find.text('Speed · 15 generations/s'), findsNothing, reason: 'the sheet made way for the board');
+    expect(find.text('Speed 15/s'), findsNothing, reason: 'the sheet made way for the board');
 
     await tester.tap(find.text('Aurora'));
     await settle(tester);

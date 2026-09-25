@@ -131,7 +131,19 @@ class _ColorsPanelState extends State<_ColorsPanel> {
                   Row(children: [for (var i = 0; i < 6; i++) Expanded(child: _colorWell(i))]),
                   const SizedBox(height: 12),
                   _editor(),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
+                  // How strongly crowded regions glow: 0 is none, 1 the default, 2 twice as bright.
+                  Text('GLOW · ${widget.life.pipeline.glow.toStringAsFixed(1)}', style: label),
+                  Slider(
+                    value: widget.life.pipeline.glow,
+                    max: 2,
+                    divisions: 20,
+                    onChanged: (v) {
+                      widget.life.setGlow(v);
+                      setState(() {});
+                    },
+                  ),
+                  const SizedBox(height: 4),
                   Row(
                     children: [
                       TextButton.icon(
@@ -157,8 +169,9 @@ class _ColorsPanelState extends State<_ColorsPanel> {
     );
     return SafeArea(
       child: Align(
-        // Beside the board on desktop, below it on phones: the board is the preview.
-        alignment: phone ? Alignment.bottomCenter : const Alignment(0.94, 0),
+        // Centred on desktop, where the board shows around it; along the bottom on
+        // phones, where a centred panel would hide most of the board it previews on.
+        alignment: phone ? Alignment.bottomCenter : Alignment.center,
         child: Padding(padding: const EdgeInsets.all(16), child: panel),
       ),
     );

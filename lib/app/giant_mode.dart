@@ -125,14 +125,22 @@ class GiantMode {
       ? '${1 << zoom} px a cell'
       : '${_grouped(1 << -zoom)} cells a pixel';
 
+  /// "8 px/cell", "1:1" or "16 cells/px", for the HUD.
+  String get zoomShort => zoom == 0
+      ? '1:1'
+      : zoom > 0
+      ? '${1 << zoom} px/cell'
+      : '${_grouped(1 << -zoom)} cells/px';
+
   /// "1K" for the jump slider's tight label: 1 to 512, then K, then M.
   String get jumpShort {
     final n = 1 << effectiveJump;
     return n < 1024 ? '$n' : (n < 1 << 20 ? '${n >> 10}K' : '${n >> 20}M');
   }
 
-  /// "Speed 15/s" or "Jump ×  1K": one width, for the bar's tight label.
-  String get speedShort => rate != null ? 'Speed ${'$rate'.padLeft(2)}/s' : 'Jump ×${jumpShort.padLeft(4)}';
+  /// " 15/s" or "  ×1K" beside the slider: five characters either way, as on
+  /// a board ("960/s"), so the bar never shifts.
+  String get speedShort => (rate != null ? '$rate/s' : '×$jumpShort').padLeft(5);
 
   /// "15 generations a second" or "×1,024 generations a step".
   String get speedLabel => rate != null ? '$rate generations a second' : '$jumpLabel generations a step';
