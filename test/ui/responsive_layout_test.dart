@@ -44,6 +44,30 @@ void main() {
     app.controller.dispose();
   });
 
+  // Regression: the resting sheet drew the panel's divider under its tabs, a
+  // lone cyan line across the bottom of the phone layout with nothing below it.
+  testWidgets('the resting phone sheet has no divider under its tabs; the open one does', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(400, 850);
+    addTearDown(tester.view.reset);
+
+    late LifeApp app;
+    await tester.runAsync(() async => app = await bootstrap());
+    await tester.pumpWidget(app);
+    await tester.pump();
+    final dividers = find.descendant(of: find.byType(MobileSheet), matching: find.byType(Divider));
+    expect(dividers, findsNothing, reason: 'resting');
+
+    await tester.tap(find.bySemanticsLabel('Expand the assistant'));
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(dividers, findsWidgets, reason: 'open');
+    await tester.pumpWidget(const SizedBox());
+    app.controller.dispose();
+  });
+
   // Regression: the ⇅ button made the header 17px too wide just above the
   // old 700px breakpoint, with every button showing (⬇ on a Mac, ⛶ supported).
   testWidgets('the desktop header fits just above the phone breakpoint', (tester) async {
