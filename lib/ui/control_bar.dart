@@ -103,6 +103,8 @@ class ControlBar extends StatelessWidget {
           // for it: at the default window size the bar has none to spare.
           _PaletteButton(controller: c),
           const _Divider(),
+          // Left of the menus: how much of the board, or of the plane, is on screen.
+          ZoomMenu(controller: c),
           // A pattern on the endless plane has no board to size: picking one would replace it.
           if (giant == null) ...[
             DropdownButtonHideUnderline(
@@ -118,9 +120,8 @@ class ControlBar extends StatelessWidget {
                 onChanged: (s) => s == null ? null : c.setBoardSize(s),
               ),
             ),
+            const SizedBox(width: 4), // with the Wrap's gap: 8px between the menus, like the dividers
           ],
-          // Beside the size: how much of the board, or of the plane, is on screen.
-          ZoomMenu(controller: c),
           // Size, engine, rule: what the board is, what runs it, and by what rule.
           // Engine and rule as compact menus: three engine buttons and a rule list won't fit side by side.
           CompactMenu<EngineKind>(
