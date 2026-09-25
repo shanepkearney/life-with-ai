@@ -308,37 +308,42 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              Row(
-                children: [
-                  // The logo and ⓘ open the about panel: who made this, and Conway's rules.
-                  // It scales down before the buttons would overflow, just above the
-                  // phone breakpoint, as the phone header's logo does.
-                  const Flexible(
-                    child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: LogoButton()),
-                  ),
-                  // Beside the ⓘ: getting the app belongs with "about this app".
-                  ?_macDownloadButton(),
-                  _screenshotButton(),
-                  _rleButton(),
-                  const SizedBox(width: 12),
-                  // Scale the stats down rather than overflow on narrow windows.
-                  Expanded(
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Hud(controller: c),
+              LayoutBuilder(
+                builder: (context, header) => Row(
+                  children: [
+                    // The logo and ⓘ open the about panel: who made this, and Conway's rules.
+                    // Capped at 30% of the header, it scales down before the buttons would
+                    // overflow, just above the phone breakpoint. Not a Flexible: a flex share
+                    // it didn't use was left empty at the row's end, pulling the view buttons
+                    // off the board's right edge.
+                    ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: header.maxWidth * 0.3),
+                      child: const FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: LogoButton()),
+                    ),
+                    // Beside the ⓘ: getting the app belongs with "about this app".
+                    ?_macDownloadButton(),
+                    _screenshotButton(),
+                    _rleButton(),
+                    const SizedBox(width: 12),
+                    // All the rest of the room; the stats scale down rather than overflow.
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Hud(controller: c),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  // Right of the stats, the view of the board: its size (the plane has none),
-                  // Board only, zoom and full screen.
-                  if (c.giant == null) SizeMenu(controller: c),
-                  _boardOnlyButton(),
-                  ZoomMenu(controller: c),
-                  ?_fullScreenButton(),
-                ],
+                    const SizedBox(width: 8),
+                    // Right of the stats, flush with the board's right edge, the view of the
+                    // board: zoom, its size (the plane has none), Board only and full screen.
+                    ZoomMenu(controller: c),
+                    if (c.giant == null) SizeMenu(controller: c),
+                    _boardOnlyButton(),
+                    ?_fullScreenButton(),
+                  ],
+                ),
               ),
               const SizedBox(height: 12),
               Expanded(child: _board(c)),
