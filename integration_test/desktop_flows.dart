@@ -120,12 +120,12 @@ void main() {
     expect(app.controller.generation, greaterThanOrEqualTo(0));
   });
 
-  /// Opens the engine menu and picks [engine]. The board keeps playing, so
-  /// this pumps for the menu's animation rather than waiting for it to settle.
-  Future<void> pickEngine(WidgetTester tester, String engine) async {
-    await tester.tap(find.byType(CompactMenu<EngineKind>));
+  /// Opens the HUD's engine menu and picks [engine]. The board keeps playing,
+  /// so this pumps for the menu's animation rather than waiting for it to settle.
+  Future<void> pickEngine(WidgetTester tester, EngineKind engine) async {
+    await tester.tap(find.byKey(const Key('hud-engine')));
     await tester.pump(const Duration(milliseconds: 400));
-    await tester.tap(find.text(engine).last);
+    await tester.tap(find.text(engine.label).last);
     await tester.pump(const Duration(milliseconds: 400));
   }
 
@@ -138,13 +138,13 @@ void main() {
     await tester.tap(find.byTooltip('Play (space)'));
     await pumpUntil(tester, () => life.generation >= 20, reason: 'GPU engine advancing');
 
-    await pickEngine(tester, 'CPU');
+    await pickEngine(tester, EngineKind.cpu);
     await pumpUntil(tester, () => life.engineKind == EngineKind.cpu, reason: 'engine swap');
     final genAtSwap = life.generation;
     await pumpUntil(tester, () => life.generation >= genAtSwap + 20, reason: 'CPU engine advancing');
     expect(find.textContaining('CPU · isolate'), findsWidgets);
 
-    await pickEngine(tester, 'HashLife');
+    await pickEngine(tester, EngineKind.hashlife);
     await pumpUntil(tester, () => life.engineKind == EngineKind.hashlife, reason: 'swap to HashLife');
     final genAtHash = life.generation;
     await pumpUntil(tester, () => life.generation >= genAtHash + 20, reason: 'HashLife advancing');

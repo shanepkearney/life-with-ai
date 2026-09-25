@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../app/life_controller.dart';
+import '../engine/life_engine.dart';
+import 'control_bar.dart' show ruleChoices, ruleTip;
 import 'theme.dart';
 
 /// Live stats. Generations/sec is the number to watch when switching engines.
+/// On desktop ENGINE and RULE are menus too: click either to change it.
 class Hud extends StatelessWidget {
   const Hud({super.key, required this.controller, this.compact = false});
 
@@ -15,8 +18,9 @@ class Hud extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = controller;
-    Widget stat(String k, String v, Color color) => Padding(
-      padding: const EdgeInsets.only(right: 18),
+    // [gap] after it: a menu's ▾ takes its place.
+    Widget stat(String k, String v, Color color, {double gap = 18}) => Padding(
+      padding: EdgeInsets.only(right: gap),
       child: Text.rich(
         TextSpan(
           children: [
@@ -47,15 +51,77 @@ class Hud extends StatelessWidget {
             stat('GEN/S', c.running ? _grouped(c.gensPerSecond.round()) : '—', Neon.amber),
             // On the plane, what's playing and how close in: it replaces the board's own chip here.
             if (c.giant case final g?) stat('PATTERN', _short(g.name), Neon.text),
-            stat('ENGINE', c.giant != null ? 'HashLife · endless plane' : c.engineKind.label, Neon.text),
+            // A giant pattern runs on HashLife's endless plane only: no menu there.
+            _HudMenu<EngineKind>(
+              key: const Key('hud-engine'),
+              stat: stat('ENGINE', c.giant != null ? 'HashLife · endless plane' : c.engineKind.label, Neon.text, gap: c.giant != null ? 18 : 0),
+              tooltip: c.giant != null ? 'A giant pattern runs on HashLife' : '${c.engineKind.label}: ${c.engineKind.about}',
+              value: c.engineKind,
+              items: [for (final k in EngineKind.values) (value: k, text: k.label, detail: k.about)],
+              onSelected: c.giant != null ? null : c.switchEngine,
+            ),
             if (c.giant case final g?)
               stat('ZOOM', g.zoomShort, Neon.cyan)
             else if (c.boardView.zoomed)
               stat('ZOOM', c.boardView.label, Neon.cyan),
             // Always shown; amber when it isn't Conway's, a reminder that this isn't standard Life.
-            stat('RULE', c.rule.label, c.rule.isConway ? Neon.text : Neon.amber),
+            _HudMenu(
+              key: const Key('hud-rule'),
+              stat: stat('RULE', c.rule.label, c.rule.isConway ? Neon.text : Neon.amber, gap: c.giant != null ? 18 : 0),
+              tooltip: ruleTip(c),
+              value: c.rule,
+              items: ruleChoices(c.rule),
+              onSelected: c.giant != null ? null : c.setRule,
+            ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// A stat that opens a menu below it to change it, marked by a small ▾.
+/// Without [onSelected] it's a plain stat.
+class _HudMenu<T> extends StatelessWidget {
+  const _HudMenu({super.key, required this.stat, required this.tooltip, required this.value, required this.items, required this.onSelected});
+
+  final Widget stat;
+  final String tooltip;
+  final T value;
+  final List<({T value, String text, String detail})> items;
+  final ValueChanged<T>? onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    if (onSelected == null) return Tooltip(message: tooltip, child: stat);
+    return PopupMenuButton<T>(
+      tooltip: tooltip,
+      initialValue: value,
+      position: PopupMenuPosition.under,
+      color: const Color(0xFF0B0E17),
+      onSelected: onSelected,
+      itemBuilder: (_) => [
+        for (final i in items)
+          PopupMenuItem<T>(
+            value: i.value,
+            child: Tooltip(
+              message: i.detail,
+              child: Text(i.text, style: Neon.mono.copyWith(color: i.value == value ? Neon.cyan : Neon.text)),
+            ),
+          ),
+      ],
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            stat,
+            const Padding(
+              padding: EdgeInsets.only(right: 16),
+              child: Icon(Icons.arrow_drop_down_rounded, size: 18, color: Neon.muted),
+            ),
+          ],
+        ),
       ),
     );
   }

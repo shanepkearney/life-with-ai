@@ -28,9 +28,9 @@ void main() {
 
       expect(find.text('Assistant'), findsOneWidget);
       expect(find.text('Add your Anthropic API key'), findsOneWidget);
-      // The engine and rule menus, closed: the current choice of each.
-      expect(find.text('GPU'), findsWidgets, reason: 'the engine menu');
-      expect(find.text('Conway'), findsOneWidget, reason: 'the rule menu');
+      // The engine and rule, in the HUD, whose menus change them.
+      expect(find.text('ENGINE GPU · shader', findRichText: true), findsOneWidget, reason: 'the engine menu');
+      expect(find.text('RULE Conway', findRichText: true), findsOneWidget, reason: 'the rule menu');
 
       // Without a key, sending opens the settings dialog instead of calling the API.
       await tester.tap(find.textContaining('Two glider fleets'));

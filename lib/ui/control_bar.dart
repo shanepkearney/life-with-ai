@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../app/giant_mode.dart';
 import '../app/life_controller.dart';
 import '../core/life_rule.dart';
-import '../engine/life_engine.dart';
 import 'colors_dialog.dart';
 import 'theme.dart';
 
@@ -98,20 +97,8 @@ class ControlBar extends StatelessWidget {
           ),
           // With the glow it colors. The sliders and dividers gave up a few pixels
           // for it: at the default window size the bar has none to spare.
+          // Engine and rule are chosen from the HUD at the top; zoom and size sit beside it.
           _PaletteButton(controller: c),
-          const _Divider(),
-          // Engine and rule: what runs the board, and by what rule. Zoom and size are in the top bar.
-          // Engine and rule as compact menus: three engine buttons and a rule list won't fit side by side.
-          CompactMenu<EngineKind>(
-            width: 70,
-            value: c.engineKind,
-            label: c.engineKind.short,
-            tooltip: giant != null ? 'A giant pattern runs on HashLife' : '${c.engineKind.label}: ${c.engineKind.about}',
-            items: [for (final k in EngineKind.values) (value: k, text: k.short, detail: k.about)],
-            // A giant pattern runs on HashLife's endless plane only.
-            onSelected: giant != null ? null : c.switchEngine,
-          ),
-          RuleMenu(controller: c),
         ],
       ),
     );
@@ -206,20 +193,30 @@ class RuleMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = controller;
     final current = c.rule;
-    final named = [for (final n in LifeRule.named) (value: n.rule, text: '${n.name}  ${n.rule.notation}', detail: n.about)];
     return CompactMenu<LifeRule>(
       width: width ?? conwayWidth(context),
       value: current,
       label: current.label,
       // Amber off Conway's: a reminder this isn't standard Life.
       color: current.isConway ? Neon.text : Neon.amber,
-      tooltip: c.giant != null
-          ? 'The rule is fixed while a giant pattern is loaded'
-          : '${current.label} (${current.notation}): ${LifeRule.named.where((n) => n.rule == current).map((n) => n.about).firstOrNull ?? 'a rule from a pattern'}',
-      items: [...named, if (current.name == null) (value: current, text: current.notation, detail: 'The rule of the pattern you loaded')],
+      tooltip: ruleTip(c),
+      items: ruleChoices(current),
       onSelected: c.giant != null ? null : c.setRule,
     );
   }
+}
+
+/// The rules to choose from: the well-known ones, plus [current] when a pattern brought another.
+List<({LifeRule value, String text, String detail})> ruleChoices(LifeRule current) => [
+  for (final n in LifeRule.named) (value: n.rule, text: '${n.name}  ${n.rule.notation}', detail: n.about),
+  if (current.name == null) (value: current, text: current.notation, detail: 'The rule of the pattern you loaded'),
+];
+
+/// What the rule does, or why it can't be changed right now.
+String ruleTip(LifeController c) {
+  final r = c.rule;
+  if (c.giant != null) return 'The rule is fixed while a giant pattern is loaded';
+  return '${r.label} (${r.notation}): ${LifeRule.named.where((n) => n.rule == r).map((n) => n.about).firstOrNull ?? 'a rule from a pattern'}';
 }
 
 /// A menu button that shows only the current choice, in a fixed [width], and

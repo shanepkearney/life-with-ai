@@ -50,10 +50,10 @@ void main() {
     await settle(tester);
     final before = (await tester.runAsync(() => life.captureMoment()))!.seed;
     final generation = life.generation;
-    expect(find.text('Conway'), findsOneWidget);
     expect(find.text('RULE Conway', findRichText: true), findsOneWidget, reason: "the HUD always names the rule, Conway's too");
 
-    await tester.tap(find.text('Conway'));
+    // The HUD's RULE is the menu.
+    await tester.tap(find.byKey(const Key('hud-rule')));
     await settle(tester);
     await tester.tap(find.text('HighLife  B36/S23').last);
     await settle(tester);
