@@ -26,7 +26,7 @@ void main() {
       } on FormatException catch (e) {
         fail('$name: ${e.message}');
       }
-      expect(name, CommunitySeed.fileNameFor(seed.name), reason: 'name the file after the pattern\'s #N line');
+      expect(name, CommunitySeed.fileNameFor(seed.name), reason: 'name the file after the pattern\'s #N line: ${CommunitySeed.fileNameFor(seed.name)}');
       expect(seed.pattern.cells, isNotEmpty);
     });
   }
