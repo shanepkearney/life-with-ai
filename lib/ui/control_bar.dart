@@ -53,42 +53,7 @@ class ControlBar extends StatelessWidget {
           if (onSaveMoment != null)
             _Icon(icon: Icons.favorite_border_rounded, tip: 'Save this moment to favorites', onTap: giant != null ? null : onSaveMoment),
           const _Divider(),
-          if (giant == null)
-            _Labeled(
-              label: 'Speed ${c.targetRate.toString().padLeft(3)}/s',
-              child: SizedBox(
-                width: 76,
-                child: Slider(
-                  // Default side padding (~24px) is room for the thumb's glow; here it ate the track.
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  // Geometric steps: fine control at the slow end, where it matters.
-                  value: c.speedIndex.toDouble(),
-                  min: 0,
-                  max: (LifeController.speedLevels.length - 1).toDouble(),
-                  divisions: LifeController.speedLevels.length - 1,
-                  label: '${c.targetRate} generations/s',
-                  onChanged: (v) => c.setSpeedIndex(v.round()),
-                ),
-              ),
-            )
-          else
-            // HashLife jumps 2^j generations a step, as fast as it can: the size of the jump is the speed.
-            // Below ×1, the slider's left end, it steps one generation at a paced rate instead.
-            _Labeled(
-              label: giant.speedShort,
-              child: SizedBox(
-                width: 76,
-                child: Slider(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  value: giant.speed.toDouble(),
-                  min: GiantMode.minSpeed.toDouble(),
-                  max: GiantMode.maxJump.toDouble(),
-                  divisions: GiantMode.maxJump - GiantMode.minSpeed,
-                  label: giant.speedLabel,
-                  onChanged: (v) => c.setGiantSpeed(v.round()),
-                ),
-              ),
-            ),
+          SpeedControl(controller: c),
           const _Divider(),
           // Zoom out, Fit, zoom in, on a board or the plane; the HUD shows how far in.
           ZoomControls(controller: c),
@@ -97,6 +62,56 @@ class ControlBar extends StatelessWidget {
           // are chosen from the HUD at the top.
           _PaletteButton(controller: c),
         ],
+      ),
+    );
+  }
+}
+
+/// The speed: generations a second on a board, or on the endless plane the
+/// jump (and, below ×1, a paced rate). In the control bar and in Board only.
+class SpeedControl extends StatelessWidget {
+  const SpeedControl({super.key, required this.controller});
+
+  final LifeController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    final giant = c.giant;
+    if (giant == null) {
+      return _Labeled(
+        label: 'Speed ${c.targetRate.toString().padLeft(3)}/s',
+        child: SizedBox(
+          width: 76,
+          child: Slider(
+            // Default side padding (~24px) is room for the thumb's glow; here it ate the track.
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            // Geometric steps: fine control at the slow end, where it matters.
+            value: c.speedIndex.toDouble(),
+            min: 0,
+            max: (LifeController.speedLevels.length - 1).toDouble(),
+            divisions: LifeController.speedLevels.length - 1,
+            label: '${c.targetRate} generations/s',
+            onChanged: (v) => c.setSpeedIndex(v.round()),
+          ),
+        ),
+      );
+    }
+    // HashLife jumps 2^j generations a step, as fast as it can: the size of the jump is the speed.
+    // Below ×1, the slider's left end, it steps one generation at a paced rate instead.
+    return _Labeled(
+      label: giant.speedShort,
+      child: SizedBox(
+        width: 76,
+        child: Slider(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          value: giant.speed.toDouble(),
+          min: GiantMode.minSpeed.toDouble(),
+          max: GiantMode.maxJump.toDouble(),
+          divisions: GiantMode.maxJump - GiantMode.minSpeed,
+          label: giant.speedLabel,
+          onChanged: (v) => c.setGiantSpeed(v.round()),
+        ),
       ),
     );
   }

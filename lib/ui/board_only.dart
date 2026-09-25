@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 
 import '../app/life_controller.dart';
 import 'breakpoints.dart';
+import 'control_bar.dart' show SpeedControl;
 import 'life_canvas.dart';
 import 'screen_board.dart';
 import 'theme.dart';
+import 'zoom_controls.dart';
 
 /// Just the board, edge to edge. Moving the mouse or tapping brings up a small
 /// playback bar (and the pointer); both fade after a moment of stillness, so
@@ -126,7 +128,7 @@ class _BoardOnlyViewState extends State<BoardOnlyView> {
   }
 
   Widget _bar(LifeController c) {
-    // Compact, so five buttons and the size menu fit an iPhone SE's width.
+    // Compact buttons; on a narrow phone the bar wraps onto a second row rather than overflow.
     Widget button(IconData icon, String tip, VoidCallback? onTap, {bool glow = false}) => IconButton(
       tooltip: tip,
       onPressed: onTap,
@@ -140,8 +142,10 @@ class _BoardOnlyViewState extends State<BoardOnlyView> {
       decoration: Neon.panelDecoration(),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
+        child: Wrap(
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          runSpacing: 4,
           children: [
             button(Icons.first_page_rounded, 'Back to the start', c.atBeginning ? null : c.rewindToStart),
             button(Icons.skip_previous_rounded, 'Step back one generation (←)', c.canStepBack ? c.stepBack : null),
@@ -152,6 +156,11 @@ class _BoardOnlyViewState extends State<BoardOnlyView> {
               glow: true,
             ),
             button(Icons.skip_next_rounded, 'Step one generation (→)', c.running ? null : c.stepOnce),
+            divider(),
+            // The speed and the zoom stay to hand with nothing else on screen.
+            SpeedControl(controller: c),
+            divider(),
+            ZoomControls(controller: c),
             divider(),
             // A pattern on the endless plane has no board to size.
             if (c.giant == null) ...[_sizeMenu(c), divider()],

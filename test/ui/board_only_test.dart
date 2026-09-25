@@ -66,6 +66,13 @@ void main() {
     expect(find.byTooltip('Save a screenshot'), findsNothing);
     expect(fs.calls, [true]);
     expect(barShown(tester), isTrue, reason: 'shown on entry, so it is clear how to leave');
+    // The speed and the zoom stay to hand.
+    final inBar = find.descendant(of: find.byType(BoardOnlyView), matching: find.byType(Slider));
+    expect(inBar, findsOneWidget, reason: 'the speed slider');
+    expect(find.descendant(of: find.byType(BoardOnlyView), matching: find.byTooltip('Zoom in (+)')), findsOneWidget);
+    await tester.tap(find.descendant(of: find.byType(BoardOnlyView), matching: find.byTooltip('Zoom in (+)')));
+    await tester.pump();
+    expect(life.boardView.zoom, 2);
 
     await tester.tap(find.byTooltip('Leave board only (Esc)'));
     await tester.pump();
