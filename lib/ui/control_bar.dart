@@ -8,7 +8,7 @@ import 'theme.dart';
 import 'zoom_controls.dart';
 
 class ControlBar extends StatelessWidget {
-  const ControlBar({super.key, required this.controller, required this.erase, required this.onEraseChanged, this.onSaveMoment});
+  const ControlBar({super.key, required this.controller, required this.erase, required this.onEraseChanged, this.onSaveMoment, this.onFullScreen});
 
   final LifeController controller;
   final bool erase;
@@ -17,6 +17,9 @@ class ControlBar extends StatelessWidget {
   /// Hearts whatever is on the board right now.
   final VoidCallback? onSaveMoment;
 
+  /// ⛶: expands the board. At the bar's far right.
+  final VoidCallback? onFullScreen;
+
   @override
   Widget build(BuildContext context) {
     final c = controller;
@@ -24,42 +27,50 @@ class ControlBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: Neon.panelDecoration(),
-      child: Wrap(
-        spacing: 4,
-        runSpacing: 6,
-        crossAxisAlignment: WrapCrossAlignment.center,
+      // The controls, and ⛶ apart at the far right, however they wrap.
+      child: Row(
         children: [
-          _Icon(icon: Icons.first_page_rounded, tip: 'Back to the start', onTap: c.atBeginning ? null : c.rewindToStart),
-          _Icon(icon: Icons.skip_previous_rounded, tip: 'Step back one generation (←)', onTap: c.canStepBack ? c.stepBack : null),
-          _Icon(
-            icon: c.running ? Icons.pause_rounded : Icons.play_arrow_rounded,
-            tip: c.running ? 'Pause (space)' : 'Play (space)',
-            glow: true,
-            onTap: c.toggleRunning,
+          Expanded(
+            child: Wrap(
+              spacing: 4,
+              runSpacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                _Icon(icon: Icons.first_page_rounded, tip: 'Back to the start', onTap: c.atBeginning ? null : c.rewindToStart),
+                _Icon(icon: Icons.skip_previous_rounded, tip: 'Step back one generation (←)', onTap: c.canStepBack ? c.stepBack : null),
+                _Icon(
+                  icon: c.running ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                  tip: c.running ? 'Pause (space)' : 'Play (space)',
+                  glow: true,
+                  onTap: c.toggleRunning,
+                ),
+                _Icon(
+                  icon: Icons.skip_next_rounded,
+                  tip: giant == null ? 'Step one generation (→)' : 'Jump ${giant.jumpLabel} generations (→)',
+                  onTap: c.running ? null : c.stepOnce,
+                ),
+                _Icon(icon: Icons.shuffle_rounded, tip: 'Randomize', onTap: () => c.randomize()),
+                _Icon(icon: Icons.delete_sweep_rounded, tip: 'Clear', onTap: c.clear),
+                // A giant pattern pans instead of drawing, and is too big to save as a moment.
+                _Icon(
+                  icon: erase ? Icons.auto_fix_normal_rounded : Icons.edit_rounded,
+                  tip: erase ? 'Drawing erases — tap to draw' : 'Drawing adds cells — tap to erase',
+                  onTap: giant != null ? null : () => onEraseChanged(!erase),
+                ),
+                if (onSaveMoment != null)
+                  _Icon(icon: Icons.favorite_border_rounded, tip: 'Save this moment to favorites', onTap: giant != null ? null : onSaveMoment),
+                const _Divider(),
+                // The board's colors, and its glow, in one dialog; then the speed. Engine, rule
+                // and size are chosen from the HUD at the top.
+                _PaletteButton(controller: c),
+                SpeedControl(controller: c),
+                const _Divider(),
+                // Zoom out, Fit, zoom in, on a board or the plane; the HUD shows how far in.
+                ZoomControls(controller: c),
+              ],
+            ),
           ),
-          _Icon(
-            icon: Icons.skip_next_rounded,
-            tip: giant == null ? 'Step one generation (→)' : 'Jump ${giant.jumpLabel} generations (→)',
-            onTap: c.running ? null : c.stepOnce,
-          ),
-          _Icon(icon: Icons.shuffle_rounded, tip: 'Randomize', onTap: () => c.randomize()),
-          _Icon(icon: Icons.delete_sweep_rounded, tip: 'Clear', onTap: c.clear),
-          // A giant pattern pans instead of drawing, and is too big to save as a moment.
-          _Icon(
-            icon: erase ? Icons.auto_fix_normal_rounded : Icons.edit_rounded,
-            tip: erase ? 'Drawing erases — tap to draw' : 'Drawing adds cells — tap to erase',
-            onTap: giant != null ? null : () => onEraseChanged(!erase),
-          ),
-          if (onSaveMoment != null)
-            _Icon(icon: Icons.favorite_border_rounded, tip: 'Save this moment to favorites', onTap: giant != null ? null : onSaveMoment),
-          const _Divider(),
-          // The board's colors, and its glow, in one dialog; then the speed. Engine, rule
-          // and size are chosen from the HUD at the top.
-          _PaletteButton(controller: c),
-          SpeedControl(controller: c),
-          const _Divider(),
-          // Zoom out, Fit, zoom in, on a board or the plane; the HUD shows how far in.
-          ZoomControls(controller: c),
+          if (onFullScreen != null) _Icon(icon: Icons.fullscreen_rounded, tip: 'Full screen (F)', onTap: onFullScreen),
         ],
       ),
     );

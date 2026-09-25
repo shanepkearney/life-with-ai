@@ -325,10 +325,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    // Right of the stats, flush with the board's right edge: expand the board.
-                    // (Size is chosen in the stats; zoom is in the control bar.)
-                    _fullScreenButton(),
+                    // (Size is chosen in the stats; zoom and ⛶ are in the control bar.)
                   ],
                 ),
               ),
@@ -340,6 +337,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 erase: _erase,
                 onEraseChanged: (v) => setState(() => _erase = v),
                 onSaveMoment: widget.favorites == null ? null : _saveMoment,
+                onFullScreen: () => _setBoardOnly(true),
               ),
             ],
           ),

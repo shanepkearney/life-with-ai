@@ -58,6 +58,7 @@ void main() {
     final fs = FakeFullScreen();
     await start(tester, fs);
     expect(find.byType(ControlBar), findsOneWidget);
+    expect(find.descendant(of: find.byType(ControlBar), matching: find.byTooltip('Full screen (F)')), findsOneWidget, reason: '⛶ at the bar\'s far right');
 
     await tester.tap(find.byTooltip('Full screen (F)'));
     await tester.pump();
