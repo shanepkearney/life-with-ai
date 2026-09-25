@@ -169,8 +169,9 @@ class _ColorsPanelState extends State<_ColorsPanel> {
     );
     return SafeArea(
       child: Align(
-        // Beside the board on desktop, below it on phones: the board is the preview.
-        alignment: phone ? Alignment.bottomCenter : const Alignment(0.94, 0),
+        // Centred on desktop, where the board shows around it; along the bottom on
+        // phones, where a centred panel would hide most of the board it previews on.
+        alignment: phone ? Alignment.bottomCenter : Alignment.center,
         child: Padding(padding: const EdgeInsets.all(16), child: panel),
       ),
     );

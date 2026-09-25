@@ -138,8 +138,9 @@ class GiantMode {
     return n < 1024 ? '$n' : (n < 1 << 20 ? '${n >> 10}K' : '${n >> 20}M');
   }
 
-  /// "Speed 15/s" or "Jump ×  1K": one width, for the bar's tight label.
-  String get speedShort => rate != null ? 'Speed ${'$rate'.padLeft(2)}/s' : 'Jump ×${jumpShort.padLeft(4)}';
+  /// " 15/s" or "  ×1K" beside the slider: five characters either way, as on
+  /// a board ("960/s"), so the bar never shifts.
+  String get speedShort => (rate != null ? '$rate/s' : '×$jumpShort').padLeft(5);
 
   /// "15 generations a second" or "×1,024 generations a step".
   String get speedLabel => rate != null ? '$rate generations a second' : '$jumpLabel generations a step';

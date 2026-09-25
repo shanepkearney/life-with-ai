@@ -114,10 +114,11 @@ void main() {
     await start(tester, size: const Size(390, 844));
     await tester.tap(find.byTooltip('Speed, glow and engine'));
     await settle(tester);
+    expect(find.text('Speed 15/s'), findsOneWidget, reason: 'the sheet is open');
     await tester.tap(find.text('Colors'));
     await settle(tester);
     expect(find.text('Board colors'), findsOneWidget);
-    expect(find.text('Speed · 15 generations/s'), findsNothing, reason: 'the sheet made way for the board');
+    expect(find.text('Speed 15/s'), findsNothing, reason: 'the sheet made way for the board');
 
     await tester.tap(find.text('Aurora'));
     await settle(tester);

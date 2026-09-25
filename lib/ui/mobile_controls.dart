@@ -106,7 +106,7 @@ class MobileControls extends StatelessWidget {
               children: [
                 if (c.giant case final g?)
                   sliderField(
-                    g.speedShort,
+                    g.rate != null ? 'Speed ${g.rate}/s' : 'Jump ×${g.jumpShort}',
                     Slider(
                       value: g.speed.toDouble(),
                       min: GiantMode.minSpeed.toDouble(),

@@ -53,14 +53,13 @@ class ControlBar extends StatelessWidget {
           if (onSaveMoment != null)
             _Icon(icon: Icons.favorite_border_rounded, tip: 'Save this moment to favorites', onTap: giant != null ? null : onSaveMoment),
           const _Divider(),
+          // The board's colors, and its glow, in one dialog; then the speed. Engine, rule
+          // and size are chosen from the HUD at the top.
+          _PaletteButton(controller: c),
           SpeedControl(controller: c),
           const _Divider(),
           // Zoom out, Fit, zoom in, on a board or the plane; the HUD shows how far in.
           ZoomControls(controller: c),
-          const _Divider(),
-          // The board's colors, and its glow, in one dialog. Engine, rule and size
-          // are chosen from the HUD at the top.
-          _PaletteButton(controller: c),
         ],
       ),
     );
@@ -80,7 +79,8 @@ class SpeedControl extends StatelessWidget {
     final giant = c.giant;
     if (giant == null) {
       return _Labeled(
-        label: 'Speed ${c.targetRate.toString().padLeft(3)}/s',
+        // Just the rate: the slider says what it is. Five characters, so the bar never shifts.
+        label: '${c.targetRate}/s'.padLeft(5),
         child: SizedBox(
           width: 76,
           child: Slider(
