@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:isolate';
 import 'dart:typed_data';
 
+import '../core/life_rule.dart';
 import 'giant_runner.dart';
 
 GiantRunner create() => _IsolateGiantRunner();
@@ -55,7 +56,8 @@ class _IsolateGiantRunner implements GiantRunner {
   static List<int> _view(GiantView v) => [v.left, v.top, v.k, v.width, v.height];
 
   @override
-  Future<GiantFrame> load(Int32List cells, GiantView view) => _call(('load', TransferableTypedData.fromList([cells]), _view(view)));
+  Future<GiantFrame> load(Int32List cells, GiantView view, {LifeRule rule = LifeRule.conway}) =>
+      _call(('load', TransferableTypedData.fromList([cells]), _view(view), rule.birth, rule.survival));
 
   @override
   Future<GiantFrame> advance(int j, GiantView view) => _call(('advance', j, _view(view)));
@@ -87,8 +89,8 @@ void _worker(SendPort out) {
     // A failure answers its request, so the app is never left waiting on it.
     try {
       switch (msg) {
-        case ('load', TransferableTypedData t, List<int> v):
-          world = GiantWorld(t.materialize().asInt32List());
+        case ('load', TransferableTypedData t, List<int> v, int birth, int survival):
+          world = GiantWorld(t.materialize().asInt32List(), rule: LifeRule(birth, survival));
           reply(v);
         case ('advance', int j, List<int> v):
           world!.plane.advance(j);

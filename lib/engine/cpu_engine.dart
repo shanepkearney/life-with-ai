@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 
 import '../core/grid.dart';
+import '../core/life_rule.dart';
 import '../render/shaders.dart';
 import 'cpu_stepper.dart';
 import 'life_engine.dart';
@@ -26,13 +27,17 @@ class CpuEngine implements LifeEngine {
   ui.Image? frame;
 
   @override
-  Future<void> load(Grid grid, {int generation = 0}) async {
+  LifeRule rule = LifeRule.conway;
+
+  @override
+  Future<void> load(Grid grid, {int generation = 0, LifeRule rule = LifeRule.conway}) async {
     if (_disposed) return; // its isolate is gone and would never reply
+    this.rule = rule;
     width = grid.width;
     height = grid.height;
     this.generation = generation;
     population = grid.population;
-    await _stepper.load(grid);
+    await _stepper.load(grid, rule);
     _setFrame(await imageFromRgba(grid.toRgba(), width, height));
   }
 

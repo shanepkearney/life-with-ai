@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:life_with_ai/core/grid.dart';
+import 'package:life_with_ai/core/life_rule.dart';
 import 'package:life_with_ai/core/patterns.dart';
 import 'package:life_with_ai/engine/cpu_engine.dart';
 import 'package:life_with_ai/engine/gpu_engine.dart';
@@ -41,6 +42,37 @@ void main() {
         expect(b.stateHash, a.stateHash);
         expect((c.population, c.stateHash), (a.population, a.stateHash), reason: 'HashLife');
         expect(hash.population, a.population, reason: "the engine's own count");
+        for (final e in [cpu, gpu, hash]) {
+          e.dispose();
+        }
+      });
+    });
+  }
+
+  // The same, under other rules: the rule reaches every engine, and each
+  // follows it exactly. B0 checks the empty-space cases (HashLife's shortcut,
+  // the shader's zero-neighbor bit).
+  for (final text in ['B36/S23', 'B2/S', 'B3678/S34678', 'B3/S012345678', 'B0/S8', 'B1357/S1357']) {
+    final rule = LifeRule.parse(text)!;
+    testWidgets('GPU and HashLife match CPU under $text', (tester) async {
+      await tester.runAsync(() async {
+        final shaders = await Shaders.load();
+        final start = seeded(97, 61, rule.hashCode);
+        final cpu = CpuEngine(), gpu = GpuEngine(shaders.lifeStep), hash = CpuEngine(kind: EngineKind.hashlife);
+        for (final e in [cpu, gpu, hash]) {
+          await e.load(start, rule: rule);
+        }
+        var reference = start.copy();
+        for (var i = 0; i < 40; i++) {
+          await cpu.step();
+          await gpu.step();
+          await hash.step();
+          reference = reference.step(rule);
+        }
+        final a = await cpu.snapshot(), b = await gpu.snapshot(), c = await hash.snapshot();
+        expect(a.stateHash, reference.stateHash, reason: 'CPU');
+        expect(b.stateHash, reference.stateHash, reason: 'GPU');
+        expect(c.stateHash, reference.stateHash, reason: 'HashLife');
         for (final e in [cpu, gpu, hash]) {
           e.dispose();
         }

@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'grid.dart';
+import 'life_rule.dart';
 
 /// A square of the board in HashLife's quadtree: a single cell at level 0,
 /// otherwise four half-size quadrants. Nodes are canonical ("hash-consed"):
@@ -36,7 +37,7 @@ final class HashNode {
 /// Free of Flutter imports, like [Grid], so it runs in an isolate and in
 /// plain `dart test`.
 class HashLife {
-  HashLife({this.maxNodes = 1 << 21}) {
+  HashLife({this.maxNodes = 1 << 21, this.rule = LifeRule.conway}) : _next4x4 = _tableFor(rule) {
     _empty.add(off);
     _registerLeaves();
   }
@@ -56,8 +57,13 @@ class HashLife {
   static int _bits(HashNode leaf) => leaf.nw!.population | leaf.ne!.population << 1 | leaf.sw!.population << 2 | leaf.se!.population << 3;
 
   /// For every 4x4 square (16 bits, row by row from the top-left), the bits
-  /// of its centre 2x2 one generation later. Built once, shared.
-  static final Uint8List _next4x4 = () {
+  /// of its centre 2x2 one generation later, by [rule].
+  final Uint8List _next4x4;
+
+  /// One table per rule, built once and shared.
+  static final _tables = <LifeRule, Uint8List>{};
+
+  static Uint8List _tableFor(LifeRule rule) => _tables.putIfAbsent(rule, () {
     final table = Uint8List(1 << 16);
     for (var s = 0; s < 1 << 16; s++) {
       int cell(int x, int y) => s >> (y * 4 + x) & 1;
@@ -68,16 +74,20 @@ class HashLife {
             if (dx != 0 || dy != 0) count += cell(x + dx, y + dy);
           }
         }
-        return count == 3 || (count == 2 && cell(x, y) == 1) ? 1 : 0;
+        return rule.next(cell(x, y) == 1, count) ? 1 : 0;
       }
 
       table[s] = next(1, 1) | next(2, 1) << 1 | next(1, 2) << 2 | next(2, 2) << 3;
     }
     return table;
-  }();
+  });
 
   /// Canonical nodes are forgotten (and rebuilt as needed) past this many.
   final int maxNodes;
+
+  /// The rule every step follows. A square's remembered futures are only
+  /// true for one rule, so a HashLife instance keeps to one.
+  final LifeRule rule;
 
   static final off = HashNode._(0, 0, null, null, null, null, 0);
   static final on = HashNode._(1, 0, null, null, null, null, 1);
@@ -151,7 +161,8 @@ class HashLife {
   /// is built from its quarters' futures, each remembered for every copy.
   HashNode advance(HashNode n, int j) {
     assert(n.level >= 2 && j >= 0 && j <= n.level - 2);
-    if (n.population == 0) return empty(n.level - 1);
+    // Empty space stays empty, unless the rule brings it to life (B0).
+    if (n.population == 0 && !rule.birthFromNothing) return empty(n.level - 1);
     final memo = n._next;
     if (memo != null && n._nextStep == j) return memo;
     final HashNode result;
@@ -295,6 +306,8 @@ class HashPlane {
 
   /// [cells] as (x, y) pairs; they keep those coordinates on the plane.
   factory HashPlane.fromCells(HashLife life, List<(int, int)> cells) {
+    // With B0 an empty plane would fill at once: it has no finite state to hold.
+    if (life.rule.birthFromNothing) throw ArgumentError('${life.rule.notation} brings empty space to life, which an endless plane can\'t hold.');
     if (cells.isEmpty) return HashPlane._(life, life.empty(3), 0, 0);
     var minX = cells.first.$1, minY = cells.first.$2, maxX = minX, maxY = minY;
     for (final (x, y) in cells) {
