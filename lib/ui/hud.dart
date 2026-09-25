@@ -20,23 +20,28 @@ class Hud extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = controller;
     // The Row spaces the stats: nothing after the last, so the box ends where they do.
-    Widget stat(String k, String v, Color color) => Text.rich(
-      TextSpan(
-        children: [
-          TextSpan(
-            text: '$k: ',
-            style: Neon.mono.copyWith(color: Neon.muted),
-          ),
-          TextSpan(
-            text: v,
-            style: Neon.mono.copyWith(
-              color: color,
-              shadows: [Shadow(color: color, blurRadius: 8)],
+    // [tip] explains it on hover (the menus carry their own).
+    Widget stat(String k, String v, Color color, {String? tip}) {
+      final text = Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(
+              text: '$k: ',
+              style: Neon.mono.copyWith(color: Neon.muted),
             ),
-          ),
-        ],
-      ),
-    );
+            TextSpan(
+              text: v,
+              style: Neon.mono.copyWith(
+                color: color,
+                shadows: [Shadow(color: color, blurRadius: 8)],
+              ),
+            ),
+          ],
+        ),
+      );
+      return tip == null ? text : Tooltip(message: tip, child: text);
+    }
+
     return Container(
       // Phones: a little tighter, the HUD shares the header with the logo and buttons.
       padding: compact ? const EdgeInsets.symmetric(horizontal: 12, vertical: 6) : const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -45,17 +50,22 @@ class Hud extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         spacing: compact ? 14 : 18,
         children: [
-          stat('GEN', _grouped(c.generation), Neon.cyan),
-          stat('POP', _grouped(c.population), Neon.magenta),
+          stat('GEN', _grouped(c.generation), Neon.cyan, tip: 'Generation: how many steps the board has taken since this pattern began'),
+          stat('POP', _grouped(c.population), Neon.magenta, tip: 'Population: how many cells are alive right now'),
           if (!compact) ...[
-            stat('GEN/S', c.running ? _grouped(c.gensPerSecond.round()) : '—', Neon.amber),
+            stat(
+              'GEN/S',
+              c.running ? _grouped(c.gensPerSecond.round()) : '—',
+              Neon.amber,
+              tip: 'Generations a second, measured: short of the speed you set when the engine can\'t keep up',
+            ),
             // On the plane, what's playing and how close in: it replaces the board's own chip here.
-            if (c.giant case final g?) stat('PATTERN', _short(g.name), Neon.text),
+            if (c.giant case final g?) stat('PATTERN', _short(g.name), Neon.text, tip: '${g.name}, on an endless plane'),
             // How far in: before the menus, so SIZE, ENGINE and RULE stay side by side.
             if (c.giant case final g?)
-              stat('ZOOM', g.zoomShort, Neon.cyan)
+              stat('ZOOM', g.zoomShort, Neon.cyan, tip: 'Zoom: ${g.zoomLabel}')
             else if (c.boardView.zoomed)
-              stat('ZOOM', c.boardView.label, Neon.cyan),
+              stat('ZOOM', c.boardView.label, Neon.cyan, tip: 'Zoom: the board ${c.boardView.label} larger; Fit shows all of it'),
             // The plane has no board to size.
             if (c.giant == null)
               _HudMenu<BoardSize>(
