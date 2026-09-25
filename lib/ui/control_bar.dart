@@ -75,17 +75,19 @@ class ControlBar extends StatelessWidget {
             )
           else
             // HashLife jumps 2^j generations a step, as fast as it can: the size of the jump is the speed.
+            // Below ×1, the slider's left end, it steps one generation at a paced rate instead.
             _Labeled(
-              label: 'Jump ×${giant.jumpShort.padLeft(4)}',
+              label: giant.speedShort,
               child: SizedBox(
                 width: 76,
                 child: Slider(
                   padding: const EdgeInsets.symmetric(horizontal: 10),
-                  value: giant.jump.toDouble(),
+                  value: giant.speed.toDouble(),
+                  min: GiantMode.minSpeed.toDouble(),
                   max: GiantMode.maxJump.toDouble(),
-                  divisions: GiantMode.maxJump,
-                  label: '${giant.jumpLabel} generations a step',
-                  onChanged: (v) => c.setGiantJump(v.round()),
+                  divisions: GiantMode.maxJump - GiantMode.minSpeed,
+                  label: giant.speedLabel,
+                  onChanged: (v) => c.setGiantSpeed(v.round()),
                 ),
               ),
             ),

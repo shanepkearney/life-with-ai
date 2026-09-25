@@ -195,7 +195,15 @@ class LifeController extends ChangeNotifier {
     final dt = _lastTick == null ? 0.0 : (now - _lastTick!).clamp(0.0, 0.1);
     _lastTick = now;
     if (_busy || _waiting > 0) return;
-    if (giant != null) return _tickGiant();
+    if (giant case final g?) {
+      // Paced: one generation a step, when one is due.
+      if (g.rate case final rate? when running) {
+        _due += dt * rate;
+        if (_due < 1 - 1e-9) return;
+        _due = min(_due - 1, 1.0); // never a backlog: at most one step a frame
+      }
+      return _tickGiant();
+    }
     if (experimentFinished) {
       await _afterExperiment(now);
       return;
@@ -610,13 +618,20 @@ class LifeController extends ChangeNotifier {
     _redrawGiant();
   }
 
-  /// Each step jumps 2^[j] generations.
-  void setGiantJump(int j) {
+  /// Each step jumps 2^[j] generations, as fast as it goes.
+  void setGiantJump(int j) => setGiantSpeed(j.clamp(0, GiantMode.maxJump));
+
+  /// The plane's one speed slider ([GiantMode.speed]): below zero, one
+  /// generation a step at a paced rate; from zero, jumps of 2^[s] flat out.
+  void setGiantSpeed(int s) {
     final g = giant;
     if (g == null) return;
+    s = s.clamp(GiantMode.minSpeed, GiantMode.maxJump);
     g
-      ..jump = j.clamp(0, GiantMode.maxJump)
+      ..pace = s < 0 ? s + GiantMode.paces.length : null
+      ..jump = s < 0 ? 0 : s
       ..limitedJump = null;
+    _due = 0;
     notifyListeners();
   }
 

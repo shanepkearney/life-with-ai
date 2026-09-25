@@ -60,6 +60,23 @@ void main() {
     expect(g.jumpShort, '1K', reason: 'the jump actually taken, on the web');
   });
 
+  test('one speed slider: paced rates below zero, then the jumps; one label width for both', () {
+    expect(GiantMode.minSpeed, -GiantMode.paces.length);
+    final g = turing()..jump = 0;
+    expect((g.speed, g.rate, g.speedShort), (0, null, 'Jump ×   1'));
+    g.pace = 4;
+    expect((g.speed, g.rate, g.speedShort, g.speedLabel), (-3, 15, 'Speed 15/s', '15 generations a second'));
+    g.pace = 0;
+    expect((g.speed, g.speedShort), (GiantMode.minSpeed, 'Speed  1/s'));
+    g
+      ..pace = null
+      ..jump = 10;
+    expect((g.speed, g.speedShort, g.speedLabel), (10, 'Jump ×  1K', '×1,024 generations a step'));
+    for (final s in [g.speedShort, 'Speed 60/s', 'Jump ×   1']) {
+      expect(s.length, 10, reason: 'the bar has no room for its label to change width');
+    }
+  });
+
   test('the frame on screen follows a drag or zoom at once, until the next one arrives', () {
     final g = turing()
       ..zoom = -2
