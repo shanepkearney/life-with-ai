@@ -54,29 +54,27 @@ void main() {
     });
   });
 
-  testWidgets('says what it is for, credits the author and Conway, with the rules', (tester) async {
+  testWidgets('says what it is for, credits the author, Conway and the other rules\' makers', (tester) async {
     await open(tester);
     expect(find.text('ABOUT'), findsOneWidget);
-    expect(find.textContaining('makes those experiments easy to share'), findsOneWidget);
-    expect(find.textContaining('Every seed becomes a link'), findsOneWidget);
-    expect(find.textContaining('lets AI take a turn at the seeds'), findsOneWidget);
-    expect(find.textContaining('Claude designs a starting pattern'), findsOneWidget);
+    expect(find.textContaining('a thank-you to Conway and everyone below'), findsOneWidget);
     expect(find.textContaining('Created By Shane Kearney', findRichText: true), findsOneWidget);
     expect(find.textContaining('co-author'), findsNothing, reason: 'sole credit in the app');
     expect(find.textContaining('John Horton Conway in 1970'), findsOneWidget);
     expect(find.textContaining('B3/S23'), findsOneWidget);
-    for (final lesson in ['Simple rules, complex worlds.', 'Beginnings matter.', 'Chaos settles into order.']) {
-      expect(find.textContaining(lesson, findRichText: true), findsOneWidget, reason: lesson);
+    for (final name in ['Bill Gosper', 'Nathan Thompson', 'Brian Silverman', 'Edward Fredkin', 'Stephen Morley', 'Dean Hickerson']) {
+      expect(find.textContaining(name, findRichText: true), findsOneWidget, reason: name);
     }
+    expect(find.text('KEY LESSONS TO TAKE FROM IT'), findsNothing);
   });
 
-  testWidgets('the byline comes first, then About, Conway, Key lessons and Origins', (tester) async {
+  testWidgets('the byline comes first, then About, Conway, Additional credits and Origins', (tester) async {
     await open(tester);
     expect(find.text('CREATED BY'), findsNothing, reason: 'a byline, not a section');
     final byline = tester.getTopLeft(find.textContaining('Created By Shane Kearney', findRichText: true)).dy;
     final tops = [
       byline,
-      for (final h in ['ABOUT', "CONWAY'S GAME OF LIFE", 'KEY LESSONS TO TAKE FROM IT', 'ORIGINS']) tester.getTopLeft(find.text(h)).dy,
+      for (final h in ['ABOUT', "CONWAY'S GAME OF LIFE", 'ADDITIONAL CREDITS', 'ORIGINS']) tester.getTopLeft(find.text(h)).dy,
     ];
     expect(tops, orderedEquals([...tops]..sort()));
   });

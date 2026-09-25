@@ -40,22 +40,14 @@ void main() {
     expect(find.text('Life with AI for macOS'), findsNothing);
   });
 
-  testWidgets('the about panel links to it only when offered', (tester) async {
+  testWidgets('the about panel has no download link: the header ⬇ is where the app is offered', (tester) async {
     tester.view.physicalSize = const Size(1440, 1400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(host((c) => showAboutModal(c, openUrl: (_) async {}, offerMacDownload: false)));
+    await tester.pumpWidget(host((c) => showAboutModal(c, openUrl: (_) async {})));
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
-    expect(find.text('Get the macOS app'), findsNothing, reason: 'off the web, you already have the app');
-    await tester.pumpWidget(const SizedBox()); // a fresh screen, not a second panel over the first
-
-    await tester.pumpWidget(host((c) => showAboutModal(c, openUrl: (_) async {}, offerMacDownload: true)));
-    await tester.tap(find.text('open'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Get the macOS app'));
-    await tester.pumpAndSettle();
-    expect(find.text('Life with AI for macOS'), findsOneWidget);
+    expect(find.text('Get the macOS app'), findsNothing);
   });
 
   for (final (label, size) in [('desktop', const Size(1440, 900)), ('phone', const Size(390, 844))]) {
