@@ -15,6 +15,7 @@ import 'package:life_with_ai/core/rle.dart';
 import 'package:life_with_ai/engine/life_engine.dart';
 import 'package:life_with_ai/main.dart';
 import 'package:life_with_ai/render/board_palette.dart';
+import 'package:life_with_ai/ui/board_only.dart';
 import 'package:life_with_ai/ui/control_bar.dart';
 import 'package:life_with_ai/ui/life_canvas.dart';
 import 'package:life_with_ai/ui/hud.dart';
@@ -109,14 +110,16 @@ void main() {
     final app = await start(tester, fullScreen: NoFullScreen());
     await tester.tap(find.byTooltip('Full screen (F)'));
     await frames(tester, 300);
-    expect(find.byType(ControlBar), findsNothing);
+    expect(find.byType(BoardOnlyView), findsOneWidget);
+    expect(find.byTooltip('Randomize'), findsNothing, reason: "the bar, less what edits the board");
     expect(find.byTooltip('Exit full screen (Esc)'), findsOneWidget);
-    // Real fonts: the bar's five buttons sit within the window.
+    // Real fonts: the bar sits within the window.
     final bar = tester.getRect(find.byTooltip('Exit full screen (Esc)'));
     expect(bar.right, lessThanOrEqualTo(tester.view.physicalSize.width / tester.view.devicePixelRatio));
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await frames(tester, 300);
-    expect(find.byType(ControlBar), findsOneWidget);
+    expect(find.byType(BoardOnlyView), findsNothing);
+    expect(find.byTooltip('Randomize'), findsOneWidget, reason: 'the whole bar again');
     expect(app.controller.generation, greaterThanOrEqualTo(0));
   });
 

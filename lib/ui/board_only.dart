@@ -4,12 +4,10 @@ import 'package:flutter/material.dart';
 
 import '../app/life_controller.dart';
 import 'breakpoints.dart';
-import 'control_bar.dart' show SpeedControl;
+import 'control_bar.dart';
 import 'hud.dart';
 import 'life_canvas.dart';
-import 'screen_board.dart';
 import 'theme.dart';
-import 'zoom_controls.dart';
 
 /// Just the board, edge to edge. Moving the mouse or tapping brings up the
 /// stats along the top, a small playback bar along the bottom, and the pointer;
@@ -107,29 +105,6 @@ class _BoardOnlyViewState extends State<BoardOnlyView> {
     ),
   );
 
-  /// The board's size (Fit screen fills the screen with no bars). Closed, it
-  /// shows the short name, so the bar stays compact.
-  Widget _sizeMenu(LifeController c) {
-    final sizes = boardSizeChoices(context, c.boardSize, phone: Breakpoints.isMobile(MediaQuery.sizeOf(context)));
-    return Tooltip(
-      message: 'Board size',
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<BoardSize>(
-          value: c.boardSize,
-          isDense: true,
-          style: Neon.mono,
-          dropdownColor: const Color(0xFF0B0E17),
-          items: [for (final s in sizes) DropdownMenuItem(value: s, child: Text(s.label))],
-          selectedItemBuilder: (_) => [for (final s in sizes) Center(child: Text(s.shortLabel))],
-          onChanged: (s) {
-            if (s != null) c.setBoardSize(s);
-            _wake();
-          },
-        ),
-      ),
-    );
-  }
-
   /// Shown while [_visible], faded out otherwise; resting the pointer on it keeps it up.
   Widget _fading(Widget child) => IgnorePointer(
     ignoring: !_visible,
@@ -150,47 +125,6 @@ class _BoardOnlyViewState extends State<BoardOnlyView> {
     ),
   );
 
-  Widget _bar(LifeController c) {
-    // Compact buttons; on a narrow phone the bar wraps onto a second row rather than overflow.
-    Widget button(IconData icon, String tip, VoidCallback? onTap, {bool glow = false}) => IconButton(
-      tooltip: tip,
-      onPressed: onTap,
-      visualDensity: VisualDensity.compact,
-      color: glow ? Neon.cyan : Neon.text,
-      disabledColor: Neon.muted.withValues(alpha: 0.4),
-      icon: Icon(icon, shadows: glow ? const [Shadow(color: Neon.cyan, blurRadius: 12)] : null),
-    );
-    Widget divider() => Container(width: 1, height: 24, margin: const EdgeInsets.symmetric(horizontal: 6), color: Neon.border);
-    return DecoratedBox(
-      decoration: Neon.panelDecoration(),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        child: Wrap(
-          alignment: WrapAlignment.center,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          runSpacing: 4,
-          children: [
-            button(Icons.first_page_rounded, 'Back to the start', c.atBeginning ? null : c.rewindToStart),
-            button(Icons.skip_previous_rounded, 'Step back one generation (←)', c.canStepBack ? c.stepBack : null),
-            button(
-              c.running ? Icons.pause_rounded : Icons.play_arrow_rounded,
-              c.running ? 'Pause (space)' : 'Play (space)',
-              c.toggleRunning,
-              glow: true,
-            ),
-            button(Icons.skip_next_rounded, 'Step one generation (→)', c.running ? null : c.stepOnce),
-            divider(),
-            // The speed and the zoom stay to hand with nothing else on screen.
-            SpeedControl(controller: c),
-            divider(),
-            ZoomControls(controller: c),
-            divider(),
-            // A pattern on the endless plane has no board to size.
-            if (c.giant == null) ...[_sizeMenu(c), divider()],
-            button(Icons.fullscreen_exit_rounded, 'Exit full screen (Esc)', widget.onExit),
-          ],
-        ),
-      ),
-    );
-  }
+  /// The main control bar, less what edits the board: here it's for watching.
+  Widget _bar(LifeController c) => ControlBar(controller: c, fullScreen: true, onFullScreen: widget.onExit);
 }

@@ -8,17 +8,29 @@ import 'theme.dart';
 import 'zoom_controls.dart';
 
 class ControlBar extends StatelessWidget {
-  const ControlBar({super.key, required this.controller, required this.erase, required this.onEraseChanged, this.onSaveMoment, this.onFullScreen});
+  const ControlBar({
+    super.key,
+    required this.controller,
+    this.erase = false,
+    this.onEraseChanged,
+    this.onSaveMoment,
+    this.onFullScreen,
+    this.fullScreen = false,
+  });
 
   final LifeController controller;
   final bool erase;
-  final ValueChanged<bool> onEraseChanged;
+  final ValueChanged<bool>? onEraseChanged;
 
   /// Hearts whatever is on the board right now.
   final VoidCallback? onSaveMoment;
 
-  /// ⛶: expands the board. At the bar's far right.
+  /// ⛶: expands the board, or in [fullScreen] brings everything back. At the bar's far right.
   final VoidCallback? onFullScreen;
+
+  /// The same bar in full screen, without what edits the board or its looks
+  /// (randomize, clear, draw, heart, colors): there it's for watching.
+  final bool fullScreen;
 
   @override
   Widget build(BuildContext context) {
@@ -51,21 +63,25 @@ class ControlBar extends StatelessWidget {
                   tip: giant == null ? 'Step one generation (→)' : 'Jump ${giant.jumpLabel} generations (→)',
                   onTap: c.running ? null : c.stepOnce,
                 ),
-                _Icon(icon: Icons.shuffle_rounded, tip: 'Randomize', onTap: () => c.randomize()),
-                _Icon(icon: Icons.delete_sweep_rounded, tip: 'Clear', onTap: c.clear),
-                // A giant pattern pans instead of drawing, and is too big to save as a moment.
-                _Icon(
-                  icon: erase ? Icons.auto_fix_normal_rounded : Icons.edit_rounded,
-                  tip: erase ? 'Drawing erases — tap to draw' : 'Drawing adds cells — tap to erase',
-                  onTap: giant != null ? null : () => onEraseChanged(!erase),
-                ),
-                if (onSaveMoment != null)
-                  _Icon(icon: Icons.favorite_border_rounded, tip: 'Save this moment to favorites', onTap: giant != null ? null : onSaveMoment),
+                // Playback, then (off full screen) what edits the board, each group divided.
                 const _Divider(),
-                // The board's colors, and its glow, in one dialog; then the speed. Engine, rule
-                // and size are chosen from the HUD at the top.
-                _PaletteButton(controller: c),
-                const _Divider(),
+                if (!fullScreen) ...[
+                  _Icon(icon: Icons.shuffle_rounded, tip: 'Randomize', onTap: () => c.randomize()),
+                  _Icon(icon: Icons.delete_sweep_rounded, tip: 'Clear', onTap: c.clear),
+                  // A giant pattern pans instead of drawing, and is too big to save as a moment.
+                  _Icon(
+                    icon: erase ? Icons.auto_fix_normal_rounded : Icons.edit_rounded,
+                    tip: erase ? 'Drawing erases — tap to draw' : 'Drawing adds cells — tap to erase',
+                    onTap: giant != null || onEraseChanged == null ? null : () => onEraseChanged!(!erase),
+                  ),
+                  if (onSaveMoment != null)
+                    _Icon(icon: Icons.favorite_border_rounded, tip: 'Save this moment to favorites', onTap: giant != null ? null : onSaveMoment),
+                  const _Divider(),
+                  // The board's colors, and its glow, in one dialog; then the speed. Engine, rule
+                  // and size are chosen from the HUD at the top.
+                  _PaletteButton(controller: c),
+                  const _Divider(),
+                ],
                 SpeedControl(controller: c),
                 const _Divider(),
                 // Zoom out, Fit, zoom in, on a board or the plane; the HUD shows how far in.
@@ -75,7 +91,9 @@ class ControlBar extends StatelessWidget {
           ),
           if (onFullScreen != null) ...[
             const _Divider(),
-            _Icon(icon: Icons.fullscreen_rounded, tip: 'Full screen (F)', onTap: onFullScreen),
+            fullScreen
+                ? _Icon(icon: Icons.fullscreen_exit_rounded, tip: 'Exit full screen (Esc)', onTap: onFullScreen)
+                : _Icon(icon: Icons.fullscreen_rounded, tip: 'Full screen (F)', onTap: onFullScreen),
           ],
         ],
       ),

@@ -68,7 +68,10 @@ void main() {
     await tester.tap(find.byTooltip('Full screen (F)'));
     await tester.pump();
     expect(find.byType(BoardOnlyView), findsOneWidget);
-    expect(find.byType(ControlBar), findsNothing, reason: 'nothing but the board');
+    // Nothing but the board, its stats, and the bar less what edits the board.
+    expect(find.descendant(of: find.byType(BoardOnlyView), matching: find.byType(ControlBar)), findsOneWidget);
+    expect(find.byTooltip('Randomize'), findsNothing, reason: 'for watching: no randomize, clear, draw, heart or colors');
+    expect(find.byTooltip('Clear'), findsNothing);
     expect(find.byTooltip('Save a screenshot'), findsNothing);
     expect(fs.calls, [true]);
     expect(barShown(tester), isTrue, reason: 'shown on entry, so it is clear how to leave');
@@ -140,13 +143,16 @@ void main() {
     expect(life.running, isTrue);
   });
 
-  testWidgets("the bar's size menu changes the board, Fit screen included", (tester) async {
+  testWidgets("the HUD's size menu changes the board in full screen, Fit screen included", (tester) async {
     await start(tester, FakeFullScreen());
     await tester.tap(find.byTooltip('Full screen (F)'));
     await tester.pump();
-    expect(find.descendant(of: find.byType(BoardOnlyView), matching: find.text('512×384')), findsOneWidget);
-    await tester.tap(find.descendant(of: find.byType(BoardOnlyView), matching: find.text('512×384')));
-    await tester.pump(const Duration(milliseconds: 400));
+    final size = find.descendant(of: find.byType(BoardOnlyView), matching: find.byKey(const Key('hud-size')));
+    expect(size, findsOneWidget);
+    await tester.tap(size);
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 100)); // the menu's opening, frame by frame
+    }
     await tester.tap(find.textContaining('Fit screen · ').last);
     // The board is read back and recentered on the new size: wait for it to land.
     for (var i = 0; i < 300 && life.timeline?.width != life.boardSize.width; i++) {
