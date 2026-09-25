@@ -72,9 +72,11 @@ class ControlBar extends StatelessWidget {
       ],
       // The speed; engine, rule and size are chosen from the HUD at the top.
       [SpeedControl(controller: c)],
-      // How the board is shown: zoom out, Fit, zoom in (the HUD shows how far in), then ⛶.
+      // How the board is shown: zoom out, Fit, zoom in (the HUD shows how far in), then ⛶,
+      // divided from them but one section, so the two always wrap together.
       [
         ZoomControls(controller: c),
+        if (onFullScreen != null) const _InlineDivider(),
         if (onFullScreen != null)
           fullScreen
               ? _Icon(icon: Icons.fullscreen_exit_rounded, tip: 'Exit full screen (Esc)', onTap: onFullScreen)
@@ -166,6 +168,15 @@ class _Icon extends StatelessWidget {
       disabledColor: Neon.muted.withValues(alpha: 0.4),
     ),
   );
+}
+
+/// A divider inside a section, spaced like [SectionWrap]'s between sections
+/// (with the Row's 4px either side: 21px in all).
+class _InlineDivider extends StatelessWidget {
+  const _InlineDivider();
+
+  @override
+  Widget build(BuildContext context) => Container(width: 1, height: 24, margin: const EdgeInsets.symmetric(horizontal: 6), color: Neon.border);
 }
 
 class _Labeled extends StatelessWidget {

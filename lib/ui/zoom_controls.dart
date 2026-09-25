@@ -13,28 +13,32 @@ class ZoomControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = controller;
+    // Standard-size buttons, coloured like the control bar's others, and spaced like them.
     return Row(
       mainAxisSize: MainAxisSize.min,
+      spacing: 4,
       children: [
         IconButton(
           tooltip: 'Zoom out (−)',
-          visualDensity: VisualDensity.compact,
           onPressed: c.canZoomOut ? c.zoomOut : null,
-          icon: const Icon(Icons.zoom_out_rounded, size: 20),
+          color: Neon.text,
+          disabledColor: Neon.muted.withValues(alpha: 0.4),
+          icon: const Icon(Icons.zoom_out_rounded),
         ),
         Tooltip(
           message: c.giant != null ? 'Fit the pattern to the view' : 'Show the whole board',
           child: TextButton(
             onPressed: c.canFit ? c.fitView : null,
-            style: TextButton.styleFrom(foregroundColor: Neon.cyan, visualDensity: VisualDensity.compact),
+            style: TextButton.styleFrom(foregroundColor: Neon.cyan, minimumSize: const Size(48, 48)),
             child: Text('Fit', style: Neon.mono.copyWith(fontSize: 12, color: c.canFit ? Neon.cyan : Neon.muted)),
           ),
         ),
         IconButton(
           tooltip: 'Zoom in (+)',
-          visualDensity: VisualDensity.compact,
           onPressed: c.canZoomIn ? c.zoomIn : null,
-          icon: const Icon(Icons.zoom_in_rounded, size: 20),
+          color: Neon.text,
+          disabledColor: Neon.muted.withValues(alpha: 0.4),
+          icon: const Icon(Icons.zoom_in_rounded),
         ),
       ],
     );
