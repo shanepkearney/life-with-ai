@@ -86,13 +86,16 @@ class ControlBar extends StatelessWidget {
               selectedBackgroundColor: Neon.cyan.withValues(alpha: 0.18),
               selectedForegroundColor: Neon.cyan,
               side: const BorderSide(color: Neon.border),
+              // Three engines in the room two had: the bar has no spare pixels at 1440x920.
+              padding: const EdgeInsets.symmetric(horizontal: 8),
             ),
             showSelectedIcon: false,
             segments: [
               for (final k in EngineKind.values)
                 ButtonSegment(
                   value: k,
-                  label: Text(k.label, style: const TextStyle(fontSize: 12)),
+                  tooltip: '${k.label}: ${k.about}',
+                  label: Text(k.short, style: const TextStyle(fontSize: 12)),
                 ),
             ],
             selected: {c.engineKind},

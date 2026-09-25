@@ -3,11 +3,20 @@ import 'dart:ui' as ui;
 import '../core/grid.dart';
 
 enum EngineKind {
-  cpu('CPU · isolate'),
-  gpu('GPU · shader');
+  cpu('CPU · isolate', 'CPU', 'Plain Conway rules, a background isolate'),
+  gpu('GPU · shader', 'GPU', 'A fragment shader: the fastest on these boards'),
+  hashlife('HashLife · tree', 'HashLife', "Gosper's HashLife, the algorithm Golly uses for giant patterns");
 
-  const EngineKind(this.label);
+  const EngineKind(this.label, this.short, this.about);
+
+  /// For the stats line.
   final String label;
+
+  /// For the engine switch, where room is tight.
+  final String short;
+
+  /// A tooltip line.
+  final String about;
 }
 
 /// A Game of Life simulator that exposes each generation as a GPU texture

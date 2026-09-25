@@ -5,12 +5,15 @@ import '../render/shaders.dart';
 import 'cpu_stepper.dart';
 import 'life_engine.dart';
 
-/// Steps on the CPU (see [CpuStepper]) and uploads each generation as a texture.
+/// Steps on the CPU (see [CpuStepper]) and uploads each generation as a
+/// texture: by the plain rules, or with [EngineKind.hashlife], by HashLife.
 class CpuEngine implements LifeEngine {
-  final _stepper = CpuStepper();
+  CpuEngine({this.kind = EngineKind.cpu}) : assert(kind != EngineKind.gpu), _stepper = CpuStepper(hashLife: kind == EngineKind.hashlife);
+
+  final CpuStepper _stepper;
 
   @override
-  EngineKind get kind => EngineKind.cpu;
+  final EngineKind kind;
   @override
   int width = 0;
   @override

@@ -113,9 +113,10 @@ Neon included) and custom colors as six hex codes; older links without colors op
 ## Architecture
 
 ```
-lib/core      Grid (toroidal, Uint8List) + RLE pattern library. Pure Dart, no Flutter.
-lib/engine    LifeEngine interface with two interchangeable implementations:
-                CpuEngine  - steps in a background isolate (inline on web), uploads a texture
+lib/core      Grid (toroidal, Uint8List), HashLife, RLE and the pattern library. Pure Dart, no Flutter.
+lib/engine    LifeEngine interface with three interchangeable engines:
+                CpuEngine  - steps in a background isolate (inline on web), uploads a texture;
+                             as HashLife, steps with Gosper's HashLife instead of the plain rules
                 GpuEngine  - steps with a fragment shader, ping-ponging GPU-resident images
 lib/render    GlowPipeline: trail (persistence) + density (hotspot) passes, then composite
 shaders/      life_step, trail, density, composite (GLSL, compiled by Flutter)
@@ -124,21 +125,31 @@ lib/app       LifeController (play/pause, speed, engine hot-swap, drawing) + Ass
 lib/ui        Canvas, HUD, control bar
 ```
 
-Both engines emit the same thing: one pixel per cell as a `ui.Image`. The renderer therefore
+All three emit the same thing: one pixel per cell as a `ui.Image`. The renderer therefore
 never knows which engine produced a frame, and the engines can be swapped mid-run from the
 control bar to compare throughput on the same pattern.
 
-### Why two engines
+### Why three engines
 
-| | CPU isolate | GPU shader |
-|---|---|---|
-| Throughput | bounded by Dart loop + texture upload per frame | one draw call per generation, no upload |
-| Testability | trivially unit-testable | verified against the CPU by a parity test |
-| Readback | free (board lives in Dart) | `toByteData` stalls the GPU, so it is throttled |
-| Web | runs on the main thread (no isolates) | same as native |
+| | CPU isolate | GPU shader | HashLife |
+|---|---|---|---|
+| Throughput | bounded by Dart loop + texture upload per frame | one draw call per generation, no upload | slowest here (below); built for giant, repetitive patterns |
+| Testability | trivially unit-testable | verified against the CPU by a parity test | the same parity test |
+| Readback | free (board lives in Dart) | `toByteData` stalls the GPU, so it is throttled | free |
+| Web | runs on the main thread (no isolates) | same as native | same as CPU |
 
-`test/engine/engine_parity_test.dart` requires the GPU engine to match the CPU rules
-bit-for-bit, including odd board sizes and wrap-around at the edges.
+`test/engine/engine_parity_test.dart` requires the GPU and HashLife engines to match the CPU
+rules bit-for-bit, including odd board sizes and wrap-around at the edges.
+
+**HashLife** (`lib/core/hashlife.dart`) is Bill Gosper's 1984 algorithm, the one Golly uses for
+giant patterns. The board is a quadtree of squares down to single cells, and identical squares
+are stored once (a table keyed on their four quarters' ids), so a result worked out for one
+square is reused for every copy of it. On the app's wrap-around boards each generation rebuilds
+the tree with the edges joined, so it is exact but not fast: 356 generations/s on 256×192,
+63 on 512×384 and 14 on 1024×768 (a compiled Dart benchmark on random soup, where nothing
+repeats), against hundreds to thousands for the plain rules. Its payoff is the next step: an
+unbounded plane where it can skip ahead by millions of generations, for patterns like Paul
+Rendell's 12,699×12,652-cell Turing machine.
 
 ### Hotspot glow
 
@@ -376,7 +387,7 @@ flutter test
 ```
 
 The board plays on load. Dev flags: `--dart-define=NO_AUTOPLAY=true` starts paused;
-`--dart-define=ENGINE=cpu` starts on the CPU engine.
+`--dart-define=ENGINE=cpu` (or `hashlife`) starts on that engine.
 
 Speed is a rate in generations per second (1–960, geometric steps), not "generations per frame",
 so it runs the same on 60 Hz and 120 Hz displays; `test/app_speed_test.dart` checks both.

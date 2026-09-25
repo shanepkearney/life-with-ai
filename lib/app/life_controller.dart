@@ -175,7 +175,7 @@ class LifeController extends ChangeNotifier {
     await randomize();
   }
 
-  LifeEngine _create(EngineKind kind) => kind == EngineKind.cpu ? CpuEngine() : GpuEngine(_shaders.lifeStep);
+  LifeEngine _create(EngineKind kind) => kind == EngineKind.gpu ? GpuEngine(_shaders.lifeStep) : CpuEngine(kind: kind);
 
   /// Called every display frame with the ticker's clock in seconds. Steps
   /// however many generations are due at [targetRate]: zero on most frames at
