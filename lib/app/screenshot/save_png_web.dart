@@ -5,8 +5,11 @@ import 'package:web/web.dart' as web;
 
 typedef SavedPng = ({String label, Uri? file});
 
-Future<SavedPng?> savePng(Uint8List png, String fileName) async {
-  final blob = web.Blob([png.toJS].toJS, web.BlobPropertyBag(type: 'image/png'));
+Future<SavedPng?> savePng(Uint8List png, String fileName) => saveDownload(png, fileName, 'image/png');
+
+/// Any file, as a browser download.
+Future<SavedPng?> saveDownload(Uint8List bytes, String fileName, String mimeType) async {
+  final blob = web.Blob([bytes.toJS].toJS, web.BlobPropertyBag(type: mimeType));
   final url = web.URL.createObjectURL(blob);
   final anchor = web.HTMLAnchorElement()
     ..href = url

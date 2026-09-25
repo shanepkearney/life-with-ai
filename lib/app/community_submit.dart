@@ -1,6 +1,5 @@
 import 'favorites.dart';
 import 'community.dart';
-import 'share_link.dart';
 
 /// Where a favorite goes to become a community seed: GitHub's "new file"
 /// page in `community/seeds/`, pre-filled with its entry. For someone without
@@ -15,14 +14,14 @@ abstract final class CommunitySubmit {
 
   static String entryFor(Favorite f, {DateTime? now}) {
     final title = f.title.trim();
-    return CommunitySeed.entryJson(
+    return CommunitySeed.entryRle(
       name: title.isNotEmpty && title.length <= CommunitySeed.maxName ? title : 'Name your seed',
       author: authorPlaceholder,
       added: now ?? DateTime.now(),
       description: f.linkNote ?? 'Describe what it does as it plays.',
       // A favorite's title is the prompt it was made from, when Claude made it.
       prompt: f.linkNote != null && title.length <= CommunitySeed.maxPrompt ? title : null,
-      link: ShareLink.forSeed(f.seed),
+      seed: f.seed,
     );
   }
 
@@ -31,7 +30,7 @@ abstract final class CommunitySubmit {
     final name = f.title.trim().length <= CommunitySeed.maxName ? f.title : 'my-seed';
     final fileName = CommunitySeed.fileNameFor(name);
     Uri page({String? value}) => Uri.https('github.com', '/$repo/new/main/community/seeds', {
-      'filename': fileName == '.json' ? 'my-seed.json' : fileName,
+      'filename': fileName == '.rle' ? 'my-seed.rle' : fileName,
       'value': ?value,
     });
     final full = page(value: entry);

@@ -147,8 +147,8 @@ void main() {
     // The same tabs switch views while open: Community lists the contributed seeds.
     await tester.tap(find.text('Community'));
     await frames(tester, 200);
-    expect(find.text('Oscillator Garden'), findsOneWidget);
-    expect(find.text('by @shanepkearney', findRichText: true), findsWidgets);
+    expect(find.text('How to contribute'), findsOneWidget);
+    expect(find.textContaining('by @shanepkearney', findRichText: true), findsWidgets);
     expect(find.byType(TextField), findsNothing, reason: 'no message box on the community view');
 
     await tester.tap(find.text('Assistant'));
@@ -197,9 +197,9 @@ void main() {
   testWidgets('on a phone, a broken link\'s dialog opens the sheet on the Community tab', (tester) async {
     await startOn(tester, const Size(393, 852), launchUri: Uri.parse('${ShareLink.site}#seed=not-a-seed&title=Oops'));
     await pumpUntil(tester, () => find.text("This seed didn't make it").evaluate().isNotEmpty, reason: 'the dialog');
-    expect(find.text('Oscillator Garden'), findsNothing, reason: 'sheet still at rest');
+    expect(find.text('How to contribute'), findsNothing, reason: 'sheet still at rest');
     await tester.tap(find.text('Explore community seeds'));
-    await pumpUntil(tester, () => find.text('Oscillator Garden').evaluate().isNotEmpty, reason: 'sheet open on Community');
+    await pumpUntil(tester, () => find.text('How to contribute').evaluate().isNotEmpty, reason: 'sheet open on Community');
   });
 
   testWidgets('share links work across layouts: a desktop seed on a phone, a phone seed on desktop', (tester) async {

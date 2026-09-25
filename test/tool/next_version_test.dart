@@ -28,9 +28,9 @@ void main() {
   });
 
   test('a commit that only touches community seeds is recognized, whatever its message', () {
-    expect(isCommunitySeedsOnly(['community/seeds/pool-party.json']), isTrue);
-    expect(isCommunitySeedsOnly(['community/seeds/a.json', 'community/seeds/b.json']), isTrue);
-    expect(isCommunitySeedsOnly(['community/seeds/a.json', 'lib/main.dart']), isFalse, reason: 'code too: its message decides');
+    expect(isCommunitySeedsOnly(['community/seeds/pool-party.rle']), isTrue);
+    expect(isCommunitySeedsOnly(['community/seeds/a.rle', 'community/seeds/b.rle']), isTrue);
+    expect(isCommunitySeedsOnly(['community/seeds/a.rle', 'lib/main.dart']), isFalse, reason: 'code too: its message decides');
     expect(isCommunitySeedsOnly([]), isFalse, reason: 'a merge commit changes nothing itself');
   });
 

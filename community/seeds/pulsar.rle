@@ -1,0 +1,9 @@
+#N Pulsar
+#O John Conway, 1970
+#C The most common period-3 oscillator: four-fold symmetric, it pulses
+#C between three shapes forever. It often turns up out of random soup.
+#C Source: https://conwaylife.com/wiki/Pulsar
+#C Added: 2026-09-25 by @shanepkearney
+x = 13, y = 13, rule = B3/S23
+2b3o3b3o2$o4bobo4bo$o4bobo4bo$o4bobo4bo$2b3o3b3o2$2b3o3b3o$o4bobo4bo$o
+4bobo4bo$o4bobo4bo2$2b3o3b3o!

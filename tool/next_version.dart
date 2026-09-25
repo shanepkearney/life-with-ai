@@ -67,7 +67,7 @@ String? lastReleaseTag({String? except}) {
   return tags.isEmpty ? null : tags.first;
 }
 
-/// Where community seeds live: one JSON file each (CONTRIBUTING.md).
+/// Where community patterns live: one RLE file each (CONTRIBUTING.md).
 const communitySeedsDir = 'community/seeds/';
 
 /// Whether a commit only touches community seed files. Those come from

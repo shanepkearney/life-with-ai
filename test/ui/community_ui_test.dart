@@ -1,5 +1,5 @@
-import 'dart:async';
 import 'dart:convert';
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -86,6 +86,46 @@ void main() {
     await settle(tester);
     expect(favorites.items.single.title, 'Oscillator Garden');
     expect(favorites.items.single.summary, garden.description);
+
+    await tester.pumpWidget(const SizedBox());
+    life.dispose();
+  });
+
+  testWidgets('a classic credits its discoverer and source, and every card downloads its .rle file', (tester) async {
+    tester.view.physicalSize = const Size(1200, 3000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await setUp(tester);
+    final opened = <Uri>[];
+    final saved = <(String, String, String)>[];
+    await tester.pumpWidget(
+      host(
+        CommunityView(
+          seeds: seeds,
+          favorites: favorites,
+          life: life,
+          openUrl: (u) async => opened.add(u),
+          saveFile: (bytes, name, mime) async {
+            saved.add((name, mime, utf8.decode(bytes)));
+            return (label: 'Downloads', file: null);
+          },
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Found by Bill Gosper, 1970'), findsOneWidget);
+    expect(find.text('added by @shanepkearney', findRichText: true), findsWidgets);
+    final gun = seeds.firstWhere((s) => s.name == 'Gosper glider gun');
+    await tester.tap(find.byTooltip('Where it came from: conwaylife.com').at(seeds.where((s) => s.source != null).toList().indexOf(gun)));
+    expect(opened.single, gun.source);
+
+    await tester.tap(find.byTooltip('Download .rle').at(seeds.indexOf(gun)));
+    await settle(tester);
+    expect(saved.single.$1, 'gosper-glider-gun.rle');
+    expect(saved.single.$2, 'application/x-life');
+    expect(saved.single.$3, gun.rle, reason: 'the file exactly as committed');
+    expect(find.text('Saved gosper-glider-gun.rle to Downloads'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox());
     life.dispose();
@@ -196,15 +236,16 @@ void main() {
     final url = opened.single;
     expect(url.host, 'github.com');
     expect(url.path, '/${CommunitySubmit.repo}/new/main/community/seeds');
-    expect(url.queryParameters['filename'], 'one-glider-please.json');
-    final entry = jsonDecode(url.queryParameters['value']!) as Map<String, Object?>;
-    expect(entry['author'], CommunitySubmit.authorPlaceholder);
-    expect(entry['name'], 'One glider please');
-    expect(entry['prompt'], 'One glider please');
-    expect(entry['description'], 'A glider drifts away.');
+    expect(url.queryParameters['filename'], 'one-glider-please.rle');
+    final entry = url.queryParameters['value']!;
+    expect(entry, contains('#C Added: '));
+    expect(entry, contains('by @${CommunitySubmit.authorPlaceholder}'));
+    expect(entry, startsWith('#N One glider please\n#O ${CommunitySubmit.authorPlaceholder}\n'));
+    expect(entry, contains('#C Prompt: One glider please'));
+    expect(entry, contains('#C A glider drifts away.'));
     // With a real username it passes the same check a pull request runs.
-    final ready = CommunitySeed.parse({...entry, 'author': 'octocat'});
-    expect(ready.seed.population, 5);
+    final ready = CommunitySeed.parse(entry.replaceAll(CommunitySubmit.authorPlaceholder, 'octocat'));
+    expect(ready.seed!.population, 5);
     expect(clipboard, isNull);
 
     // A seed too long for GitHub's URL: the entry goes by clipboard.
@@ -218,10 +259,10 @@ void main() {
     await tester.tap(find.byTooltip('Submit to the community').first);
     await settle(tester);
     expect(opened.single.queryParameters.containsKey('value'), isFalse);
-    expect(opened.single.queryParameters['filename'], 'soup.json');
-    final pasted = jsonDecode(clipboard!) as Map<String, Object?>;
-    expect(pasted['name'], 'Soup');
-    expect(pasted.containsKey('prompt'), isFalse, reason: 'a board saved by hand has no prompt');
+    expect(opened.single.queryParameters['filename'], 'soup.rle');
+    final pasted = clipboard!;
+    expect(pasted, startsWith('#N Soup\n'));
+    expect(pasted, isNot(contains('#C Prompt:')), reason: 'a board saved by hand has no prompt');
     expect(find.textContaining('Paste it into the new file'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox());

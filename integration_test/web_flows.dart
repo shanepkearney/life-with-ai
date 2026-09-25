@@ -78,7 +78,9 @@ void main() {
   testWidgets('community seeds load over HTTP when the tab opens', (tester) async {
     await start(tester);
     await tester.tap(find.text('Community'));
-    await pumpUntil(tester, () => find.text('Oscillator Garden').evaluate().isNotEmpty, reason: 'the community seeds');
+    await pumpUntil(tester, () => find.text('How to contribute').evaluate().isNotEmpty, reason: 'the community tab');
+    // At least one card, credited: the .rle files really loaded and parsed in the browser.
+    await pumpUntil(tester, () => find.textContaining('by @', findRichText: true).evaluate().isNotEmpty, reason: 'the community patterns');
   });
 
   testWidgets('📷 downloads a PNG through the browser', (tester) async {

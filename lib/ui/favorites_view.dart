@@ -1,12 +1,17 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../app/community_submit.dart';
 import '../app/favorites.dart';
 import '../app/life_controller.dart';
+import '../app/community.dart';
+import '../app/screenshot/save_png.dart';
 import '../app/share_link.dart';
 import '../app/telemetry.dart';
 import '../core/grid.dart';
+import '../core/rle.dart';
 import '../core/seed_codec.dart';
 import 'about_modal.dart';
 import 'seed_thumbnail.dart';
@@ -18,11 +23,14 @@ import 'toasts.dart';
 /// a card plays it on the board straight away; the list stays open, so it
 /// browses like a gallery.
 class FavoritesView extends StatefulWidget {
-  const FavoritesView({super.key, required this.favorites, required this.life, this.shared, this.openUrl = openExternal});
+  const FavoritesView({super.key, required this.favorites, required this.life, this.shared, this.openUrl = openExternal, this.saveFile = saveDownload});
 
   final FavoritesStore favorites;
   final LifeController life;
   final OpenUrl openUrl;
+
+  /// Where Download puts the file: the browser's downloads, or ~/Downloads.
+  final Future<SavedPng?> Function(Uint8List bytes, String fileName, String mimeType) saveFile;
 
   /// A seed the app was opened with from a share link: pinned above the list
   /// for this visit, with replay, save (its heart fills once saved) and copy-link.
@@ -41,6 +49,15 @@ class _FavoritesViewState extends State<FavoritesView> {
   }
 
   Future<void> _copyLink(Favorite f) => _copyLinkFor(f.seed, f.title, note: f.linkNote);
+
+  /// The favorite as RLE, on its board, so Golly (or this app) reopens it exactly.
+  Future<void> _download(Favorite f) async {
+    final name = CommunitySeed.fileNameFor(f.title).replaceFirst(RegExp(r'^\.rle$'), 'favorite.rle');
+    final rle = Rle.encode(f.seed, name: f.title, comments: [?f.linkNote], onBoard: true);
+    final saved = await widget.saveFile(Uint8List.fromList(utf8.encode(rle)), name, 'application/x-life');
+    if (!mounted) return;
+    Toasts.show(context, saved == null ? "Downloads can't be saved on this device yet." : 'Saved $name to ${saved.label}');
+  }
 
   Future<void> _copyLinkFor(Grid seed, String title, {String? note}) async {
     // In the colors it's showing in: the receiver sees what the sender saw.
@@ -267,6 +284,12 @@ class _FavoritesViewState extends State<FavoritesView> {
                             visualDensity: VisualDensity.compact,
                             onPressed: () => _copyLink(f),
                             icon: const Icon(Icons.link_rounded, size: 16),
+                          ),
+                          IconButton(
+                            tooltip: 'Download .rle',
+                            visualDensity: VisualDensity.compact,
+                            onPressed: () => _download(f),
+                            icon: const Icon(Icons.download_rounded, size: 16),
                           ),
                           IconButton(
                             tooltip: 'Submit to the community',
