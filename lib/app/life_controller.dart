@@ -637,6 +637,27 @@ class LifeController extends ChangeNotifier {
     notifyListeners();
   }
 
+  // The bar's zoom controls, for a board or the endless plane alike, around
+  // the middle of the view.
+
+  static const _whole = Size(1, 1);
+
+  void zoomIn() => giant != null ? zoomGiant(1, _giantCanvas.center(Offset.zero)) : zoomBoard(2, _whole.center(Offset.zero), _whole);
+
+  void zoomOut() => giant != null ? zoomGiant(-1, _giantCanvas.center(Offset.zero)) : zoomBoard(0.5, _whole.center(Offset.zero), _whole);
+
+  void fitView() => giant != null ? fitGiant() : fitBoard();
+
+  bool get canZoomIn => giant != null ? giant!.zoom < GiantMode.maxZoom : boardView.zoom < BoardView.maxZoom;
+
+  bool get canZoomOut => giant != null ? giant!.zoom > GiantMode.minZoom : boardView.zoomed;
+
+  /// Fit has something to do: always on the plane (the pattern moves), on a board once zoomed.
+  bool get canFit => giant != null || boardView.zoomed;
+
+  /// "×2" on a board, "8 px a cell" on the plane.
+  String get zoomLabel => giant?.zoomLabel ?? boardView.label;
+
   void fitGiant() {
     giant?.fit();
     _redrawGiant();

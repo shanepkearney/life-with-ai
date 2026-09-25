@@ -1,8 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
-import '../app/board_view.dart';
-import '../app/giant_mode.dart';
 import '../app/life_controller.dart';
 import 'theme.dart';
 
@@ -121,24 +119,7 @@ class _BoardCanvasState extends State<_BoardCanvas> {
           ),
         );
         if (widget.drawable) board = MouseRegion(cursor: SystemMouseCursors.precise, child: board);
-        // Board only shows just the board: zoom there by gesture alone.
-        if (!widget.drawable) return Center(child: board);
-        return Stack(
-          children: [
-            Center(child: board),
-            // Top right, like the endless plane's: messages run along the bottom.
-            Positioned(
-              right: 10,
-              top: 10,
-              child: _ZoomButtons(
-                fitTip: 'Show the whole board (now ${view.label})',
-                onOut: view.zoomed ? () => c.zoomBoard(0.5, size.center(Offset.zero), size) : null,
-                onFit: view.zoomed ? c.fitBoard : null,
-                onIn: view.zoom < BoardView.maxZoom ? () => c.zoomBoard(2, size.center(Offset.zero), size) : null,
-              ),
-            ),
-          ],
-        );
+        return Center(child: board);
       },
     );
   }
@@ -183,7 +164,7 @@ class _GlowPainter extends CustomPainter {
 }
 
 /// A giant pattern on HashLife's endless plane: the whole board area is the
-/// view. Drag to pan, scroll or pinch to zoom, or use the − Fit + buttons.
+/// view. Drag to pan, scroll or pinch to zoom, or use the bar's zoom menu.
 class _GiantCanvas extends StatefulWidget {
   const _GiantCanvas({required this.controller, required this.clock});
 
@@ -237,22 +218,12 @@ class _GiantCanvasState extends State<_GiantCanvas> {
                   ),
                 ),
               ),
-              // Leaves room for the zoom buttons on the right; a long name gives way.
+              // A long name gives way.
               Positioned(
                 left: 10,
-                right: 150,
-                top: 10,
-                child: Align(alignment: Alignment.centerLeft, child: _Chip('${g.name} · HashLife, endless plane · ${g.zoomLabel}')),
-              ),
-              // Top right: messages appear along the bottom of the board, and would cover them there.
-              Positioned(
                 right: 10,
                 top: 10,
-                child: _ZoomButtons(
-                  onOut: g.zoom > GiantMode.minZoom ? () => c.zoomGiant(-1, size.center(Offset.zero)) : null,
-                  onFit: c.fitGiant,
-                  onIn: g.zoom < GiantMode.maxZoom ? () => c.zoomGiant(1, size.center(Offset.zero)) : null,
-                ),
+                child: Align(alignment: Alignment.centerLeft, child: _Chip('${g.name} · HashLife, endless plane · ${g.zoomLabel}')),
               ),
             ],
           ),
@@ -260,46 +231,6 @@ class _GiantCanvasState extends State<_GiantCanvas> {
       },
     );
   }
-}
-
-/// − Fit +, for a board or the endless plane.
-class _ZoomButtons extends StatelessWidget {
-  const _ZoomButtons({required this.onOut, required this.onFit, required this.onIn, this.fitTip = 'Fit the pattern to the view'});
-
-  final VoidCallback? onOut;
-  final VoidCallback? onFit;
-  final VoidCallback? onIn;
-  final String fitTip;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    decoration: Neon.panelDecoration(radius: 10),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          tooltip: 'Zoom out (−)',
-          visualDensity: VisualDensity.compact,
-          onPressed: onOut,
-          icon: const Icon(Icons.remove_rounded, size: 18),
-        ),
-        Tooltip(
-          message: fitTip,
-          child: TextButton(
-            onPressed: onFit,
-            style: TextButton.styleFrom(foregroundColor: Neon.cyan, visualDensity: VisualDensity.compact),
-            child: Text('Fit', style: Neon.mono.copyWith(fontSize: 12, color: onFit == null ? Neon.muted : Neon.cyan)),
-          ),
-        ),
-        IconButton(
-          tooltip: 'Zoom in (+)',
-          visualDensity: VisualDensity.compact,
-          onPressed: onIn,
-          icon: const Icon(Icons.add_rounded, size: 18),
-        ),
-      ],
-    ),
-  );
 }
 
 class _Chip extends StatelessWidget {

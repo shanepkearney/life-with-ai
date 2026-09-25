@@ -7,6 +7,7 @@ import 'colors_dialog.dart';
 import 'control_bar.dart' show RuleMenu;
 import 'screen_board.dart';
 import 'theme.dart';
+import 'zoom_controls.dart';
 
 /// The phone control strip: the buttons used constantly, in one row, with
 /// speed, glow, engine and board size behind a ⚙ sheet. Tooltips match the
@@ -191,6 +192,10 @@ class MobileControls extends StatelessWidget {
                     onSelectionChanged: (s) => c.setBoardSize(s.first),
                   ),
                 ],
+                const SizedBox(height: 16),
+                label('Zoom · ${c.zoomLabel}'),
+                const SizedBox(height: 6),
+                ZoomControls(controller: c),
               ],
             ),
           ),

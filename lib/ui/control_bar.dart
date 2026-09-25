@@ -7,6 +7,7 @@ import '../engine/life_engine.dart';
 import 'colors_dialog.dart';
 import 'screen_board.dart';
 import 'theme.dart';
+import 'zoom_controls.dart';
 
 class ControlBar extends StatelessWidget {
   const ControlBar({super.key, required this.controller, required this.erase, required this.onEraseChanged, this.onSaveMoment});
@@ -117,8 +118,9 @@ class ControlBar extends StatelessWidget {
                 onChanged: (s) => s == null ? null : c.setBoardSize(s),
               ),
             ),
-            const SizedBox(width: 4), // with the Wrap's gap: 8px between the menus, like the dividers
           ],
+          // Beside the size: how much of the board, or of the plane, is on screen.
+          ZoomMenu(controller: c),
           // Size, engine, rule: what the board is, what runs it, and by what rule.
           // Engine and rule as compact menus: three engine buttons and a rule list won't fit side by side.
           CompactMenu<EngineKind>(
