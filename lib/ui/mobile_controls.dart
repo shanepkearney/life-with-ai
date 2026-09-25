@@ -75,6 +75,28 @@ class MobileControls extends StatelessWidget {
       builder: (context, _) {
         final c = controller;
         Widget label(String text) => Text(text, style: Neon.mono.copyWith(color: Neon.muted));
+        // Each setting on one line: its label in a fixed column, so the controls line up,
+        // and the control to its right, dropping to a second row when it doesn't fit.
+        const labelWidth = 92.0;
+        Widget field(String text, Widget control) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              SizedBox(width: labelWidth, child: label(text)),
+              control,
+            ],
+          ),
+        );
+        // A slider has no width of its own to wrap by: it takes the rest of the line.
+        Widget sliderField(String text, Widget slider) => Row(
+          children: [
+            SizedBox(width: labelWidth, child: label(text)),
+            Expanded(child: slider),
+          ],
+        );
         return SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
@@ -82,24 +104,29 @@ class MobileControls extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (c.giant case final g?) ...[
-                  label(g.rate != null ? 'Speed · ${g.speedLabel}' : 'Jump · ${g.speedLabel}'),
-                  Slider(
-                    value: g.speed.toDouble(),
-                    min: GiantMode.minSpeed.toDouble(),
-                    max: GiantMode.maxJump.toDouble(),
-                    divisions: GiantMode.maxJump - GiantMode.minSpeed,
-                    onChanged: (v) => c.setGiantSpeed(v.round()),
+                if (c.giant case final g?)
+                  sliderField(
+                    g.speedShort,
+                    Slider(
+                      value: g.speed.toDouble(),
+                      min: GiantMode.minSpeed.toDouble(),
+                      max: GiantMode.maxJump.toDouble(),
+                      divisions: GiantMode.maxJump - GiantMode.minSpeed,
+                      label: g.speedLabel,
+                      onChanged: (v) => c.setGiantSpeed(v.round()),
+                    ),
+                  )
+                else
+                  sliderField(
+                    'Speed ${c.targetRate}/s',
+                    Slider(
+                      value: c.speedIndex.toDouble(),
+                      max: (LifeController.speedLevels.length - 1).toDouble(),
+                      divisions: LifeController.speedLevels.length - 1,
+                      label: '${c.targetRate} generations/s',
+                      onChanged: (v) => c.setSpeedIndex(v.round()),
+                    ),
                   ),
-                ] else ...[
-                  label('Speed · ${c.targetRate} generations/s'),
-                  Slider(
-                    value: c.speedIndex.toDouble(),
-                    max: (LifeController.speedLevels.length - 1).toDouble(),
-                    divisions: LifeController.speedLevels.length - 1,
-                    onChanged: (v) => c.setSpeedIndex(v.round()),
-                  ),
-                ],
                 // The colors editor (with the glow) needs the board to preview on, so the sheet makes way.
                 InkWell(
                   borderRadius: BorderRadius.circular(8),
@@ -111,8 +138,7 @@ class MobileControls extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Row(
                       children: [
-                        label('Colors'),
-                        const SizedBox(width: 12),
+                        SizedBox(width: labelWidth + 12, child: label('Colors')),
                         PaletteSwatch(c.palette, width: 64, height: 14),
                         const SizedBox(width: 10),
                         Text(c.palette.name, style: Neon.mono),
@@ -122,25 +148,47 @@ class MobileControls extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
-                label('Engine'),
-                const SizedBox(height: 6),
-                SegmentedButton<EngineKind>(
-                  style: SegmentedButton.styleFrom(
-                    selectedBackgroundColor: Neon.cyan.withValues(alpha: 0.18),
-                    selectedForegroundColor: Neon.cyan,
-                    side: const BorderSide(color: Neon.border),
+                field(
+                  'Engine',
+                  SegmentedButton<EngineKind>(
+                    style: SegmentedButton.styleFrom(
+                      selectedBackgroundColor: Neon.cyan.withValues(alpha: 0.18),
+                      selectedForegroundColor: Neon.cyan,
+                      side: const BorderSide(color: Neon.border),
+                    ),
+                    showSelectedIcon: false,
+                    segments: [for (final k in EngineKind.values) ButtonSegment(value: k, tooltip: '${k.label}: ${k.about}', label: Text(k.short))],
+                    selected: {c.engineKind},
+                    onSelectionChanged: c.giant != null ? null : (s) => c.switchEngine(s.first),
                   ),
-                  showSelectedIcon: false,
-                  segments: [for (final k in EngineKind.values) ButtonSegment(value: k, tooltip: '${k.label}: ${k.about}', label: Text(k.short))],
-                  selected: {c.engineKind},
-                  onSelectionChanged: c.giant != null ? null : (s) => c.switchEngine(s.first),
                 ),
-                const SizedBox(height: 16),
-                label('Rule'),
-                const SizedBox(height: 6),
-                RuleMenu(controller: c, width: 220), // room here for the full name
-                const SizedBox(height: 16),
+                field('Rule', RuleMenu(controller: c, width: 200)), // room here for the full name
+                // A pattern on the endless plane has no board to size.
+                if (c.giant == null)
+                  field(
+                    'Board size',
+                    SegmentedButton<BoardSize>(
+                      style: SegmentedButton.styleFrom(
+                        selectedBackgroundColor: Neon.cyan.withValues(alpha: 0.18),
+                        selectedForegroundColor: Neon.cyan,
+                        side: const BorderSide(color: Neon.border),
+                      ),
+                      showSelectedIcon: false,
+                      segments: [
+                        for (final s in {...BoardSize.mobile, screenBoardFor(context), c.boardSize})
+                          ButtonSegment(
+                            value: s,
+                            tooltip: s.label,
+                            // Four segments share a phone's width: "Fit screen" would wrap.
+                            label: Text(s.fitsScreen ? 'Fit' : s.label, style: Neon.mono),
+                          ),
+                      ],
+                      selected: {c.boardSize},
+                      onSelectionChanged: (s) => c.setBoardSize(s.first),
+                    ),
+                  ),
+                field('Zoom ${c.giant?.zoomShort ?? c.boardView.label}', ZoomControls(controller: c)),
+                const SizedBox(height: 12),
                 // Clear and RLE live here on phones, to keep the strip to one row.
                 Wrap(
                   spacing: 10,
@@ -165,35 +213,6 @@ class MobileControls extends StatelessWidget {
                       ),
                   ],
                 ),
-                // A pattern on the endless plane has no board to size.
-                if (c.giant == null) ...[
-                  const SizedBox(height: 16),
-                  label('Board size'),
-                  const SizedBox(height: 6),
-                  SegmentedButton<BoardSize>(
-                    style: SegmentedButton.styleFrom(
-                      selectedBackgroundColor: Neon.cyan.withValues(alpha: 0.18),
-                      selectedForegroundColor: Neon.cyan,
-                      side: const BorderSide(color: Neon.border),
-                    ),
-                    showSelectedIcon: false,
-                    segments: [
-                      for (final s in {...BoardSize.mobile, screenBoardFor(context), c.boardSize})
-                        ButtonSegment(
-                          value: s,
-                          tooltip: s.label,
-                          // Four segments share a phone's width: "Fit screen" would wrap.
-                          label: Text(s.fitsScreen ? 'Fit' : s.label, style: Neon.mono),
-                        ),
-                    ],
-                    selected: {c.boardSize},
-                    onSelectionChanged: (s) => c.setBoardSize(s.first),
-                  ),
-                ],
-                const SizedBox(height: 16),
-                label('Zoom · ${c.zoomLabel}'),
-                const SizedBox(height: 6),
-                ZoomControls(controller: c),
               ],
             ),
           ),

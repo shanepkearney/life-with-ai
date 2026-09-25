@@ -20,7 +20,7 @@ class ZoomControls extends StatelessWidget {
           tooltip: 'Zoom out (−)',
           visualDensity: VisualDensity.compact,
           onPressed: c.canZoomOut ? c.zoomOut : null,
-          icon: const Icon(Icons.remove_rounded, size: 18),
+          icon: const Icon(Icons.zoom_out_rounded, size: 20),
         ),
         Tooltip(
           message: c.giant != null ? 'Fit the pattern to the view' : 'Show the whole board',
@@ -34,7 +34,7 @@ class ZoomControls extends StatelessWidget {
           tooltip: 'Zoom in (+)',
           visualDensity: VisualDensity.compact,
           onPressed: c.canZoomIn ? c.zoomIn : null,
-          icon: const Icon(Icons.add_rounded, size: 18),
+          icon: const Icon(Icons.zoom_in_rounded, size: 20),
         ),
       ],
     );

@@ -90,8 +90,8 @@ class ControlBar extends StatelessWidget {
               ),
             ),
           const _Divider(),
-          // − Fit +, on a board or the plane; the HUD shows how far in.
-          _Labeled(label: 'Zoom', child: ZoomControls(controller: c)),
+          // Zoom out, Fit, zoom in, on a board or the plane; the HUD shows how far in.
+          ZoomControls(controller: c),
           const _Divider(),
           // The board's colors, and its glow, in one dialog. Engine, rule and size
           // are chosen from the HUD at the top.
