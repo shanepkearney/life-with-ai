@@ -5,14 +5,16 @@ import 'package:flutter/material.dart';
 import '../app/life_controller.dart';
 import 'breakpoints.dart';
 import 'control_bar.dart' show SpeedControl;
+import 'hud.dart';
 import 'life_canvas.dart';
 import 'screen_board.dart';
 import 'theme.dart';
 import 'zoom_controls.dart';
 
-/// Just the board, edge to edge. Moving the mouse or tapping brings up a small
-/// playback bar (and the pointer); both fade after a moment of stillness, so
-/// what's left is the glowing board. Drawing is off: a tap only wakes the bar.
+/// Just the board, edge to edge. Moving the mouse or tapping brings up the
+/// stats along the top, a small playback bar along the bottom, and the pointer;
+/// all fade after a moment of stillness, so what's left is the glowing board.
+/// Drawing is off: a tap only wakes them.
 class BoardOnlyView extends StatefulWidget {
   const BoardOnlyView({super.key, required this.controller, required this.clock, required this.onExit});
 
@@ -66,6 +68,27 @@ class _BoardOnlyViewState extends State<BoardOnlyView> {
           fit: StackFit.expand,
           children: [
             LifeCanvas(controller: widget.controller, clock: widget.clock, erase: false, drawable: false),
+            // The stats along the top, the bar along the bottom: they come and go together.
+            Positioned(
+              left: 16,
+              right: 16,
+              top: 16,
+              child: SafeArea(
+                bottom: false,
+                child: Center(
+                  // One line of stats: on a narrow screen it scales down rather than overflow.
+                  child: _fading(
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: ListenableBuilder(
+                        listenable: widget.controller,
+                        builder: (context, _) => Hud(controller: widget.controller, compact: Breakpoints.isMobile(MediaQuery.sizeOf(context))),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
             Positioned(
               left: 16,
               right: 16,
@@ -73,28 +96,8 @@ class _BoardOnlyViewState extends State<BoardOnlyView> {
               child: SafeArea(
                 top: false,
                 child: Center(
-                  child: IgnorePointer(
-                    ignoring: !_visible,
-                    child: AnimatedOpacity(
-                      opacity: _visible ? 1 : 0,
-                      duration: const Duration(milliseconds: 250),
-                      child: MouseRegion(
-                        onEnter: (_) {
-                          _overBar = true;
-                          _wake();
-                        },
-                        onExit: (_) {
-                          _overBar = false;
-                          _wake();
-                        },
-                        // On the narrowest phones the bar scales down a touch rather than overflow.
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: ListenableBuilder(listenable: widget.controller, builder: (context, _) => _bar(widget.controller)),
-                        ),
-                      ),
-                    ),
-                  ),
+                  // As wide as the screen allows: on a narrow phone the bar wraps onto a second row.
+                  child: _fading(ListenableBuilder(listenable: widget.controller, builder: (context, _) => _bar(widget.controller))),
                 ),
               ),
             ),
@@ -126,6 +129,26 @@ class _BoardOnlyViewState extends State<BoardOnlyView> {
       ),
     );
   }
+
+  /// Shown while [_visible], faded out otherwise; resting the pointer on it keeps it up.
+  Widget _fading(Widget child) => IgnorePointer(
+    ignoring: !_visible,
+    child: AnimatedOpacity(
+      opacity: _visible ? 1 : 0,
+      duration: const Duration(milliseconds: 250),
+      child: MouseRegion(
+        onEnter: (_) {
+          _overBar = true;
+          _wake();
+        },
+        onExit: (_) {
+          _overBar = false;
+          _wake();
+        },
+        child: child,
+      ),
+    ),
+  );
 
   Widget _bar(LifeController c) {
     // Compact buttons; on a narrow phone the bar wraps onto a second row rather than overflow.

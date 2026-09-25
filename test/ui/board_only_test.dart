@@ -8,6 +8,7 @@ import 'package:life_with_ai/render/shaders.dart';
 import 'package:life_with_ai/ui/board_only.dart';
 import 'package:life_with_ai/ui/control_bar.dart';
 import 'package:life_with_ai/ui/home_page.dart';
+import 'package:life_with_ai/ui/hud.dart';
 import 'package:life_with_ai/ui/theme.dart';
 
 /// Records what the page asks for; can refuse, like a browser without a click.
@@ -50,6 +51,10 @@ void main() {
     });
   }
 
+  bool hudShown(WidgetTester tester) => !tester.widget<IgnorePointer>(
+    find.ancestor(of: find.descendant(of: find.byType(BoardOnlyView), matching: find.byType(Hud)), matching: find.byType(IgnorePointer)).first,
+  ).ignoring;
+
   bool barShown(WidgetTester tester) => !tester.widget<IgnorePointer>(
     find.ancestor(of: find.byTooltip('Exit full screen (Esc)'), matching: find.byType(IgnorePointer)).first,
   ).ignoring;
@@ -82,18 +87,23 @@ void main() {
     expect(fs.calls, [true, false], reason: 'it went full screen by itself, so it leaves it too');
   });
 
-  testWidgets('the bar fades after a moment of stillness and comes back with the mouse', (tester) async {
+  testWidgets('the stats and the bar fade after a moment of stillness and come back with the mouse', (tester) async {
     await start(tester, FakeFullScreen());
     await tester.tap(find.byTooltip('Full screen (F)'));
     await tester.pump();
+    final hud = find.descendant(of: find.byType(BoardOnlyView), matching: find.byType(Hud));
+    expect(hud, findsOneWidget, reason: 'the stats along the top');
+    expect(hudShown(tester), isTrue);
     await tester.pump(BoardOnlyView.linger + const Duration(milliseconds: 400));
     expect(barShown(tester), isFalse);
+    expect(hudShown(tester), isFalse, reason: 'they fade together');
 
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
     await mouse.addPointer(location: const Offset(700, 300));
     await mouse.moveTo(const Offset(720, 320));
     await tester.pump();
     expect(barShown(tester), isTrue);
+    expect(hudShown(tester), isTrue);
     await mouse.removePointer();
   });
 
