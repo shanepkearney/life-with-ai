@@ -1,11 +1,9 @@
 import 'dart:ui' as ui;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../app/build_info.dart';
-import 'download_dialog.dart';
 import 'theme.dart';
 
 /// Who made this, and whose rules it runs. Opened from the logo or the ⓘ
@@ -24,13 +22,16 @@ abstract final class About {
 typedef OpenUrl = Future<void> Function(Uri url);
 
 /// What the Game of Life shows, in three lines: kept short so the panel stays scannable.
-const _lessons = [
-  ('Simple rules, complex worlds.', 'Two rules are enough for gliders, glider guns, even a working computer.'),
-  (
-    'Beginnings matter.',
-    'One cell\'s difference can decide whether a pattern dies out, freezes, or grows forever: the butterfly effect in miniature.',
-  ),
-  ('Chaos settles into order.', 'Left to run, most random boards calm down into still lifes, oscillators and gliders.'),
+/// Who made the other rules in the Rule menu, and the algorithm behind the endless plane, as
+/// Wikipedia credits them. Life without Death, Maze, 2×2 and Anneal are left out: no source
+/// names who made them.
+const _credits = [
+  ('Bill Gosper', 'devised HashLife, the algorithm that runs the endless plane, in the early 1980s.'),
+  ('Nathan Thompson', 'devised HighLife in 1994 and Day & Night in 1997.'),
+  ('Brian Silverman', 'first investigated Seeds, which Mirek Wójtowicz named.'),
+  ('Edward Fredkin', 'devised Replicator, where every pattern becomes copies of itself.'),
+  ('Stephen Morley', 'gave his name to Morley, also called Move.'),
+  ('Dean Hickerson', 'first studied Diamoeba.'),
 ];
 
 /// New tab on the web, the default browser on desktop.
@@ -38,16 +39,14 @@ Future<void> openExternal(Uri url) async {
   await launchUrl(url, mode: LaunchMode.externalApplication, webOnlyWindowName: '_blank');
 }
 
-/// [offerMacDownload] adds a link to the macOS app: on by default on the web,
-/// where the visitor doesn't have it yet.
-Future<void> showAboutModal(BuildContext context, {OpenUrl openUrl = openExternal, bool offerMacDownload = kIsWeb}) =>
+Future<void> showAboutModal(BuildContext context, {OpenUrl openUrl = openExternal}) =>
     showGeneralDialog<void>(
   context: context,
   barrierDismissible: true,
   barrierLabel: 'Close about',
   barrierColor: Colors.black.withValues(alpha: 0.25),
   transitionDuration: const Duration(milliseconds: 200),
-  pageBuilder: (context, _, _) => _AboutPanel(openUrl: openUrl, offerMacDownload: offerMacDownload),
+  pageBuilder: (context, _, _) => _AboutPanel(openUrl: openUrl),
   transitionBuilder: (context, anim, _, child) => FadeTransition(
     opacity: anim,
     child: ScaleTransition(
@@ -58,10 +57,9 @@ Future<void> showAboutModal(BuildContext context, {OpenUrl openUrl = openExterna
 );
 
 class _AboutPanel extends StatelessWidget {
-  const _AboutPanel({required this.openUrl, required this.offerMacDownload});
+  const _AboutPanel({required this.openUrl});
 
   final OpenUrl openUrl;
-  final bool offerMacDownload;
 
   @override
   Widget build(BuildContext context) {
@@ -77,10 +75,39 @@ class _AboutPanel extends StatelessWidget {
         style: TextButton.styleFrom(
           foregroundColor: Neon.magenta,
           visualDensity: VisualDensity.compact,
-          padding: const EdgeInsets.symmetric(horizontal: 8),
+          // Flush left, in line with the text above, like the Community tab's links.
+          padding: const EdgeInsets.only(right: 8),
         ),
         icon: const Icon(Icons.open_in_new_rounded, size: 14),
         label: Text(label, style: Neon.mono.copyWith(fontSize: 12, color: Neon.magenta)),
+      ),
+    );
+
+    // A magenta dot, then a bold lead and muted text: one credit.
+    Widget bullet(String lead, String rest) => Padding(
+      padding: const EdgeInsets.only(right: 10, bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 7, right: 10),
+            child: Container(
+              width: 5,
+              height: 5,
+              decoration: const BoxDecoration(color: Neon.magenta, shape: BoxShape.circle),
+            ),
+          ),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(text: '$lead ', style: body.copyWith(fontWeight: FontWeight.bold)),
+                  TextSpan(text: rest, style: body.copyWith(color: Neon.muted)),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
 
@@ -174,37 +201,10 @@ class _AboutPanel extends StatelessWidget {
                         Padding(
                           padding: const EdgeInsets.only(right: 10),
                           child: Text(
-                            "Conway's Game of Life has always been a place to experiment: set a few cells, press play, and "
-                            'see what grows. Life with AI makes those experiments easy to share. Every seed becomes a link, '
-                            'and anyone who opens it, on a phone or in a browser, watches it unfold with no install or account.',
+                            'A coding-challenge project, and a thank-you to Conway and everyone below who made this app worth exploring.',
                             style: body,
                           ),
                         ),
-                        const SizedBox(height: 10),
-                        Padding(
-                          padding: const EdgeInsets.only(right: 10),
-                          child: Text(
-                            "It also lets AI take a turn at the seeds. Describe what you'd like to see, and Claude designs a "
-                            'starting pattern, tests it, and refines it until the board does what you imagined. Bring your own '
-                            "Claude account to create, share the results with everyone, or just have fun with Conway's Game of "
-                            'Life — with AI.',
-                            style: body,
-                          ),
-                        ),
-                        if (offerMacDownload)
-                          Padding(
-                            padding: const EdgeInsets.only(right: 8, top: 6),
-                            child: TextButton.icon(
-                              onPressed: () => showMacDownloadDialog(context, openUrl: openUrl),
-                              style: TextButton.styleFrom(
-                                foregroundColor: Neon.magenta,
-                                visualDensity: VisualDensity.compact,
-                                padding: const EdgeInsets.symmetric(horizontal: 8),
-                              ),
-                              icon: const Icon(Icons.download_rounded, size: 15),
-                              label: Text('Get the macOS app', style: Neon.mono.copyWith(fontSize: 12, color: Neon.magenta)),
-                            ),
-                          ),
                         heading("CONWAY'S GAME OF LIFE"),
                         Padding(
                           padding: const EdgeInsets.only(right: 10),
@@ -216,40 +216,12 @@ class _AboutPanel extends StatelessWidget {
                           ),
                         ),
                         Wrap(children: [link('Wikipedia', About.wikipedia), link('LifeWiki', About.lifeWiki)]),
-                        heading('KEY LESSONS TO TAKE FROM IT'),
-                        for (final (lead, rest) in _lessons)
-                          Padding(
-                            padding: const EdgeInsets.only(right: 10, bottom: 8),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 7, right: 10),
-                                  child: Container(
-                                    width: 5,
-                                    height: 5,
-                                    decoration: const BoxDecoration(color: Neon.magenta, shape: BoxShape.circle),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Text.rich(
-                                    TextSpan(
-                                      children: [
-                                        TextSpan(
-                                          text: '$lead ',
-                                          style: body.copyWith(fontWeight: FontWeight.bold),
-                                        ),
-                                        TextSpan(
-                                          text: rest,
-                                          style: body.copyWith(color: Neon.muted),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                        heading('ADDITIONAL CREDITS'),
+                        Padding(
+                          padding: const EdgeInsets.only(right: 10, bottom: 8),
+                          child: Text('Besides Conway, the people behind the other rules and the algorithm here:', style: body),
+                        ),
+                        for (final (lead, rest) in _credits) bullet(lead, rest),
                         heading('ORIGINS'),
                         Padding(
                           padding: const EdgeInsets.only(right: 10),
