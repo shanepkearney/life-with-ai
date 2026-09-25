@@ -1,0 +1,27 @@
+#N Four Arms
+#O shanepkearney
+#C A four-armed "X" of glider streams (from corner guns) converges on a
+#C dense central mandala built from a pulsar, four pentadecathlons, and a
+#C ring of eight methuselahs (r-pentomino, acorn, diehard, pi-heptomino,
+#C thunderbird). The core churns chaotically and keeps reshaping while
+#C the four glider trails streak diagonally across the whole board, never
+#C settling into a repeat.
+#C Prompt: build something new that we have never known before.
+#C Added: 2026-09-25 by @shanepkearney
+#CXRLE Pos=30,30
+x = 446, y = 323, rule = B3/S23:T512,384
+24bo398b2o$22bobo398b2o$12b2o6b2o12b2o$11bo3bo4b2o12b2o$2o8bo5bo3b2o$
+2o8bo3bob2o4bobo$10bo5bo7bo$11bo3bo$12b2o2$422b3o$421bo3bo$420bo5bo$
+420bo5bo$423bo$421bo3bo$422b3o$423bo3$424b3o$424b3o$423bo3bo2$422b2o3b
+2o10$425b2o$425b2o36$224bo$226bo$223b2o2b3o24$162b2o128bo$161b2o123b2o
+$162bo124bo3b3o31$226bo$226bo$225bobo$226bo$226bo$226bo$226bo$225bobo$
+226bo$226bo17$222b3o3b3o2$220bo4bobo4bo$220bo4bobo4bo$135b3o49bo4bo27b
+o4bobo4bo9bo4bo$185b2ob4ob2o27b3o3b3o9b2ob4ob2o66b2o$136bo50bo4bo49bo
+4bo67b2o$136bo85b3o3b3o85bo$136bo83bo4bobo4bo$220bo4bobo4bo$220bo4bobo
+4bo2$222b3o3b3o12$226bo$226bo$225bobo$226bo$226bo$226bo$226bo$225bobo$
+226bo$226bo36$161b3o124bo$161bobo126bo$161bobo123b2o2b3o24$228bo$222b
+2o$223bo3b3o17$12b2o$12b2o10$10b2o3b2o2$11bo3bo$12b3o$12b3o3$15bo$14b
+3o$13bo3bo414b2o$15bo414bo3bo$12bo5bo402bo7bo5bo$12bo5bo402bobo4b2obo
+3bo8b2o$13bo3bo406b2o3bo5bo8b2o$14b3o393b2o12b2o4bo3bo$410b2o12b2o6b2o
+$421bobo$421bo6$14b2o$14b2o13$224b3obo$224bo$227b2o$225b2obo$224bobobo
+!
