@@ -1,6 +1,8 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
+import '../app/board_view.dart';
+import '../app/giant_mode.dart';
 import '../app/life_controller.dart';
 import 'theme.dart';
 
@@ -18,42 +20,124 @@ class LifeCanvas extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (controller.giant != null) return _GiantCanvas(controller: controller, clock: clock);
+    return _BoardCanvas(controller: controller, clock: clock, erase: erase, drawable: drawable);
+  }
+}
+
+/// A board, letterboxed. One finger or the mouse draws; two fingers (a
+/// trackpad's scroll, a pinch) pan and zoom, and so does a mouse wheel. The
+/// view stops at the board's edges.
+class _BoardCanvas extends StatefulWidget {
+  const _BoardCanvas({required this.controller, required this.clock, required this.erase, required this.drawable});
+
+  final LifeController controller;
+  final ValueNotifier<double> clock;
+  final bool erase;
+  final bool drawable;
+
+  @override
+  State<_BoardCanvas> createState() => _BoardCanvasState();
+}
+
+class _BoardCanvasState extends State<_BoardCanvas> {
+  /// A one-pointer drag is drawing; a second finger turns it into a pan.
+  bool _drawing = false;
+
+  /// The pinch's scale at the last update, so each update zooms by its change.
+  double _lastScale = 1;
+
+  LifeController get c => widget.controller;
+
+  @override
+  Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, box) {
         // The board area's size, so a giant pattern loaded from here is fitted to it at once.
-        WidgetsBinding.instance.addPostFrameCallback((_) => controller.setGiantCanvas(box.biggest));
-        final aspect = controller.width / controller.height;
+        WidgetsBinding.instance.addPostFrameCallback((_) => c.setGiantCanvas(box.biggest));
+        final aspect = c.width / c.height;
         var w = box.maxWidth, h = w / aspect;
         if (h > box.maxHeight) {
           h = box.maxHeight;
           w = h * aspect;
         }
         final size = Size(w, h);
+        final view = c.boardView;
 
-        void draw(Offset p) => controller.paintCell((p.dx / w * controller.width).floor(), (p.dy / h * controller.height).floor(), !erase);
+        void draw(Offset p) {
+          final f = view.toBoard(p, size);
+          c.paintCell((f.dx * c.width).floor(), (f.dy * c.height).floor(), !widget.erase);
+        }
 
-        final board = RepaintBoundary(
-          child: CustomPaint(size: size, painter: _GlowPainter(controller, clock)),
+        void stopDrawing() {
+          if (!_drawing) return;
+          _drawing = false;
+          c.endEdit();
+        }
+
+        Widget board = RepaintBoundary(
+          child: CustomPaint(size: size, painter: _GlowPainter(c, widget.clock)),
         );
-        if (!drawable) return Center(child: board);
-        return Center(
-          child: MouseRegion(
-            cursor: SystemMouseCursors.precise,
-            child: GestureDetector(
-              onPanStart: (d) async {
-                await controller.beginEdit();
-                draw(d.localPosition);
-              },
-              onPanUpdate: (d) => draw(d.localPosition),
-              onPanEnd: (_) => controller.endEdit(),
-              onTapDown: (d) async {
-                await controller.beginEdit();
-                draw(d.localPosition);
-                controller.endEdit();
-              },
-              child: board,
-            ),
+        board = Listener(
+          onPointerSignal: (e) {
+            if (e is PointerScrollEvent) {
+              // A trackpad's two-finger scroll pans; a mouse wheel zooms at the pointer.
+              if (e.kind == PointerDeviceKind.trackpad) {
+                c.panBoard(-e.scrollDelta, size);
+              } else if (e.scrollDelta.dy != 0) {
+                c.zoomBoard(e.scrollDelta.dy < 0 ? 1.25 : 0.8, e.localPosition, size);
+              }
+            } else if (e is PointerScaleEvent) {
+              c.zoomBoard(e.scale, e.localPosition, size); // a pinch, in a browser
+            }
+          },
+          child: GestureDetector(
+            onScaleStart: (d) async {
+              _lastScale = 1;
+              if (d.pointerCount != 1 || !widget.drawable) return;
+              _drawing = true;
+              await c.beginEdit();
+              if (_drawing) draw(d.localFocalPoint);
+            },
+            onScaleUpdate: (d) {
+              if (d.pointerCount < 2) {
+                if (_drawing) draw(d.localFocalPoint);
+                return;
+              }
+              stopDrawing();
+              c.panBoard(d.focalPointDelta, size);
+              final ratio = d.scale / _lastScale;
+              _lastScale = d.scale;
+              if (ratio != 1) c.zoomBoard(ratio, d.localFocalPoint, size);
+            },
+            onScaleEnd: (_) => stopDrawing(),
+            onTapDown: widget.drawable
+                ? (d) async {
+                    await c.beginEdit();
+                    draw(d.localPosition);
+                    c.endEdit();
+                  }
+                : null,
+            child: board,
           ),
+        );
+        if (widget.drawable) board = MouseRegion(cursor: SystemMouseCursors.precise, child: board);
+        // Board only shows just the board: zoom there by gesture alone.
+        if (!widget.drawable) return Center(child: board);
+        return Stack(
+          children: [
+            Center(child: board),
+            // Top right, like the endless plane's: messages run along the bottom.
+            Positioned(
+              right: 10,
+              top: 10,
+              child: _ZoomButtons(
+                fitTip: 'Show the whole board (now ${view.label})',
+                onOut: view.zoomed ? () => c.zoomBoard(0.5, size.center(Offset.zero), size) : null,
+                onFit: view.zoomed ? c.fitBoard : null,
+                onIn: view.zoom < BoardView.maxZoom ? () => c.zoomBoard(2, size.center(Offset.zero), size) : null,
+              ),
+            ),
+          ],
         );
       },
     );
@@ -69,7 +153,19 @@ class _GlowPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final g = controller.giant;
-    if (g == null) return controller.pipeline.paint(canvas, size, clock.value);
+    if (g == null) {
+      final view = controller.boardView;
+      if (!view.zoomed) return controller.pipeline.paint(canvas, size, clock.value);
+      // Zoomed: the whole board drawn [zoom] times larger, clipped to the canvas.
+      final o = view.origin(size);
+      canvas
+        ..save()
+        ..clipRect(Offset.zero & size)
+        ..translate(o.dx, o.dy);
+      controller.pipeline.paint(canvas, size * view.zoom, clock.value);
+      canvas.restore();
+      return;
+    }
     // The last frame, moved to where the view is now, until the next arrives.
     final s = g.shift(size);
     canvas
@@ -152,30 +248,10 @@ class _GiantCanvasState extends State<_GiantCanvas> {
               Positioned(
                 right: 10,
                 top: 10,
-                child: Container(
-                  decoration: Neon.panelDecoration(radius: 10),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        tooltip: 'Zoom out (−)',
-                        visualDensity: VisualDensity.compact,
-                        onPressed: g.zoom > -14 ? () => c.zoomGiant(-1, size.center(Offset.zero)) : null,
-                        icon: const Icon(Icons.remove_rounded, size: 18),
-                      ),
-                      TextButton(
-                        onPressed: c.fitGiant,
-                        style: TextButton.styleFrom(foregroundColor: Neon.cyan, visualDensity: VisualDensity.compact),
-                        child: Text('Fit', style: Neon.mono.copyWith(fontSize: 12, color: Neon.cyan)),
-                      ),
-                      IconButton(
-                        tooltip: 'Zoom in (+)',
-                        visualDensity: VisualDensity.compact,
-                        onPressed: g.zoom < 5 ? () => c.zoomGiant(1, size.center(Offset.zero)) : null,
-                        icon: const Icon(Icons.add_rounded, size: 18),
-                      ),
-                    ],
-                  ),
+                child: _ZoomButtons(
+                  onOut: g.zoom > GiantMode.minZoom ? () => c.zoomGiant(-1, size.center(Offset.zero)) : null,
+                  onFit: c.fitGiant,
+                  onIn: g.zoom < GiantMode.maxZoom ? () => c.zoomGiant(1, size.center(Offset.zero)) : null,
                 ),
               ),
             ],
@@ -184,6 +260,46 @@ class _GiantCanvasState extends State<_GiantCanvas> {
       },
     );
   }
+}
+
+/// − Fit +, for a board or the endless plane.
+class _ZoomButtons extends StatelessWidget {
+  const _ZoomButtons({required this.onOut, required this.onFit, required this.onIn, this.fitTip = 'Fit the pattern to the view'});
+
+  final VoidCallback? onOut;
+  final VoidCallback? onFit;
+  final VoidCallback? onIn;
+  final String fitTip;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    decoration: Neon.panelDecoration(radius: 10),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          tooltip: 'Zoom out (−)',
+          visualDensity: VisualDensity.compact,
+          onPressed: onOut,
+          icon: const Icon(Icons.remove_rounded, size: 18),
+        ),
+        Tooltip(
+          message: fitTip,
+          child: TextButton(
+            onPressed: onFit,
+            style: TextButton.styleFrom(foregroundColor: Neon.cyan, visualDensity: VisualDensity.compact),
+            child: Text('Fit', style: Neon.mono.copyWith(fontSize: 12, color: onFit == null ? Neon.muted : Neon.cyan)),
+          ),
+        ),
+        IconButton(
+          tooltip: 'Zoom in (+)',
+          visualDensity: VisualDensity.compact,
+          onPressed: onIn,
+          icon: const Icon(Icons.add_rounded, size: 18),
+        ),
+      ],
+    ),
+  );
 }
 
 class _Chip extends StatelessWidget {
