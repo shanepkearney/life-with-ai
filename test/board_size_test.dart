@@ -91,7 +91,7 @@ void main() {
           ),
         ),
       );
-      expect(find.text('SIZE 512×384', findRichText: true), findsOneWidget);
+      expect(find.text('SIZE: 512×384', findRichText: true), findsOneWidget);
       await tester.tap(find.byKey(const Key('hud-size')));
       await tester.pumpAndSettle();
       expect(find.text('512×384'), findsOneWidget, reason: 'the current size, among the choices');

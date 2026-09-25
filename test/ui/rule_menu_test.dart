@@ -50,7 +50,7 @@ void main() {
     await settle(tester);
     final before = (await tester.runAsync(() => life.captureMoment()))!.seed;
     final generation = life.generation;
-    expect(find.text('RULE Conway', findRichText: true), findsOneWidget, reason: "the HUD always names the rule, Conway's too");
+    expect(find.text('RULE: Conway', findRichText: true), findsOneWidget, reason: "the HUD always names the rule, Conway's too");
 
     // The HUD's RULE is the menu.
     await tester.tap(find.byKey(const Key('hud-rule')));
@@ -70,7 +70,7 @@ void main() {
     final stepped = (await tester.runAsync(() => life.captureMoment()))!.seed;
     expect(stepped.stateHash, before.step(highLife).stateHash);
     expect(life.timeline!.rule, highLife, reason: 'rewind replays by it too');
-    expect(find.text('RULE HighLife', findRichText: true), findsOneWidget, reason: 'the HUD names it, in amber');
+    expect(find.text('RULE: HighLife', findRichText: true), findsOneWidget, reason: 'the HUD names it, in amber');
   });
 
   testWidgets("a seed plays by its own rule; Claude's designs go back to Conway's", (tester) async {

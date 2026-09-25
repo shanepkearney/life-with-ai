@@ -55,7 +55,7 @@ void main() {
     // At ×2, centred, a quarter of the way across the screen is 3/8 of the way across the board.
     await tester.tap(find.byTooltip('Zoom in (+)'));
     await tester.pump();
-    expect(find.text('ZOOM ×2', findRichText: true), findsOneWidget, reason: 'the HUD shows how far in');
+    expect(find.text('ZOOM: ×2', findRichText: true), findsOneWidget, reason: 'the HUD shows how far in');
     await tester.tapAt(r.topLeft + Offset(r.width / 4, r.height / 4));
     for (var i = 0; i < 5; i++) {
       await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));

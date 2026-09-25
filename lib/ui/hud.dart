@@ -24,7 +24,7 @@ class Hud extends StatelessWidget {
       TextSpan(
         children: [
           TextSpan(
-            text: '$k ',
+            text: '$k: ',
             style: Neon.mono.copyWith(color: Neon.muted),
           ),
           TextSpan(
