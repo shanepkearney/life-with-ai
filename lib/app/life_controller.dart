@@ -16,6 +16,7 @@ import '../engine/life_engine.dart';
 import '../render/board_palette.dart';
 import '../render/glow_pipeline.dart';
 import '../render/shaders.dart';
+import 'board_view.dart';
 import 'giant_mode.dart';
 import 'telemetry.dart';
 
@@ -537,6 +538,8 @@ class LifeController extends ChangeNotifier {
   /// experiment replay stops: the board now shows something else.
   Future<void> load(Grid grid) => _whileIdle(() async {
     if (_disposed) return; // closed while waiting its turn
+    // A board of another shape starts whole; the same shape keeps its zoom.
+    if (grid.width != width || grid.height != height) boardView.fit();
     _leaveGiant();
     _cancelExperiments();
     _leaveSharedColorsFor(grid);
@@ -611,6 +614,27 @@ class LifeController extends ChangeNotifier {
   void zoomGiant(int steps, Offset focal) {
     giant?.zoomBy(steps, focal);
     _redrawGiant();
+  }
+
+  // ---- Zooming a board ----------------------------------------------------------
+
+  /// The board's zoom and pan (the endless plane has its own, in [GiantMode]).
+  final boardView = BoardView();
+
+  /// Zooms the board by [factor] around [focal], on a canvas of [size].
+  void zoomBoard(double factor, Offset focal, Size size) {
+    boardView.zoomBy(factor, focal, size);
+    notifyListeners();
+  }
+
+  void panBoard(Offset delta, Size size) {
+    boardView.pan(delta, size);
+    notifyListeners();
+  }
+
+  void fitBoard() {
+    boardView.fit();
+    notifyListeners();
   }
 
   void fitGiant() {
