@@ -340,6 +340,8 @@ class LogoButton extends StatelessWidget {
           ),
         ),
       ),
+      // A little room before ⓘ, so it's spaced like the header's other icons.
+      SizedBox(width: size / 3),
       IconButton(
         tooltip: 'About this app',
         visualDensity: VisualDensity.compact,
