@@ -125,6 +125,13 @@ class GiantMode {
       ? '${1 << zoom} px a cell'
       : '${_grouped(1 << -zoom)} cells a pixel';
 
+  /// "8 px/cell", "1:1" or "16 cells/px", for the HUD.
+  String get zoomShort => zoom == 0
+      ? '1:1'
+      : zoom > 0
+      ? '${1 << zoom} px/cell'
+      : '${_grouped(1 << -zoom)} cells/px';
+
   /// "1K" for the jump slider's tight label: 1 to 512, then K, then M.
   String get jumpShort {
     final n = 1 << effectiveJump;

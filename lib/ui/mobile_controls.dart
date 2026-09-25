@@ -7,7 +7,7 @@ import 'colors_dialog.dart';
 import 'control_bar.dart' show RuleMenu;
 import 'screen_board.dart';
 import 'theme.dart';
-import 'zoom_controls.dart';
+import 'bar_popup.dart';
 
 /// The phone control strip: the buttons used constantly, in one row, with
 /// speed, glow, engine and board size behind a ⚙ sheet. Tooltips match the

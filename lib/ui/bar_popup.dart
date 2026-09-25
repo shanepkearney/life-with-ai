@@ -41,24 +41,41 @@ class ZoomControls extends StatelessWidget {
   }
 }
 
-/// The bar's magnifying glass: opens [ZoomControls] just above itself (the bar
-/// sits along the bottom), and keeps them open while you press − and + so you
-/// can zoom a few steps in a row. A click anywhere else, or the glass again,
-/// closes them.
-class ZoomMenu extends StatefulWidget {
+/// The bar's magnifying glass: opens [ZoomControls] above itself, and keeps
+/// them open while you press − and + so you can zoom a few steps in a row.
+class ZoomMenu extends StatelessWidget {
   const ZoomMenu({super.key, required this.controller});
 
   final LifeController controller;
 
   @override
-  State<ZoomMenu> createState() => _ZoomMenuState();
+  Widget build(BuildContext context) => BarPopup(
+    icon: Icons.zoom_in_rounded,
+    tooltip: 'Zoom · ${controller.zoomLabel}',
+    builder: (_) => ListenableBuilder(listenable: controller, builder: (_, _) => ZoomControls(controller: controller)),
+  );
 }
 
-class _ZoomMenuState extends State<ZoomMenu> {
+/// An icon in the control bar that opens a panel just above itself (the bar
+/// sits along the bottom). The icon is lit while it's open; a click anywhere
+/// else, or the icon again, closes it, and so can the panel ([builder]'s
+/// `close`).
+class BarPopup extends StatefulWidget {
+  const BarPopup({super.key, required this.icon, required this.tooltip, required this.builder});
+
+  final IconData icon;
+  final String tooltip;
+  final Widget Function(VoidCallback close) builder;
+
+  @override
+  State<BarPopup> createState() => _BarPopupState();
+}
+
+class _BarPopupState extends State<BarPopup> {
   final _popup = OverlayPortalController();
   final _link = LayerLink();
 
-  /// The glass and its popup are one region: a click in either isn't "outside".
+  /// The icon and its panel are one region: a click in either isn't "outside".
   final _region = Object();
 
   final _open = ValueNotifier(false);
@@ -95,7 +112,7 @@ class _ZoomMenuState extends State<ZoomMenu> {
           top: 0,
           child: CompositedTransformFollower(
             link: _link,
-            // Its bottom edge on the glass's top edge, centred on it.
+            // Its bottom edge on the icon's top edge, centred on it.
             targetAnchor: Alignment.topCenter,
             followerAnchor: Alignment.bottomCenter,
             offset: const Offset(0, -2),
@@ -117,9 +134,9 @@ class _ZoomMenuState extends State<ZoomMenu> {
                           BoxShadow(color: Neon.cyan.withValues(alpha: 0.25), blurRadius: 12),
                         ],
                       ),
-                      child: ListenableBuilder(listenable: widget.controller, builder: (_, _) => ZoomControls(controller: widget.controller)),
+                      child: widget.builder(_close),
                     ),
-                    // A pointer down to the glass it came from.
+                    // A pointer down to the icon it came from.
                     const CustomPaint(size: Size(16, 7), painter: _Pointer()),
                   ],
                 ),
@@ -131,9 +148,9 @@ class _ZoomMenuState extends State<ZoomMenu> {
         child: ListenableBuilder(
           listenable: _open,
           builder: (_, _) => IconButton(
-            tooltip: 'Zoom · ${widget.controller.zoomLabel}',
+            tooltip: widget.tooltip,
             onPressed: _toggle,
-            icon: Icon(Icons.zoom_in_rounded, shadows: _open.value ? const [Shadow(color: Neon.cyan, blurRadius: 12)] : null),
+            icon: Icon(widget.icon, shadows: _open.value ? const [Shadow(color: Neon.cyan, blurRadius: 12)] : null),
             color: _open.value ? Neon.cyan : Neon.text,
           ),
         ),
@@ -153,7 +170,7 @@ class _Pointer extends CustomPainter {
       ..lineTo(size.width / 2, size.height)
       ..lineTo(size.width, 0);
     canvas
-      ..drawPath(path..close(), Paint()..color = _ZoomMenuState._fill)
+      ..drawPath(path..close(), Paint()..color = _BarPopupState._fill)
       ..drawPath(
         Path()
           ..moveTo(0, 0)

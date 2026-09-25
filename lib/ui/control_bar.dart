@@ -7,7 +7,7 @@ import '../engine/life_engine.dart';
 import 'colors_dialog.dart';
 import 'screen_board.dart';
 import 'theme.dart';
-import 'zoom_controls.dart';
+import 'bar_popup.dart';
 
 class ControlBar extends StatelessWidget {
   const ControlBar({super.key, required this.controller, required this.erase, required this.onEraseChanged, this.onSaveMoment});
@@ -106,22 +106,7 @@ class ControlBar extends StatelessWidget {
           // Left of the menus: how much of the board, or of the plane, is on screen.
           ZoomMenu(controller: c),
           // A pattern on the endless plane has no board to size: picking one would replace it.
-          if (giant == null) ...[
-            DropdownButtonHideUnderline(
-              child: DropdownButton<BoardSize>(
-                value: c.boardSize,
-                isDense: true,
-                style: Neon.mono,
-                dropdownColor: const Color(0xFF0B0E17),
-                items: [for (final s in sizes) DropdownMenuItem(value: s, child: Text(s.label))],
-                // Closed, it shows the short name: the full "Fit screen · 1512×982"
-                // would widen the button and wrap the bar onto a second row.
-                selectedItemBuilder: (_) => [for (final s in sizes) Center(child: Text(s.shortLabel))],
-                onChanged: (s) => s == null ? null : c.setBoardSize(s),
-              ),
-            ),
-            const SizedBox(width: 4), // with the Wrap's gap: 8px between the menus, like the dividers
-          ],
+          if (giant == null) SizeMenu(controller: c, sizes: sizes),
           // Size, engine, rule: what the board is, what runs it, and by what rule.
           // Engine and rule as compact menus: three engine buttons and a rule list won't fit side by side.
           CompactMenu<EngineKind>(
@@ -242,6 +227,40 @@ class RuleMenu extends StatelessWidget {
       onSelected: c.giant != null ? null : c.setRule,
     );
   }
+}
+
+/// The board's size as an icon: its choices open above it, the current one lit.
+class SizeMenu extends StatelessWidget {
+  const SizeMenu({super.key, required this.controller, required this.sizes});
+
+  final LifeController controller;
+  final List<BoardSize> sizes;
+
+  @override
+  Widget build(BuildContext context) => BarPopup(
+    icon: Icons.aspect_ratio_rounded,
+    tooltip: 'Board size · ${controller.boardSize.label}',
+    builder: (close) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: IntrinsicWidth(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final s in sizes)
+              TextButton(
+                onPressed: () {
+                  close();
+                  if (s != controller.boardSize) controller.setBoardSize(s);
+                },
+                style: TextButton.styleFrom(alignment: Alignment.centerLeft, padding: const EdgeInsets.symmetric(horizontal: 16)),
+                child: Text(s.label, style: Neon.mono.copyWith(color: s == controller.boardSize ? Neon.cyan : Neon.text)),
+              ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 /// A menu button that shows only the current choice, in a fixed [width], and

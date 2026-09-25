@@ -76,7 +76,7 @@ void main() {
       expect(life.boardSize, BoardSize.medium);
     });
 
-    testWidgets('the size dropdown offers Fit screen for this display, and applies it', (tester) async {
+    testWidgets("the size icon's popup offers Fit screen for this display, and applies it", (tester) async {
       tester.view.physicalSize = const Size(1600, 400);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
@@ -84,21 +84,27 @@ void main() {
         MaterialApp(
           theme: Neon.theme(),
           home: Scaffold(
-            body: ListenableBuilder(
-              listenable: life,
-              builder: (_, _) => ControlBar(controller: life, erase: false, onEraseChanged: (_) {}),
+            // Along the bottom, as in the app: the popup opens above it.
+            body: Align(
+              alignment: Alignment.bottomCenter,
+              child: ListenableBuilder(
+                listenable: life,
+                builder: (_, _) => ControlBar(controller: life, erase: false, onEraseChanged: (_) {}),
+              ),
             ),
           ),
         ),
       );
-      await tester.tap(find.text('512×384'));
-      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.aspect_ratio_rounded));
+      await tester.pump();
+      expect(find.text('512×384'), findsOneWidget, reason: 'the current size, among the choices');
       final fit = find.textContaining('Fit screen · ').last;
       expect(fit, findsOneWidget);
       await tester.tap(fit);
       await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
       await tester.pumpAndSettle();
       expect(life.boardSize.fitsScreen, isTrue);
+      expect(find.text('512×384'), findsNothing, reason: 'choosing closes the popup');
     });
   });
 }

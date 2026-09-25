@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../app/life_controller.dart';
+import 'breakpoints.dart';
 import 'theme.dart';
 
 /// The board, letterboxed to its aspect ratio, painted by the glow pipeline.
@@ -218,13 +219,15 @@ class _GiantCanvasState extends State<_GiantCanvas> {
                   ),
                 ),
               ),
+              // Phones only: the desktop HUD shows the name and zoom, but a phone's shows just GEN and POP.
               // A long name gives way.
-              Positioned(
-                left: 10,
-                right: 10,
-                top: 10,
-                child: Align(alignment: Alignment.centerLeft, child: _Chip('${g.name} · HashLife, endless plane · ${g.zoomLabel}')),
-              ),
+              if (Breakpoints.isMobile(MediaQuery.sizeOf(context)))
+                Positioned(
+                  left: 10,
+                  right: 10,
+                  top: 10,
+                  child: Align(alignment: Alignment.centerLeft, child: _Chip('${g.name} · HashLife, endless plane · ${g.zoomLabel}')),
+                ),
             ],
           ),
         );

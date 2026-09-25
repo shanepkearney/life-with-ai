@@ -45,7 +45,13 @@ class Hud extends StatelessWidget {
           stat('POP', _grouped(c.population), Neon.magenta),
           if (!compact) ...[
             stat('GEN/S', c.running ? _grouped(c.gensPerSecond.round()) : '—', Neon.amber),
+            // On the plane, what's playing and how close in: it replaces the board's own chip here.
+            if (c.giant case final g?) stat('PATTERN', _short(g.name), Neon.text),
             stat('ENGINE', c.giant != null ? 'HashLife · endless plane' : c.engineKind.label, Neon.text),
+            if (c.giant case final g?)
+              stat('ZOOM', g.zoomShort, Neon.cyan)
+            else if (c.boardView.zoomed)
+              stat('ZOOM', c.boardView.label, Neon.cyan),
             // Only when it isn't Conway's: a reminder that this isn't standard Life.
             if (!c.rule.isConway) stat('RULE', c.rule.label, Neon.amber),
           ],
@@ -54,6 +60,9 @@ class Hud extends StatelessWidget {
     );
   }
 }
+
+/// A long name cut short, so the header never runs out of room.
+String _short(String name) => name.length <= 18 ? name : '${name.substring(0, 17)}…';
 
 /// 1398033 as "1,398,033": giant patterns run into the millions.
 String _grouped(int n) => n.toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ',');
