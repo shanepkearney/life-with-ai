@@ -269,6 +269,8 @@ void main() {
     await tester.enterText(find.byType(TextField).last, text);
     await tester.tap(find.text('Load'));
     await pumpUntil(tester, () => (life.giant?.population ?? 0) > 0, reason: 'loaded on the plane');
+    // Loaded is not yet drawn: wait for the board area to switch to the plane's view.
+    await pumpUntil(tester, () => find.textContaining('endless plane').evaluate().isNotEmpty, reason: 'the plane on screen');
 
     final g = life.giant!;
     expect(g.name, 'Far apart');
