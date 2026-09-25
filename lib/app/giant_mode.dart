@@ -31,8 +31,10 @@ class GiantMode {
   bool autoFit = true;
 
   /// Each step moves on 2^jump generations. The Turing machine barely
-  /// changes in a few hundred, so it starts at a thousand.
-  int jump = 10;
+  /// changes in a few hundred, so a true giant starts at a thousand; a
+  /// small pattern on the plane (see [LifeController.openGiant]) at 1.
+  int jump = giantJump;
+  static const giantJump = 10;
   static const maxJump = 24;
 
   /// On the web, where a jump runs on the UI thread, the jump actually taken

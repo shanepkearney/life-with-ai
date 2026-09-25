@@ -561,7 +561,10 @@ class LifeController extends ChangeNotifier {
     _leaveGiant();
     final g = GiantMode(pattern.name ?? 'Giant pattern', newGiantRunner())
       ..canvas = _giantCanvas
-      ..bounds = (x: 0, y: 0, width: pattern.width, height: pattern.height);
+      ..bounds = (x: 0, y: 0, width: pattern.width, height: pattern.height)
+      // A pattern a board could hold (Acorn, a gun) is on the plane only for
+      // room to grow: it starts at 1x, like on a board. True giants jump.
+      ..jump = BoardSize.holding(pattern.width, pattern.height, current: boardSize) == null ? GiantMode.giantJump : 0;
     g.fit();
     giant = g;
     final cells = Int32List(pattern.cells.length * 2);
