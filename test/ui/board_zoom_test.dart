@@ -38,6 +38,7 @@ void main() {
     expect(find.byTooltip('Zoom out (−)'), findsNothing);
     await tester.tap(find.byIcon(Icons.zoom_in_rounded));
     await tester.pump();
+    expect(tester.getRect(find.text('Fit')).bottom, lessThan(tester.getRect(find.byIcon(Icons.zoom_in_rounded)).top), reason: 'it opens above the bar, not below');
     expect(tester.widget<TextButton>(find.widgetWithText(TextButton, 'Fit')).onPressed, isNull, reason: 'nothing to fit at ×1');
 
     await tester.tap(find.byTooltip('Zoom in (+)'));
