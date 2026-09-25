@@ -201,14 +201,12 @@ class _PaletteButton extends StatelessWidget {
 
   final LifeController controller;
 
+  // A standard icon button, like the rest of the bar; the dialog shows the colors themselves.
   @override
-  Widget build(BuildContext context) => Tooltip(
-    message: 'Board colors and glow · ${controller.palette.name}',
-    child: InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: () => showColorsDialog(context, controller),
-      child: Padding(padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 12), child: PaletteSwatch(controller.palette, width: 22, height: 12)),
-    ),
+  Widget build(BuildContext context) => _Icon(
+    icon: Icons.palette_rounded,
+    tip: 'Board colors and glow · ${controller.palette.name}',
+    onTap: () => showColorsDialog(context, controller),
   );
 }
 
