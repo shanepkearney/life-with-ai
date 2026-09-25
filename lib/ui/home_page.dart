@@ -132,7 +132,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   /// The board as RLE; a pattern loaded there gets a toast naming it.
   Future<void> _openRle() async {
     final loaded = await showRleDialog(context, widget.controller);
-    if (loaded != null && mounted) _toasts.show('Loaded "$loaded".');
+    if (loaded != null && mounted) {
+      _toasts.show(
+        widget.controller.giant != null
+            ? 'Loaded "$loaded" on an endless plane, run by HashLife. Drag to pan, scroll or pinch to zoom.'
+            : 'Loaded "$loaded".',
+      );
+    }
     _focus.requestFocus(); // the dialog had the keyboard; hand it back to the board
   }
 

@@ -41,14 +41,17 @@ class Hud extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          stat('GEN', '${c.generation}', Neon.cyan),
-          stat('POP', '${c.population}', Neon.magenta),
+          stat('GEN', _grouped(c.generation), Neon.cyan),
+          stat('POP', _grouped(c.population), Neon.magenta),
           if (!compact) ...[
-            stat('GEN/S', c.running ? c.gensPerSecond.toStringAsFixed(0) : '—', Neon.amber),
-            stat('ENGINE', c.engineKind.label, Neon.text),
+            stat('GEN/S', c.running ? _grouped(c.gensPerSecond.round()) : '—', Neon.amber),
+            stat('ENGINE', c.giant != null ? 'HashLife · endless plane' : c.engineKind.label, Neon.text),
           ],
         ],
       ),
     );
   }
 }
+
+/// 1398033 as "1,398,033": giant patterns run into the millions.
+String _grouped(int n) => n.toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ',');

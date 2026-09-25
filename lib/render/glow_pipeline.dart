@@ -28,7 +28,9 @@ class GlowPipeline {
   double glow = 1.0;
   BoardPalette palette = BoardPalette.neon;
 
-  bool get ready => _state != null;
+  /// Everything [paint] needs. The trail is gone between [clearTrail] and the
+  /// next [update], which a giant pattern's pan or zoom can paint in between.
+  bool get ready => _state != null && _trail != null && _density != null;
 
   /// Forgets the comet tails, so a newly loaded board doesn't glow with the
   /// ghost of the one it replaced.

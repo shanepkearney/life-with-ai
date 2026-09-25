@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../app/giant_mode.dart';
 import '../app/life_controller.dart';
 import '../engine/life_engine.dart';
 import 'colors_dialog.dart';
@@ -51,9 +52,9 @@ class MobileControls extends StatelessWidget {
           button(
             erase ? Icons.auto_fix_normal_rounded : Icons.edit_rounded,
             erase ? 'Drawing erases — tap to draw' : 'Drawing adds cells — tap to erase',
-            () => onEraseChanged(!erase),
+            c.giant != null ? null : () => onEraseChanged(!erase),
           ),
-          if (onSaveMoment != null) button(Icons.favorite_border_rounded, 'Save this moment to favorites', onSaveMoment),
+          if (onSaveMoment != null) button(Icons.favorite_border_rounded, 'Save this moment to favorites', c.giant != null ? null : onSaveMoment),
           button(Icons.tune_rounded, 'Speed, glow and engine', () => _showTuning(context)),
         ],
       ),
@@ -79,13 +80,18 @@ class MobileControls extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                label('Speed · ${c.targetRate} generations/s'),
-                Slider(
-                  value: c.speedIndex.toDouble(),
-                  max: (LifeController.speedLevels.length - 1).toDouble(),
-                  divisions: LifeController.speedLevels.length - 1,
-                  onChanged: (v) => c.setSpeedIndex(v.round()),
-                ),
+                if (c.giant case final g?) ...[
+                  label('Jump · ${g.jumpLabel} generations a step'),
+                  Slider(value: g.jump.toDouble(), max: GiantMode.maxJump.toDouble(), divisions: GiantMode.maxJump, onChanged: (v) => c.setGiantJump(v.round())),
+                ] else ...[
+                  label('Speed · ${c.targetRate} generations/s'),
+                  Slider(
+                    value: c.speedIndex.toDouble(),
+                    max: (LifeController.speedLevels.length - 1).toDouble(),
+                    divisions: LifeController.speedLevels.length - 1,
+                    onChanged: (v) => c.setSpeedIndex(v.round()),
+                  ),
+                ],
                 label('Glow'),
                 Slider(value: c.pipeline.glow, max: 2, onChanged: c.setGlow),
                 // The colors editor needs the board to preview on, so the sheet makes way.
@@ -122,7 +128,7 @@ class MobileControls extends StatelessWidget {
                   showSelectedIcon: false,
                   segments: [for (final k in EngineKind.values) ButtonSegment(value: k, tooltip: '${k.label}: ${k.about}', label: Text(k.short))],
                   selected: {c.engineKind},
-                  onSelectionChanged: (s) => c.switchEngine(s.first),
+                  onSelectionChanged: c.giant != null ? null : (s) => c.switchEngine(s.first),
                 ),
                 const SizedBox(height: 16),
                 // Clear and RLE live here on phones, to keep the strip to one row.

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../app/giant_mode.dart';
 import '../app/life_controller.dart';
 import '../engine/life_engine.dart';
 import 'colors_dialog.dart';
@@ -19,6 +20,7 @@ class ControlBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = controller;
+    final giant = c.giant;
     final sizes = boardSizeChoices(context, c.boardSize, phone: false);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -36,33 +38,55 @@ class ControlBar extends StatelessWidget {
             glow: true,
             onTap: c.toggleRunning,
           ),
-          _Icon(icon: Icons.skip_next_rounded, tip: 'Step one generation (→)', onTap: c.running ? null : c.stepOnce),
+          _Icon(
+            icon: Icons.skip_next_rounded,
+            tip: giant == null ? 'Step one generation (→)' : 'Jump ${giant.jumpLabel} generations (→)',
+            onTap: c.running ? null : c.stepOnce,
+          ),
           _Icon(icon: Icons.shuffle_rounded, tip: 'Randomize', onTap: () => c.randomize()),
           _Icon(icon: Icons.delete_sweep_rounded, tip: 'Clear', onTap: c.clear),
+          // A giant pattern pans instead of drawing, and is too big to save as a moment.
           _Icon(
             icon: erase ? Icons.auto_fix_normal_rounded : Icons.edit_rounded,
             tip: erase ? 'Drawing erases — tap to draw' : 'Drawing adds cells — tap to erase',
-            onTap: () => onEraseChanged(!erase),
+            onTap: giant != null ? null : () => onEraseChanged(!erase),
           ),
-          if (onSaveMoment != null) _Icon(icon: Icons.favorite_border_rounded, tip: 'Save this moment to favorites', onTap: onSaveMoment),
+          if (onSaveMoment != null) _Icon(icon: Icons.favorite_border_rounded, tip: 'Save this moment to favorites', onTap: giant != null ? null : onSaveMoment),
           const _Divider(),
-          _Labeled(
-            label: 'Speed ${c.targetRate.toString().padLeft(3)}/s',
-            child: SizedBox(
-              width: 76,
-              child: Slider(
-                // Default side padding (~24px) is room for the thumb's glow; here it ate the track.
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                // Geometric steps: fine control at the slow end, where it matters.
-                value: c.speedIndex.toDouble(),
-                min: 0,
-                max: (LifeController.speedLevels.length - 1).toDouble(),
-                divisions: LifeController.speedLevels.length - 1,
-                label: '${c.targetRate} generations/s',
-                onChanged: (v) => c.setSpeedIndex(v.round()),
+          if (giant == null)
+            _Labeled(
+              label: 'Speed ${c.targetRate.toString().padLeft(3)}/s',
+              child: SizedBox(
+                width: 76,
+                child: Slider(
+                  // Default side padding (~24px) is room for the thumb's glow; here it ate the track.
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  // Geometric steps: fine control at the slow end, where it matters.
+                  value: c.speedIndex.toDouble(),
+                  min: 0,
+                  max: (LifeController.speedLevels.length - 1).toDouble(),
+                  divisions: LifeController.speedLevels.length - 1,
+                  label: '${c.targetRate} generations/s',
+                  onChanged: (v) => c.setSpeedIndex(v.round()),
+                ),
+              ),
+            )
+          else
+            // HashLife jumps 2^j generations a step, as fast as it can: the size of the jump is the speed.
+            _Labeled(
+              label: 'Jump ×${giant.jumpShort.padLeft(4)}',
+              child: SizedBox(
+                width: 76,
+                child: Slider(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  value: giant.jump.toDouble(),
+                  max: GiantMode.maxJump.toDouble(),
+                  divisions: GiantMode.maxJump,
+                  label: '${giant.jumpLabel} generations a step',
+                  onChanged: (v) => c.setGiantJump(v.round()),
+                ),
               ),
             ),
-          ),
           _Labeled(
             label: 'Glow',
             child: SizedBox(
@@ -99,7 +123,8 @@ class ControlBar extends StatelessWidget {
                 ),
             ],
             selected: {c.engineKind},
-            onSelectionChanged: (s) => c.switchEngine(s.first),
+            // A giant pattern runs on HashLife's endless plane only.
+            onSelectionChanged: giant != null ? null : (s) => c.switchEngine(s.first),
           ),
           const SizedBox(width: 4), // with the Wrap's gap: 8px off the engine toggle, like the dividers
           DropdownButtonHideUnderline(

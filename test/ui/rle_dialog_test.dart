@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:life_with_ai/app/life_controller.dart';
 import 'package:life_with_ai/core/grid.dart';
 import 'package:life_with_ai/core/patterns.dart';
+import 'package:life_with_ai/engine/giant_runner.dart';
+import 'package:life_with_ai/engine/life_engine.dart';
 import 'package:life_with_ai/render/shaders.dart';
 import 'package:life_with_ai/ui/home_page.dart';
 import 'package:life_with_ai/ui/theme.dart';
@@ -19,7 +21,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.runAsync(() async {
-      life = LifeController(await Shaders.load());
+      life = LifeController(await Shaders.load())..newGiantRunner = GiantRunner.inline;
       await life.init();
     });
     await tester.pumpWidget(
@@ -147,21 +149,45 @@ void main() {
     expect(find.text('Pattern as RLE'), findsOneWidget);
     expect(find.textContaining('uses the rule B36/S23'), findsOneWidget);
 
-    await tester.enterText(find.byType(TextField), 'x = 1100, y = 1\n1100o!');
+    // Bigger than the endless plane allows, by its header alone.
+    await tester.enterText(find.byType(TextField), 'x = 99999999, y = 1\n3o!');
     await tester.tap(find.text('Load'));
     await settle(tester);
-    expect(find.textContaining('This pattern is 1,100 × 1 cells, and the largest board here is 1,024 × 768.'), findsOneWidget);
-
-    // Paul Rendell's Universal Turing Machine: its header alone says it's far too big.
-    await tester.enterText(find.byType(TextField), 'x = 12699, y = 12652, rule = b3/s23\n144b2o\$145bo!');
-    await tester.tap(find.text('Load'));
-    await settle(tester);
-    expect(find.textContaining('This pattern is 12,699 × 12,652 cells'), findsOneWidget);
-    expect(find.textContaining('need Golly'), findsOneWidget);
+    expect(find.textContaining('This pattern is 99,999,999 × 1 cells, too big even for the endless plane'), findsOneWidget);
 
     await tester.enterText(find.byType(TextField), 'bo');
     await tester.pump();
-    expect(find.textContaining('largest board'), findsNothing, reason: 'editing clears the message');
+    expect(find.textContaining('endless plane'), findsNothing, reason: 'editing clears the message');
+  });
+
+  testWidgets('a pattern too big for any board opens on the endless plane instead', (tester) async {
+    await start(tester);
+    await openDialog(tester);
+    // The Turing machine's own header, with its first rows: 12,699 x 12,652 by the header.
+    await tester.enterText(find.byType(TextField), '#N Turing machine\nx = 12699, y = 12652, rule = b3/s23\n144b2o\$145bo\$145bobo\$146b2o3\$151b2o\$150b2o\$152bo!');
+    await tester.tap(find.text('Load'));
+    // The plane runs in a background isolate: give it real time to start.
+    for (var i = 0; i < 50 && life.giant == null; i++) {
+      await settle(tester);
+    }
+    await settle(tester);
+
+    expect(find.text('Pattern as RLE'), findsNothing);
+    expect(life.giant, isNotNull);
+    expect(life.giant!.name, 'Turing machine');
+    expect(life.running, isTrue, reason: 'it plays at once, like any loaded pattern');
+    expect(life.population, greaterThan(0));
+    expect(life.engineKind, EngineKind.hashlife);
+    expect(life.canStepBack, isFalse, reason: 'no rewind history on the plane');
+    expect(find.textContaining('on an endless plane, run by HashLife'), findsOneWidget);
+
+    // Anything that puts a normal board down leaves the plane.
+    await tester.tap(find.byTooltip('Randomize'));
+    for (var i = 0; i < 20 && life.giant != null; i++) {
+      await settle(tester);
+    }
+    expect(life.giant, isNull);
+    expect(life.engineKind, isNot(EngineKind.hashlife), reason: 'back on the engine it was using');
   });
 
   testWidgets('on a phone it lives in the ⚙ sheet, and fits the screen', (tester) async {
