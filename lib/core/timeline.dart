@@ -90,8 +90,9 @@ class Timeline {
     final nearest = nearestAtOrBefore(generation);
     final from = nearest.generation;
     var a = nearest.board, b = Grid(width, height);
+    final step = rule.processor.step;
     for (var i = from; i < generation; i++) {
-      a.stepInto(b, rule);
+      step(a, b, rule);
       final t = a;
       a = b;
       b = t;

@@ -185,7 +185,7 @@ class LifeController extends ChangeNotifier {
     await randomize();
   }
 
-  LifeEngine _create(EngineKind kind) => kind == EngineKind.gpu ? GpuEngine(_shaders.lifeStep) : CpuEngine(kind: kind);
+  LifeEngine _create(EngineKind kind) => kind == EngineKind.gpu ? GpuEngine(_shaders) : CpuEngine(kind: kind);
 
   /// Called every display frame with the ticker's clock in seconds. Steps
   /// however many generations are due at [targetRate]: zero on most frames at
@@ -763,9 +763,10 @@ class LifeController extends ChangeNotifier {
 /// Steps a board forward in a background isolate (inline on the web).
 Uint8List _advance(({Uint8List cells, int width, int height, int steps, int birth, int survival}) r) {
   final rule = LifeRule(r.birth, r.survival);
+  final step = rule.processor.step;
   var a = Grid.fromCells(r.width, r.height, Uint8List.fromList(r.cells)), b = Grid(r.width, r.height);
   for (var i = 0; i < r.steps; i++) {
-    a.stepInto(b, rule);
+    step(a, b, rule);
     final t = a;
     a = b;
     b = t;

@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'grid.dart';
+
 /// A Life-like rule: which neighbor counts bring a dead cell to life (birth)
 /// and which keep a live one alive (survival). Conway's Game of Life is
 /// B3/S23: born with exactly 3 live neighbors, surviving with 2 or 3.
@@ -26,6 +28,11 @@ final class LifeRule {
   final int survival;
 
   bool get isConway => this == conway;
+
+  /// How this rule is computed, decided here once. Engines take the
+  /// processor's step (and, on the GPU, its shader) when a board is loaded,
+  /// so no stepping loop or shader ever checks which rule it is running.
+  RuleProcessor get processor => isConway ? RuleProcessor.conway : RuleProcessor.anyRule;
 
   /// Born from nothing: with B0 a dead cell among dead neighbors comes alive,
   /// so an endless plane would fill at once. Boards cope; HashLife's plane can't.
@@ -90,4 +97,21 @@ final class LifeRule {
 
   @override
   String toString() => 'LifeRule($notation)';
+}
+
+/// One generation of [src] into [out] by [rule].
+typedef StepFunction = Grid Function(Grid src, Grid out, LifeRule rule);
+
+/// The ways a rule can be computed. Each carries its CPU step; the GPU engine
+/// attaches its shader to the same values (see `gpu_engine.dart`).
+enum RuleProcessor {
+  /// Conway's B3/S23 by its own specialized code, the fastest there is.
+  conway(Grid.stepConway),
+
+  /// Any birth/survival rule, by looking up the next state in its table.
+  anyRule(Grid.stepByTable);
+
+  const RuleProcessor(this.step);
+
+  final StepFunction step;
 }

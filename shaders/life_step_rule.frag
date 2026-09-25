@@ -1,0 +1,33 @@
+#version 460 core
+#include <flutter/runtime_effect.glsl>
+
+// One generation by any birth/survival rule on the GPU (RuleProcessor.anyRule;
+// Conway's rule has its own shader, life_step.frag). As there, each output
+// pixel is one cell and fract() wraps the edges into a torus.
+
+precision highp float;
+
+uniform vec2 uGrid;
+uniform float uBirth;    // LifeRule.birth: bit n set means born with n neighbors
+uniform float uSurvival; // LifeRule.survival: bit n set means survives with n
+uniform sampler2D uState;
+
+out vec4 fragColor;
+
+float cell(vec2 p) {
+  return step(0.5, texture(uState, fract(p / uGrid)).r);
+}
+
+void main() {
+  vec2 p = floor(FlutterFragCoord().xy) + 0.5;
+  float n = cell(p + vec2(-1.0, -1.0)) + cell(p + vec2(0.0, -1.0)) + cell(p + vec2(1.0, -1.0))
+          + cell(p + vec2(-1.0,  0.0))                              + cell(p + vec2(1.0,  0.0))
+          + cell(p + vec2(-1.0,  1.0)) + cell(p + vec2(0.0,  1.0)) + cell(p + vec2(1.0,  1.0));
+  float alive = cell(p);
+  // Bit n of the rule's mask, for n live neighbors: floor(mask / 2^n) is odd.
+  // Masks are at most 511 and n a whole number, so this float arithmetic is exact
+  // (the small margin covers a GPU whose exp2 is a hair off).
+  float mask = alive > 0.5 ? uSurvival : uBirth;
+  float next = mod(floor(mask / exp2(floor(n + 0.5)) + 0.5 / 1024.0), 2.0) > 0.5 ? 1.0 : 0.0;
+  fragColor = vec4(next);
+}

@@ -30,9 +30,12 @@ abstract class Stepping {
 
 /// Double-buffered stepping by the plain rules.
 class StepperState implements Stepping {
-  StepperState(Grid g, [this.rule = LifeRule.conway]) : a = g.copy(), b = Grid(g.width, g.height), rgba = Uint8List(g.width * g.height * 4);
+  StepperState(Grid g, [this.rule = LifeRule.conway]) : _step = rule.processor.step, a = g.copy(), b = Grid(g.width, g.height), rgba = Uint8List(g.width * g.height * 4);
 
   final LifeRule rule;
+
+  /// The rule's processor, taken once.
+  final StepFunction _step;
   Grid a, b;
   final Uint8List rgba;
 
@@ -42,7 +45,7 @@ class StepperState implements Stepping {
   @override
   StepResult advance(int generations) {
     for (var i = 0; i < generations; i++) {
-      a.stepInto(b, rule);
+      _step(a, b, rule);
       final t = a;
       a = b;
       b = t;

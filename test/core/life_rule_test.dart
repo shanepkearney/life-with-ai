@@ -60,6 +60,20 @@ void main() {
   });
 
   group('the table-driven step', () {
+    test('each rule names its processor once: Conway its own code, every other rule the table', () {
+      expect(LifeRule.conway.processor, RuleProcessor.conway);
+      for (final r in [highLife, seeds, dayAndNight, lifeWithoutDeath]) {
+        expect(r.processor, RuleProcessor.anyRule, reason: r.notation);
+      }
+      // The two processors agree where they overlap: the table, given Conway's rule, is Conway's own loop.
+      var a = soup(83, 59, 7), b = a.copy();
+      for (var i = 0; i < 50; i++) {
+        a = RuleProcessor.conway.step(a, Grid(83, 59), LifeRule.conway);
+        b = RuleProcessor.anyRule.step(b, Grid(83, 59), LifeRule.conway);
+      }
+      expect(b.stateHash, a.stateHash);
+    });
+
     test("gives exactly Conway's loop for Conway's rule", () {
       final g = soup(97, 61, 1);
       var a = g.copy();

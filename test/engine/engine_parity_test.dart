@@ -28,7 +28,7 @@ void main() {
       await tester.runAsync(() async {
         final shaders = await Shaders.load();
         final start = seeded(w, h, w * h);
-        final cpu = CpuEngine(), gpu = GpuEngine(shaders.lifeStep), hash = CpuEngine(kind: EngineKind.hashlife);
+        final cpu = CpuEngine(), gpu = GpuEngine(shaders), hash = CpuEngine(kind: EngineKind.hashlife);
         for (final e in [cpu, gpu, hash]) {
           await e.load(start);
         }
@@ -58,7 +58,7 @@ void main() {
       await tester.runAsync(() async {
         final shaders = await Shaders.load();
         final start = seeded(97, 61, rule.hashCode);
-        final cpu = CpuEngine(), gpu = GpuEngine(shaders.lifeStep), hash = CpuEngine(kind: EngineKind.hashlife);
+        final cpu = CpuEngine(), gpu = GpuEngine(shaders), hash = CpuEngine(kind: EngineKind.hashlife);
         for (final e in [cpu, gpu, hash]) {
           await e.load(start, rule: rule);
         }
