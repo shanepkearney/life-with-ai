@@ -61,6 +61,11 @@ abstract final class Rle {
   static const maxSide = 2048;
   static const maxLiveCells = 1024 * 768;
 
+  /// Limits for [decode] with `unbounded`, for HashLife's endless plane: the
+  /// Turing machine is 12,699 cells across with about 159,000 live ones.
+  static const maxSideUnbounded = 1 << 24;
+  static const maxLiveCellsUnbounded = 20000000;
+
   /// [grid]'s live cells as RLE, cropped to their bounding box.
   static String encode(Grid grid, {String? name, List<String> comments = const []}) {
     final box = grid.boundingBox;
@@ -79,7 +84,11 @@ abstract final class Rle {
 
   /// Reads RLE text. Throws [FormatException] with a message fit to show
   /// people: this parses whatever was pasted.
-  static RlePattern decode(String text) {
+  /// With [unbounded], only absurd sizes are refused (see
+  /// [maxSideUnbounded]): the pattern is for HashLife's endless plane, not a board.
+  static RlePattern decode(String text, {bool unbounded = false}) {
+    final side = unbounded ? maxSideUnbounded : maxSide;
+    final liveCap = unbounded ? maxLiveCellsUnbounded : maxLiveCells;
     String? name;
     final comments = <String>[];
     final body = StringBuffer();
@@ -104,7 +113,7 @@ abstract final class Rle {
         final size = RegExp(r'x\s*=\s*(\d+)\s*,\s*y\s*=\s*(\d+)').firstMatch(line);
         if (size != null) declared = (width: int.tryParse(size[1]!) ?? 0, height: int.tryParse(size[2]!) ?? 0);
         // Say so now, rather than after reading every row of a giant.
-        if (declared.width > maxSide || declared.height > maxSide) throw RleTooBig(declared.width, declared.height);
+        if (declared.width > side || declared.height > side) throw RleTooBig(declared.width, declared.height);
         continue;
       }
       body.write(line);
@@ -118,7 +127,7 @@ abstract final class Rle {
       final code = ch.codeUnitAt(0);
       if (code >= 0x30 && code <= 0x39) {
         run = run * 10 + (code - 0x30);
-        if (run > maxSide * maxSide) throw tooBig(x + run, y + 1);
+        if (run > side * side) throw tooBig(x + run, y + 1);
         continue;
       }
       if (ch == ' ' || ch == '\t') continue;
@@ -143,7 +152,7 @@ abstract final class Rle {
           _ => throw FormatException('"$ch" doesn\'t belong in RLE. A pattern is made of b, o, \$, ! and numbers.'),
         };
         if (alive) {
-          if (cells.length + n > maxLiveCells) throw tooBig(x + n, y + 1);
+          if (cells.length + n > liveCap) throw tooBig(x + n, y + 1);
           for (var k = 0; k < n; k++) {
             cells.add((x + k, y));
           }
@@ -152,7 +161,7 @@ abstract final class Rle {
         }
         x += n;
       }
-      if (x > maxSide || y > maxSide) throw tooBig(x, y + 1);
+      if (x > side || y > side) throw tooBig(x, y + 1);
     }
     return finish();
   }

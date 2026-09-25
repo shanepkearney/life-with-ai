@@ -19,8 +19,11 @@ import 'theme.dart';
 Future<String?> showRleDialog(BuildContext context, LifeController life) async {
   final wasRunning = life.running;
   if (wasRunning) life.toggleRunning();
-  final moment = await life.captureMoment();
-  final text = moment.seed.population == 0 ? '' : Rle.encode(moment.seed, name: life.boardTitle, comments: _comments(life, moment.seed));
+  // A giant pattern isn't a board to export; the box starts empty, ready for a paste.
+  final moment = life.giant != null ? null : await life.captureMoment();
+  final text = moment == null || moment.seed.population == 0
+      ? ''
+      : Rle.encode(moment.seed, name: life.boardTitle, comments: _comments(life, moment.seed));
   if (!context.mounted) return null;
   final loaded = await showGeneralDialog<String>(
     context: context,
@@ -87,26 +90,33 @@ class _RlePanelState extends State<_RlePanel> {
   }
 
   Future<void> _load() async {
-    final RlePattern pattern;
+    RlePattern pattern;
+    var giant = false;
     try {
       pattern = Rle.decode(_text.text);
-    } on RleTooBig catch (e) {
-      return setState(() => _error = _tooBig(e.width, e.height));
+    } on RleTooBig {
+      // Too big for any board: read it again for HashLife's endless plane.
+      try {
+        pattern = Rle.decode(_text.text, unbounded: true);
+        giant = true;
+      } on RleTooBig catch (e) {
+        return setState(() => _error = _tooBig(e.width, e.height));
+      } on FormatException catch (e) {
+        return setState(() => _error = e.message);
+      }
     } on FormatException catch (e) {
       return setState(() => _error = e.message);
     }
-    final ok = await widget.life.playPattern(pattern);
+    if (!giant) giant = !await widget.life.playPattern(pattern);
+    if (giant) await widget.life.openGiant(pattern);
     if (!mounted) return;
-    if (!ok) return setState(() => _error = _tooBig(pattern.width, pattern.height));
     Navigator.of(context).pop(pattern.name ?? 'Pasted pattern');
   }
 
-  /// Too big for any board: say how big, how big the boards go, and what can run it.
-  static String _tooBig(int width, int height) {
-    final big = BoardSize.desktop.last;
-    return 'This pattern is ${_n(width)} × ${_n(height)} cells, and the largest board here is ${_n(big.width)} × ${_n(big.height)}. '
-        'Patterns this big need Golly, which runs them with HashLife.';
-  }
+  /// Too big even for the endless plane: say how big, and what can run it.
+  static String _tooBig(int width, int height) =>
+      'This pattern is ${_n(width)} × ${_n(height)} cells, too big even for the endless plane '
+      '(${_n(Rle.maxSideUnbounded)} cells across). Golly may manage it.';
 
   /// 12699 as "12,699".
   static String _n(int n) => n.toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ',');

@@ -11,6 +11,7 @@ import 'package:life_with_ai/app/platform/full_screen.dart';
 import 'package:life_with_ai/app/share_link.dart';
 import 'package:life_with_ai/core/grid.dart';
 import 'package:life_with_ai/core/patterns.dart';
+import 'package:life_with_ai/core/rle.dart';
 import 'package:life_with_ai/engine/life_engine.dart';
 import 'package:life_with_ai/main.dart';
 import 'package:life_with_ai/render/board_palette.dart';
@@ -249,6 +250,65 @@ void main() {
     await tapSettled(tester, find.byTooltip('Back to the start'));
     await pumpUntil(tester, () => life.atBeginning, reason: 'back to the edit');
     expect(await board(), edited);
+  });
+
+  testWidgets('a pattern too big for any board runs on the endless plane, with pan, zoom, jumps and rewind', (tester) async {
+    // The Mac app's smallest window, where the board area is tightest (CI's screen is small too).
+    tester.view.physicalSize = const Size(1024, 700) * tester.view.devicePixelRatio;
+    addTearDown(tester.view.resetPhysicalSize);
+    final app = await start(tester);
+    final life = app.controller;
+    // A gun and a blinker 5,000 cells apart: far wider than the largest board.
+    final far = Grid(5000, 40);
+    patternLibrary['gosper_glider_gun']!.stampOnto(far, 2, 2);
+    patternLibrary['blinker']!.stampOnto(far, 4990, 30);
+    final text = Rle.encode(far, name: 'Far apart');
+
+    await tester.tap(find.byTooltip('Import or export RLE'));
+    await pumpUntil(tester, () => find.text('Pattern as RLE').evaluate().isNotEmpty, reason: 'dialog open');
+    await tester.enterText(find.byType(TextField).last, text);
+    await tester.tap(find.text('Load'));
+    await pumpUntil(tester, () => (life.giant?.population ?? 0) > 0, reason: 'loaded on the plane');
+
+    final g = life.giant!;
+    expect(g.name, 'Far apart');
+    expect(life.engineKind, EngineKind.hashlife);
+    expect(g.zoom, lessThan(0), reason: 'fitted: 5,000 cells across needs several cells a pixel');
+    expect(find.textContaining('endless plane'), findsWidgets); // the corner label; the HUD may be scaled or compact on a small screen
+    expect(find.textContaining('Jump ×'), findsOneWidget, reason: 'the speed slider is the jump size');
+
+    // Jumps: pause, then one step of 2^10.
+    if (life.running) life.toggleRunning();
+    await frames(tester, 300);
+    life.setGiantJump(10);
+    await frames(tester, 100);
+    final before = life.generation;
+    await tester.tap(find.byTooltip('Jump ×1,024 generations (→)'));
+    await pumpUntil(tester, () => life.generation == before + 1024, reason: 'one jump of 1,024');
+
+    // Zoom in with the + button, pan by dragging, and Fit brings it all back.
+    final zoom = g.zoom;
+    await tester.tap(find.byTooltip('Zoom in (+)'));
+    await frames(tester, 200);
+    expect(g.zoom, zoom + 1);
+    final x = g.centreX;
+    await tester.dragFrom(tester.getCenter(find.byType(LifeCanvas)), const Offset(-200, 0));
+    await frames(tester, 300);
+    expect(g.centreX, greaterThan(x), reason: 'dragging left moves the view right');
+    await tester.tap(find.text('Fit'));
+    await frames(tester, 300);
+    expect(g.zoom, zoom);
+
+    // Back to the start is generation 0 of the pattern; there's no stepping back.
+    expect(life.canStepBack, isFalse);
+    await tester.tap(find.byTooltip('Back to the start'));
+    await pumpUntil(tester, () => life.generation == 0, reason: 'restarted');
+
+    // Randomize puts a normal board down and leaves the plane.
+    await tester.tap(find.byTooltip('Randomize'));
+    await pumpUntil(tester, () => life.giant == null, reason: 'left the plane');
+    expect(life.engineKind, isNot(EngineKind.hashlife));
+    expect(life.population, greaterThan(1000));
   });
 
   testWidgets('the logo and the ⓘ open the about panel', (tester) async {

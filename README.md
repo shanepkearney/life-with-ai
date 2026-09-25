@@ -285,6 +285,33 @@ that board because the pattern depends on wrapping there. Other rules are refuse
 than 2,048 cells, or code blocks that aren't RLE. A few of those posts are test fixtures, credited to their
 authors.
 
+### Giant patterns: the Turing machine
+
+A pattern too big for any board loads onto HashLife's **endless plane** in the board area instead.
+[Paul Rendell's Universal Turing Machine](http://www.rendell-attic.org/gol/utm/) is 12,699 × 12,652
+cells with about 252,000 live ones; pasted into the ⇅ dialog, it reads in about 25 ms, builds into
+38,549 distinct squares in about 100 ms, and runs at around 150,000 generations a second on a Mac,
+past 1.3 million generations in twelve seconds, computing.
+
+| The whole machine, fitted: 32 cells a pixel | Zoomed in to 2 cells a pixel at generation 1,441,856: the tape, signal streams and machinery |
+|---|---|
+| ![The Turing machine as a long glowing diagonal arm with its control block, the bar showing Jump ×64K and the HUD HashLife · endless plane](readme/app-giant-turing.png) | ![A close view of the running machine: a grid of glowing tape cells, glider streams and diagonal bands of machinery](readme/app-giant-zoom.png) |
+
+- **Drag to pan, scroll or pinch to zoom**, or use **− Fit +** in the corner. The view is drawn at
+  screen resolution: zoomed out, each pixel sums its squares of cells; zoomed in, cells are cells.
+- **The speed slider becomes the jump**: each step moves on 2^j generations, from 1 to 16,777,216,
+  as fast as the machine allows. On the web, which has no background threads, the jump taken shrinks
+  while steps are slow, to keep the page responsive.
+- **Back to the start** returns to generation 0. Stepping back, drawing and saving a moment are off:
+  they belong to boards. Randomize, Clear, a board size, a seed or a favorite puts a normal board
+  back.
+
+`lib/core/hashlife.dart`'s `HashPlane` holds the pattern: jumps of 2^j generations (Gosper's full
+recursion, each square's future remembered), a root that grows to keep the pattern in its centre and
+shrinks back, and pruning to just the squares in use once the table passes about 4 million. It runs in
+a background isolate (`lib/engine/giant_runner.dart`), which sends back only the view. Tests compare
+it cell for cell with the plain rules, after single steps and after jumps of up to 1,024 generations.
+
 ## Community seeds
 
 The **Community** tab lists seeds that people found and contributed, each credited `by @username` with a

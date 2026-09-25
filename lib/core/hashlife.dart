@@ -15,8 +15,10 @@ final class HashNode {
   final HashNode? nw, ne, sw, se;
   final int population;
 
-  /// The centre half of this square one generation later (see [HashLife.step1]).
+  /// The centre half of this square [_nextStep] generations on (a power of
+  /// two, see [HashLife.advance]): one remembered answer per square.
   HashNode? _next;
+  int _nextStep = -1;
 
   int get size => 1 << level;
 }
@@ -142,10 +144,16 @@ class HashLife {
 
   /// The centre half of [n], one generation later: a node one level down.
   /// Only the centre can be known, since its edges depend on cells outside.
-  HashNode step1(HashNode n) {
-    assert(n.level >= 2);
+  HashNode step1(HashNode n) => advance(n, 0);
+
+  /// The centre half of [n], 2^[j] generations later, a node one level down.
+  /// [j] can be up to `level - 2`: HashLife's jump, where a square's future
+  /// is built from its quarters' futures, each remembered for every copy.
+  HashNode advance(HashNode n, int j) {
+    assert(n.level >= 2 && j >= 0 && j <= n.level - 2);
+    if (n.population == 0) return empty(n.level - 1);
     final memo = n._next;
-    if (memo != null) return memo;
+    if (memo != null && n._nextStep == j) return memo;
     final HashNode result;
     if (n.level == 2) {
       result = _step4x4(n);
@@ -157,16 +165,25 @@ class HashLife {
       final n11 = join(n.nw!.se!, n.ne!.sw!, n.sw!.ne!, n.se!.nw!);
       final n12 = join(n.ne!.sw!, n.ne!.se!, n.se!.nw!, n.se!.ne!);
       final n21 = join(n.sw!.ne!, n.se!.nw!, n.sw!.se!, n.se!.sw!);
-      // Each quadrant of the answer is the next generation of the square
-      // made of the centres of the four overlapping squares around it.
+      // At full speed each of the nine first moves half the way (2^(level-3)),
+      // then the four squares they make move the rest. Slower, the nine only
+      // give up their centres, and the four squares make the whole jump.
+      final full = j == n.level - 2;
+      HashNode part(HashNode x) => full ? advance(x, j - 1) : _centre(x);
+      final c00 = part(n00), c01 = part(n01), c02 = part(n02);
+      final c10 = part(n10), c11 = part(n11), c12 = part(n12);
+      final c20 = part(n20), c21 = part(n21), c22 = part(n22);
+      final k = full ? j - 1 : j;
       result = join(
-        step1(join(_centre(n00), _centre(n01), _centre(n10), _centre(n11))),
-        step1(join(_centre(n01), _centre(n02), _centre(n11), _centre(n12))),
-        step1(join(_centre(n10), _centre(n11), _centre(n20), _centre(n21))),
-        step1(join(_centre(n11), _centre(n12), _centre(n21), _centre(n22))),
+        advance(join(c00, c01, c10, c11), k),
+        advance(join(c01, c02, c11, c12), k),
+        advance(join(c10, c11, c20, c21), k),
+        advance(join(c11, c12, c21, c22), k),
       );
     }
-    n._next = result;
+    n
+      .._next = result
+      .._nextStep = j;
     return result;
   }
 
@@ -233,6 +250,30 @@ class HashLife {
     _write(n.se!, x0 + half, y0 + half, out);
   }
 
+  /// Keeps only the squares [root] is made of, and forgets every remembered
+  /// future: what a long run piles up, freed, with the table rebuilt small.
+  void keepOnly(Iterable<HashNode> roots) {
+    _table = List<HashNode?>.filled(1 << 16, null);
+    _count = 0;
+    final seen = <HashNode>{};
+    void keep(HashNode n) {
+      if (n.level == 0 || !seen.add(n)) return;
+      n
+        .._next = null
+        .._nextStep = -1;
+      keep(n.nw!);
+      keep(n.ne!);
+      keep(n.sw!);
+      keep(n.se!);
+      if (_count * 2 >= _table.length) _grow();
+      _insert(n);
+    }
+
+    for (final n in [...roots, ..._empty.skip(1), ..._leaves.cast<HashNode>()]) {
+      keep(n);
+    }
+  }
+
   /// Drops the canonical table when it grows past [maxNodes]. Results already
   /// worked out stay correct; later copies just don't share them.
   void _forget() {
@@ -242,5 +283,205 @@ class HashLife {
       if (_count * 2 >= _table.length) _grow();
       _insert(n);
     }
+  }
+}
+
+/// A pattern on an endless plane, run by [HashLife]: no edges to wrap, so it
+/// can jump ahead 2^j generations at a time, and giant patterns (Paul
+/// Rendell's 12,699 x 12,652-cell Turing machine) cost only as much memory
+/// as they have distinct squares.
+class HashPlane {
+  HashPlane._(this.life, this._root, this._x, this._y) : _start = (_root, _x, _y);
+
+  /// [cells] as (x, y) pairs; they keep those coordinates on the plane.
+  factory HashPlane.fromCells(HashLife life, List<(int, int)> cells) {
+    if (cells.isEmpty) return HashPlane._(life, life.empty(3), 0, 0);
+    var minX = cells.first.$1, minY = cells.first.$2, maxX = minX, maxY = minY;
+    for (final (x, y) in cells) {
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+    var level = 3;
+    while ((1 << level) <= (maxX - minX > maxY - minY ? maxX - minX : maxY - minY)) {
+      level++;
+    }
+    HashNode build(int level, int x0, int y0, List<(int, int)> part) {
+      if (part.isEmpty) return life.empty(level);
+      if (level == 0) return HashLife.on;
+      final half = 1 << (level - 1);
+      final nw = <(int, int)>[], ne = <(int, int)>[], sw = <(int, int)>[], se = <(int, int)>[];
+      for (final c in part) {
+        final east = c.$1 >= x0 + half, south = c.$2 >= y0 + half;
+        (south ? (east ? se : sw) : (east ? ne : nw)).add(c);
+      }
+      return life.join(
+        build(level - 1, x0, y0, nw),
+        build(level - 1, x0 + half, y0, ne),
+        build(level - 1, x0, y0 + half, sw),
+        build(level - 1, x0 + half, y0 + half, se),
+      );
+    }
+
+    return HashPlane._(life, build(level, minX, minY, cells), minX, minY);
+  }
+
+  final HashLife life;
+  HashNode _root;
+
+  /// Where it began, for [restart].
+  final (HashNode, int, int) _start;
+
+  /// Back to generation 0.
+  void restart() {
+    _root = _start.$1;
+    _x = _start.$2;
+    _y = _start.$3;
+    generation = 0;
+  }
+
+  /// The plane coordinates of the root square's top-left cell.
+  int _x, _y;
+
+  int generation = 0;
+
+  int get population => _root.population;
+
+  /// The largest jump [advance] allows: 2^40 generations, a trillion, so the
+  /// generation count stays exact on the web (53-bit integers).
+  static const maxStep = 40;
+
+  /// Moves on 2^[j] generations.
+  void advance(int j) {
+    assert(j >= 0 && j <= maxStep);
+    // Keep the root small: drop empty borders.
+    while (_root.level > 3 && _inCentreHalf(_root)) {
+      final quarter = _root.size >> 2;
+      _root = life.join(_root.nw!.se!, _root.ne!.sw!, _root.sw!.ne!, _root.se!.nw!);
+      _x += quarter;
+      _y += quarter;
+    }
+    // Room to grow: in the centre quarter of a root big enough for the jump,
+    // nothing can reach past the centre half that [HashLife.advance] returns.
+    while (_root.level < j + 2 || !_inCentreHalf(_root)) {
+      _expand();
+    }
+    _expand();
+    final quarter = _root.size >> 2;
+    _root = life.advance(_root, j);
+    _x += quarter;
+    _y += quarter;
+    generation += 1 << j;
+    if (life.nodeCount > life.maxNodes) life.keepOnly([_root, _start.$1]);
+  }
+
+  /// Everything live is inside the centre half (its outer twelve sixteenths are empty).
+  static bool _inCentreHalf(HashNode n) =>
+      n.nw!.nw!.population +
+          n.nw!.ne!.population +
+          n.nw!.sw!.population +
+          n.ne!.nw!.population +
+          n.ne!.ne!.population +
+          n.ne!.se!.population +
+          n.sw!.nw!.population +
+          n.sw!.sw!.population +
+          n.sw!.se!.population +
+          n.se!.ne!.population +
+          n.se!.sw!.population +
+          n.se!.se!.population ==
+      0;
+
+  /// Doubles the root, keeping it in the middle.
+  void _expand() {
+    final e = life.empty(_root.level - 1);
+    final r = _root;
+    _root = life.join(life.join(e, e, e, r.nw!), life.join(e, e, r.ne!, e), life.join(e, r.sw!, e, e), life.join(r.se!, e, e, e));
+    final quarter = _root.size >> 2;
+    _x -= quarter;
+    _y -= quarter;
+  }
+
+  /// The smallest rectangle holding every live cell, or null when there are none.
+  ({int x, int y, int width, int height})? get bounds {
+    if (_root.population == 0) return null;
+    int edge(HashNode n, int x0, int y0, bool horizontal, bool low) {
+      if (n.level == 0) return horizontal ? x0 : y0;
+      final half = n.size >> 1;
+      final parts = [(n.nw!, x0, y0), (n.ne!, x0 + half, y0), (n.sw!, x0, y0 + half), (n.se!, x0 + half, y0 + half)];
+      // The quarters nearest the wanted edge first.
+      int key((HashNode, int, int) p) => (horizontal ? p.$2 : p.$3) * (low ? 1 : -1);
+      parts.sort((a, b) => key(a).compareTo(key(b)));
+      int? best;
+      for (final (q, qx, qy) in parts) {
+        if (q.population == 0) continue;
+        final e = edge(q, qx, qy, horizontal, low);
+        if (best == null || (low ? e < best : e > best)) best = e;
+      }
+      return best!;
+    }
+
+    final left = edge(_root, _x, _y, true, true), right = edge(_root, _x, _y, true, false);
+    final top = edge(_root, _x, _y, false, true), bottom = edge(_root, _x, _y, false, false);
+    return (x: left, y: top, width: right - left + 1, height: bottom - top + 1);
+  }
+
+  /// Every live cell, in plane coordinates. For tests and small patterns.
+  List<(int, int)> liveCells() {
+    final out = <(int, int)>[];
+    void walk(HashNode n, int x0, int y0) {
+      if (n.population == 0) return;
+      if (n.level == 0) return out.add((x0, y0));
+      final half = n.size >> 1;
+      walk(n.nw!, x0, y0);
+      walk(n.ne!, x0 + half, y0);
+      walk(n.sw!, x0, y0 + half);
+      walk(n.se!, x0 + half, y0 + half);
+    }
+
+    walk(_root, _x, _y);
+    return out;
+  }
+
+  /// A [width] x [height] picture of the plane, one byte per pixel, whose
+  /// top-left pixel is the cell at ([left], [top]) and where each pixel
+  /// covers 2^[k] x 2^[k] cells. A pixel is 0 where they're all dead, and
+  /// brighter the more of them live, so sparse machinery still shows when
+  /// zoomed far out. Only squares on screen are visited.
+  Uint8List render(int left, int top, int k, int width, int height) {
+    final counts = Uint32List(width * height);
+    final right = left + (width << k), bottom = top + (height << k);
+    void walk(HashNode n, int x0, int y0) {
+      final size = n.size;
+      if (n.population == 0 || x0 >= right || y0 >= bottom || x0 + size <= left || y0 + size <= top) return;
+      if (n.level <= k) {
+        final px = (x0 - left) >> k, py = (y0 - top) >> k; // arithmetic shift: floors negatives too
+        if (px >= 0 && py >= 0 && px < width && py < height) counts[py * width + px] += n.population;
+        return;
+      }
+      final half = size >> 1;
+      walk(n.nw!, x0, y0);
+      walk(n.ne!, x0 + half, y0);
+      walk(n.sw!, x0, y0 + half);
+      walk(n.se!, x0 + half, y0 + half);
+    }
+
+    walk(_root, _x, _y);
+    final out = Uint8List(width * height);
+    if (k == 0) {
+      for (var i = 0; i < out.length; i++) {
+        if (counts[i] > 0) out[i] = 255;
+      }
+      return out;
+    }
+    final cellsPerPixel = (1 << k) * (1 << k);
+    for (var i = 0; i < out.length; i++) {
+      final c = counts[i];
+      if (c == 0) continue;
+      final density = c / cellsPerPixel;
+      // Any life at all is clearly visible; crowds are brighter.
+      out[i] = (110 + 145 * (density * 3 > 1 ? 1 : density * 3)).round();
+    }
+    return out;
   }
 }

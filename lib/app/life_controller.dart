@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
@@ -8,11 +9,13 @@ import '../core/rle.dart';
 import '../core/seed_codec.dart';
 import '../core/timeline.dart';
 import '../engine/cpu_engine.dart';
+import '../engine/giant_runner.dart';
 import '../engine/gpu_engine.dart';
 import '../engine/life_engine.dart';
 import '../render/board_palette.dart';
 import '../render/glow_pipeline.dart';
 import '../render/shaders.dart';
+import 'giant_mode.dart';
 import 'telemetry.dart';
 
 /// A board's size in cells: one of the presets, a board shaped like the
@@ -111,10 +114,10 @@ class LifeController extends ChangeNotifier {
 
   /// The generation "back to the start" returns to.
   int get originGeneration => timeline?.originGeneration ?? 0;
-  bool get atBeginning => generation <= originGeneration;
+  bool get atBeginning => giant != null ? giant!.generation == 0 : generation <= originGeneration;
 
   /// Like stepping forward, stepping back works while paused.
-  bool get canStepBack => !running && timeline != null && !atBeginning;
+  bool get canStepBack => giant == null && !running && timeline != null && !atBeginning;
 
   BoardSize boardSize = BoardSize.medium;
 
@@ -157,6 +160,9 @@ class LifeController extends ChangeNotifier {
   double get _rate => experiment != null && !experimentFinished ? experiment!.rate : targetRate.toDouble();
 
   bool _busy = false;
+
+  /// Commands waiting in [_whileIdle] for the current step to finish.
+  int _waiting = 0;
   int _gensSinceSample = 0;
   final _rateClock = Stopwatch()..start();
 
@@ -164,9 +170,9 @@ class LifeController extends ChangeNotifier {
   Grid? _edit;
   bool _flushQueued = false;
 
-  EngineKind get engineKind => engine.kind;
-  int get generation => engine.generation;
-  int get population => engine.population;
+  EngineKind get engineKind => giant != null ? EngineKind.hashlife : engine.kind;
+  int get generation => giant?.generation ?? engine.generation;
+  int get population => giant?.population ?? engine.population;
   int get width => engine.width;
   int get height => engine.height;
 
@@ -184,7 +190,8 @@ class LifeController extends ChangeNotifier {
     if (_disposed) return;
     final dt = _lastTick == null ? 0.0 : (now - _lastTick!).clamp(0.0, 0.1);
     _lastTick = now;
-    if (_busy) return;
+    if (_busy || _waiting > 0) return;
+    if (giant != null) return _tickGiant();
     if (experimentFinished) {
       await _afterExperiment(now);
       return;
@@ -254,6 +261,7 @@ class LifeController extends ChangeNotifier {
   }
 
   Future<void> _startExperiment(Experiment e) => _whileIdle(() async {
+    _leaveGiant();
     _leaveSharedColorsFor(e.seed);
     await engine.load(e.seed);
     timeline = Timeline(e.seed);
@@ -330,8 +338,9 @@ class LifeController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Advances exactly one generation while paused.
+  /// Advances exactly one generation while paused (one jump, for a giant pattern).
   Future<void> stepOnce() => _whileIdle(() async {
+    if (giant != null) return _giantRequest((v) => giant!.runner.advance(giant!.effectiveJump, v));
     await engine.step(1);
     await _recordCheckpoint();
     _publish();
@@ -359,6 +368,7 @@ class LifeController extends ChangeNotifier {
 
   /// Returns to where the current run began, keeping its name and play state.
   Future<void> rewindToStart() => _whileIdle(() async {
+    if (giant != null) return _giantRequest((v) => giant!.runner.restart(v));
     final t = timeline;
     if (t == null || atBeginning) return;
     await engine.load(t.origin, generation: t.originGeneration);
@@ -455,6 +465,7 @@ class LifeController extends ChangeNotifier {
   /// Hot-swaps the engine mid-run: the board is carried across, so the two
   /// can be compared on the same pattern.
   Future<void> switchEngine(EngineKind kind) async {
+    if (giant != null) return; // a giant pattern needs HashLife's endless plane
     if (kind == engine.kind) return;
     await _whileIdle(() async {
       final grid = await engine.snapshot();
@@ -485,6 +496,7 @@ class LifeController extends ChangeNotifier {
   /// Replaces the board (used by reset, drawing, and the AI assistant). Any
   /// experiment replay stops: the board now shows something else.
   Future<void> load(Grid grid) => _whileIdle(() async {
+    _leaveGiant();
     _cancelExperiments();
     _leaveSharedColorsFor(grid);
     boardTitle = null; // callers that know the seed's name set it after loading
@@ -494,15 +506,198 @@ class LifeController extends ChangeNotifier {
     _publish();
   });
 
+  // ---- Giant patterns ---------------------------------------------------------
+
+  /// A pattern too big for any board, running on HashLife's endless plane in
+  /// the board area, or null. Anything that puts a normal board down leaves it.
+  GiantMode? giant;
+
+  /// Makes the runner for a giant pattern. Widget tests use [GiantRunner.inline].
+  GiantRunner Function() newGiantRunner = GiantRunner.new;
+
+  /// Set when the view changes during a jump, so it's redrawn right after.
+  bool _giantViewChanged = false;
+  int _giantGens = 0;
+
+  /// Loads [pattern] onto the endless plane and plays it, fitted to the screen.
+  Future<void> openGiant(RlePattern pattern) => _whileIdle(() async {
+    _cancelExperiments();
+    _leaveGiant();
+    final g = GiantMode(pattern.name ?? 'Giant pattern', newGiantRunner())
+      ..canvas = _giantCanvas
+      ..bounds = (x: 0, y: 0, width: pattern.width, height: pattern.height);
+    g.fit();
+    giant = g;
+    final cells = Int32List(pattern.cells.length * 2);
+    for (var i = 0; i < pattern.cells.length; i++) {
+      cells[i * 2] = pattern.cells[i].$1;
+      cells[i * 2 + 1] = pattern.cells[i].$2;
+    }
+    pipeline.clearTrail();
+    await _giantRequest((v) => g.runner.load(cells, v));
+    boardTitle = g.name;
+    running = true;
+    _due = 0;
+    notifyListeners();
+  });
+
+  /// The board area's size, told by the canvas, so a giant pattern is drawn at screen resolution.
+  Size _giantCanvas = const Size(800, 600);
+
+  void setGiantCanvas(Size size) {
+    if (size == _giantCanvas || size.isEmpty) return;
+    _giantCanvas = size;
+    final g = giant;
+    if (g == null) return;
+    g.canvas = size;
+    if (g.autoFit) g.fit();
+    _redrawGiant();
+  }
+
+  /// Drag: moves the view by [delta] screen pixels.
+  void panGiant(Offset delta) {
+    giant?.pan(delta.dx, delta.dy);
+    _redrawGiant();
+  }
+
+  /// Wheel, pinch or the ± buttons: zooms by [steps] doublings around [focal].
+  void zoomGiant(int steps, Offset focal) {
+    giant?.zoomBy(steps, focal);
+    _redrawGiant();
+  }
+
+  void fitGiant() {
+    giant?.fit();
+    _redrawGiant();
+  }
+
+  /// Each step jumps 2^[j] generations.
+  void setGiantJump(int j) {
+    final g = giant;
+    if (g == null) return;
+    g
+      ..jump = j.clamp(0, GiantMode.maxJump)
+      ..limitedJump = null;
+    notifyListeners();
+  }
+
+  /// The view moved. The frame on screen follows at once (see
+  /// [GiantMode.shift]); a sharp one is drawn now, or right after the jump in
+  /// progress, and again if the view moves on meanwhile.
+  void _redrawGiant() {
+    if (giant == null) return;
+    notifyListeners();
+    _giantViewChanged = true;
+    if (!_busy) _redrawGiantWhileMoving();
+  }
+
+  Future<void> _redrawGiantWhileMoving() async {
+    _busy = true;
+    try {
+      while (_giantViewChanged && giant != null) {
+        _giantViewChanged = false;
+        final g = giant!;
+        await _giantRequest((v) => g.runner.render(v));
+      }
+    } catch (e) {
+      _giantFailed(e);
+    } finally {
+      _busy = false;
+    }
+  }
+
+  /// Sends a request for the view as it is now, and shows the answer as drawn there.
+  Future<void> _giantRequest(Future<GiantFrame> Function(GiantView view) request) async {
+    final g = giant!;
+    final at = g.here;
+    final frame = await request(g.view);
+    await _showGiant(frame, at);
+  }
+
+  Future<void> _tickGiant() async {
+    final g = giant!;
+    if (!running) return;
+    _busy = true;
+    try {
+      final j = g.effectiveJump;
+      final clock = Stopwatch()..start();
+      final at = g.here;
+      final GiantFrame frame;
+      try {
+        frame = await g.runner.advance(j, g.view);
+      } catch (e) {
+        return _giantFailed(e);
+      }
+      if (!identical(giant, g)) return; // left while it ran
+      // On the web the jump runs on the UI thread: ration it to stay responsive.
+      if (g.runner.inline) {
+        final ms = clock.elapsedMilliseconds;
+        if (ms > 120 && j > 0) g.limitedJump = j - 1;
+        if (ms < 40 && g.limitedJump != null) g.limitedJump = g.limitedJump! + 1 >= g.jump ? null : g.limitedJump! + 1;
+      }
+      await _showGiant(frame, at);
+      _giantGens += 1 << j;
+      final ms = _rateClock.elapsedMilliseconds;
+      if (ms >= 500) {
+        gensPerSecond = _giantGens * 1000 / ms;
+        _giantGens = 0;
+        _rateClock.reset();
+      }
+      while (_giantViewChanged && identical(giant, g)) {
+        _giantViewChanged = false;
+        await _giantRequest((v) => g.runner.render(v));
+      }
+    } finally {
+      _busy = false;
+    }
+  }
+
+  Future<void> _showGiant(GiantFrame f, ({double x, double y, double cellsPerPixel}) at) async {
+    final g = giant;
+    if (g == null || _disposed) return;
+    g
+      ..generation = f.generation
+      ..population = f.population
+      ..bounds = f.bounds;
+    final image = await imageFromRgba(f.rgba, f.width, f.height);
+    if (!identical(giant, g) || _disposed) return image.dispose();
+    // A trail drawn for another view would smear across this one.
+    if (g.shown != at) pipeline.clearTrail();
+    g.shown = at;
+    pipeline.update(image);
+    image.dispose();
+    notifyListeners();
+  }
+
+  /// The plane's worker failed (out of memory, say): stop, and say so in the log.
+  void _giantFailed(Object e) {
+    debugPrint('The giant pattern stopped: $e');
+    running = false;
+    gensPerSecond = 0;
+    notifyListeners();
+  }
+
+  /// Back to the normal board, which was left as it was.
+  void _leaveGiant() {
+    final g = giant;
+    if (g == null) return;
+    giant = null;
+    _giantViewChanged = false;
+    g.runner.dispose();
+    pipeline.clearTrail();
+  }
+
   // ---- Drawing --------------------------------------------------------------
 
   Future<void> beginEdit() async {
+    if (giant != null) return; // dragging pans a giant pattern instead
     _cancelExperiments();
     boardTitle = null; // drawn on: it's the user's board now
     _edit = await engine.snapshot();
   }
 
   void paintCell(int x, int y, bool alive) {
+    if (giant != null) return;
     final g = _edit;
     if (g == null || x < 0 || y < 0 || x >= g.width || y >= g.height) return;
     // A 2x2 brush on big boards so strokes are visible.
@@ -528,8 +723,15 @@ class LifeController extends ChangeNotifier {
   void endEdit() => _edit = null;
 
   Future<T> _whileIdle<T>(Future<T> Function() body) async {
-    while (_busy) {
-      await Future<void>.delayed(const Duration(milliseconds: 4));
+    // While a command waits, [tick] starts nothing new: a giant pattern's
+    // back-to-back jumps would otherwise never leave it a gap.
+    _waiting++;
+    try {
+      while (_busy) {
+        await Future<void>.delayed(const Duration(milliseconds: 4));
+      }
+    } finally {
+      _waiting--;
     }
     _busy = true;
     try {
@@ -542,6 +744,7 @@ class LifeController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    giant?.runner.dispose();
     engine.dispose();
     pipeline.dispose();
     super.dispose();
