@@ -36,65 +36,67 @@ class ControlBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = controller;
     final giant = c.giant;
+    final sections = <List<Widget>>[
+      // Playback.
+      [
+        _Icon(icon: Icons.first_page_rounded, tip: 'Back to the start', onTap: c.atBeginning ? null : c.rewindToStart),
+        _Icon(icon: Icons.skip_previous_rounded, tip: 'Step back one generation (←)', onTap: c.canStepBack ? c.stepBack : null),
+        _Icon(
+          icon: c.running ? Icons.pause_rounded : Icons.play_arrow_rounded,
+          tip: c.running ? 'Pause (space)' : 'Play (space)',
+          glow: true,
+          onTap: c.toggleRunning,
+        ),
+        _Icon(
+          icon: Icons.skip_next_rounded,
+          tip: giant == null ? 'Step one generation (→)' : 'Jump ${giant.jumpLabel} generations (→)',
+          onTap: c.running ? null : c.stepOnce,
+        ),
+      ],
+      // What edits the board, and its colors (with the glow): not in full screen, which is for watching.
+      if (!fullScreen) ...[
+        [
+          _Icon(icon: Icons.shuffle_rounded, tip: 'Randomize', onTap: () => c.randomize()),
+          _Icon(icon: Icons.delete_sweep_rounded, tip: 'Clear', onTap: c.clear),
+          // A giant pattern pans instead of drawing, and is too big to save as a moment.
+          _Icon(
+            icon: erase ? Icons.auto_fix_normal_rounded : Icons.edit_rounded,
+            tip: erase ? 'Drawing erases — tap to draw' : 'Drawing adds cells — tap to erase',
+            onTap: giant != null || onEraseChanged == null ? null : () => onEraseChanged!(!erase),
+          ),
+          if (onSaveMoment != null)
+            _Icon(icon: Icons.favorite_border_rounded, tip: 'Save this moment to favorites', onTap: giant != null ? null : onSaveMoment),
+        ],
+        [_PaletteButton(controller: c)],
+      ],
+      // The speed; engine, rule and size are chosen from the HUD at the top.
+      [SpeedControl(controller: c)],
+      // Zoom out, Fit, zoom in, on a board or the plane; the HUD shows how far in.
+      [ZoomControls(controller: c)],
+      if (onFullScreen != null)
+        [
+          fullScreen
+              ? _Icon(icon: Icons.fullscreen_exit_rounded, tip: 'Exit full screen (Esc)', onTap: onFullScreen)
+              : _Icon(icon: Icons.fullscreen_rounded, tip: 'Full screen (F)', onTap: onFullScreen),
+        ],
+    ];
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: Neon.panelDecoration(),
-      // The controls, then ⛶ at the right end. As wide as they need (the bar isn't
-      // stretched to the window), and they wrap when the window is narrower.
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      // As wide as the controls need (the bar isn't stretched to the window). On a
+      // narrower window it wraps between sections, never inside one: each keeps its
+      // controls and the divider after it together, and ⛶ comes last.
+      child: Wrap(
+        spacing: 4,
+        runSpacing: 6,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          Flexible(
-            child: Wrap(
+          for (final (i, section) in sections.indexed)
+            Row(
+              mainAxisSize: MainAxisSize.min,
               spacing: 4,
-              runSpacing: 6,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                _Icon(icon: Icons.first_page_rounded, tip: 'Back to the start', onTap: c.atBeginning ? null : c.rewindToStart),
-                _Icon(icon: Icons.skip_previous_rounded, tip: 'Step back one generation (←)', onTap: c.canStepBack ? c.stepBack : null),
-                _Icon(
-                  icon: c.running ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                  tip: c.running ? 'Pause (space)' : 'Play (space)',
-                  glow: true,
-                  onTap: c.toggleRunning,
-                ),
-                _Icon(
-                  icon: Icons.skip_next_rounded,
-                  tip: giant == null ? 'Step one generation (→)' : 'Jump ${giant.jumpLabel} generations (→)',
-                  onTap: c.running ? null : c.stepOnce,
-                ),
-                // Playback, then (off full screen) what edits the board, each group divided.
-                const _Divider(),
-                if (!fullScreen) ...[
-                  _Icon(icon: Icons.shuffle_rounded, tip: 'Randomize', onTap: () => c.randomize()),
-                  _Icon(icon: Icons.delete_sweep_rounded, tip: 'Clear', onTap: c.clear),
-                  // A giant pattern pans instead of drawing, and is too big to save as a moment.
-                  _Icon(
-                    icon: erase ? Icons.auto_fix_normal_rounded : Icons.edit_rounded,
-                    tip: erase ? 'Drawing erases — tap to draw' : 'Drawing adds cells — tap to erase',
-                    onTap: giant != null || onEraseChanged == null ? null : () => onEraseChanged!(!erase),
-                  ),
-                  if (onSaveMoment != null)
-                    _Icon(icon: Icons.favorite_border_rounded, tip: 'Save this moment to favorites', onTap: giant != null ? null : onSaveMoment),
-                  const _Divider(),
-                  // The board's colors, and its glow, in one dialog; then the speed. Engine, rule
-                  // and size are chosen from the HUD at the top.
-                  _PaletteButton(controller: c),
-                  const _Divider(),
-                ],
-                SpeedControl(controller: c),
-                const _Divider(),
-                // Zoom out, Fit, zoom in, on a board or the plane; the HUD shows how far in.
-                ZoomControls(controller: c),
-              ],
+              children: [...section, if (i < sections.length - 1) const _Divider()],
             ),
-          ),
-          if (onFullScreen != null) ...[
-            const _Divider(),
-            fullScreen
-                ? _Icon(icon: Icons.fullscreen_exit_rounded, tip: 'Exit full screen (Esc)', onTap: onFullScreen)
-                : _Icon(icon: Icons.fullscreen_rounded, tip: 'Full screen (F)', onTap: onFullScreen),
-          ],
         ],
       ),
     );
