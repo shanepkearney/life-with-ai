@@ -19,32 +19,31 @@ class Hud extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = controller;
-    // [gap] after it: a menu's ▾ takes its place.
-    Widget stat(String k, String v, Color color, {double gap = 18}) => Padding(
-      padding: EdgeInsets.only(right: gap),
-      child: Text.rich(
-        TextSpan(
-          children: [
-            TextSpan(
-              text: '$k ',
-              style: Neon.mono.copyWith(color: Neon.muted),
+    // The Row spaces the stats: nothing after the last, so the box ends where they do.
+    Widget stat(String k, String v, Color color) => Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(
+            text: '$k ',
+            style: Neon.mono.copyWith(color: Neon.muted),
+          ),
+          TextSpan(
+            text: v,
+            style: Neon.mono.copyWith(
+              color: color,
+              shadows: [Shadow(color: color, blurRadius: 8)],
             ),
-            TextSpan(
-              text: v,
-              style: Neon.mono.copyWith(
-                color: color,
-                shadows: [Shadow(color: color, blurRadius: 8)],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      // Phones: a little tighter, the HUD shares the header with the logo and buttons.
+      padding: compact ? const EdgeInsets.symmetric(horizontal: 12, vertical: 6) : const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: Neon.panelDecoration(radius: 10),
       child: Row(
         mainAxisSize: MainAxisSize.min,
+        spacing: compact ? 14 : 18,
         children: [
           stat('GEN', _grouped(c.generation), Neon.cyan),
           stat('POP', _grouped(c.population), Neon.magenta),
@@ -56,7 +55,7 @@ class Hud extends StatelessWidget {
             if (c.giant == null)
               _HudMenu<BoardSize>(
                 key: const Key('hud-size'),
-                stat: stat('SIZE', c.boardSize.shortLabel, Neon.text, gap: 0),
+                stat: stat('SIZE', c.boardSize.shortLabel, Neon.text),
                 tooltip: 'Board size · ${c.boardSize.label}',
                 value: c.boardSize,
                 items: [
@@ -68,7 +67,7 @@ class Hud extends StatelessWidget {
             // A giant pattern runs on HashLife's endless plane only: no menu there.
             _HudMenu<EngineKind>(
               key: const Key('hud-engine'),
-              stat: stat('ENGINE', c.giant != null ? 'HashLife · endless plane' : c.engineKind.label, Neon.text, gap: c.giant != null ? 18 : 0),
+              stat: stat('ENGINE', c.giant != null ? 'HashLife · endless plane' : c.engineKind.label, Neon.text),
               tooltip: c.giant != null ? 'A giant pattern runs on HashLife' : '${c.engineKind.label}: ${c.engineKind.about}',
               value: c.engineKind,
               items: [for (final k in EngineKind.values) (value: k, text: k.label, detail: k.about)],
@@ -81,7 +80,7 @@ class Hud extends StatelessWidget {
             // Always shown; amber when it isn't Conway's, a reminder that this isn't standard Life.
             _HudMenu(
               key: const Key('hud-rule'),
-              stat: stat('RULE', c.rule.label, c.rule.isConway ? Neon.text : Neon.amber, gap: c.giant != null ? 18 : 0),
+              stat: stat('RULE', c.rule.label, c.rule.isConway ? Neon.text : Neon.amber),
               tooltip: ruleTip(c),
               value: c.rule,
               items: ruleChoices(c.rule),
@@ -130,10 +129,7 @@ class _HudMenu<T> extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             stat,
-            const Padding(
-              padding: EdgeInsets.only(right: 16),
-              child: Icon(Icons.arrow_drop_down_rounded, size: 18, color: Neon.muted),
-            ),
+            const Icon(Icons.arrow_drop_down_rounded, size: 18, color: Neon.muted),
           ],
         ),
       ),
