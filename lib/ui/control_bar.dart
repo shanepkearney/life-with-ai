@@ -65,6 +65,7 @@ class ControlBar extends StatelessWidget {
                 // The board's colors, and its glow, in one dialog; then the speed. Engine, rule
                 // and size are chosen from the HUD at the top.
                 _PaletteButton(controller: c),
+                const _Divider(),
                 SpeedControl(controller: c),
                 const _Divider(),
                 // Zoom out, Fit, zoom in, on a board or the plane; the HUD shows how far in.
@@ -72,7 +73,10 @@ class ControlBar extends StatelessWidget {
               ],
             ),
           ),
-          if (onFullScreen != null) _Icon(icon: Icons.fullscreen_rounded, tip: 'Full screen (F)', onTap: onFullScreen),
+          if (onFullScreen != null) ...[
+            const _Divider(),
+            _Icon(icon: Icons.fullscreen_rounded, tip: 'Full screen (F)', onTap: onFullScreen),
+          ],
         ],
       ),
     );
