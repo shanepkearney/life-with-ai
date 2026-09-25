@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 
 import '../core/grid.dart';
+import '../core/life_rule.dart';
 import '../core/rle.dart';
 import '../core/seed_codec.dart';
 import '../core/timeline.dart';
@@ -120,6 +121,9 @@ class LifeController extends ChangeNotifier {
   bool get canStepBack => giant == null && !running && timeline != null && !atBeginning;
 
   BoardSize boardSize = BoardSize.medium;
+
+  /// The rule new boards run by. Conway's for now: choosing others comes next.
+  LifeRule rule = LifeRule.conway;
 
   /// What's on the board, for naming a saved moment: a seed's prompt or
   /// share-link title, or null for random and hand-drawn boards.
@@ -263,6 +267,7 @@ class LifeController extends ChangeNotifier {
   Future<void> _startExperiment(Experiment e) => _whileIdle(() async {
     _leaveGiant();
     _leaveSharedColorsFor(e.seed);
+    // Claude designs for Conway's rule, and its experiments ran by it.
     await engine.load(e.seed);
     timeline = Timeline(e.seed);
     experiment = e;
@@ -360,9 +365,9 @@ class LifeController extends ChangeNotifier {
         : Grid.fromCells(
             t.width,
             t.height,
-            await compute(_advance, (cells: nearest.board.cells, width: t.width, height: t.height, steps: steps)),
+            await compute(_advance, (cells: nearest.board.cells, width: t.width, height: t.height, steps: steps, birth: t.rule.birth, survival: t.rule.survival)),
           );
-    await engine.load(board, generation: target);
+    await engine.load(board, generation: target, rule: t.rule);
     _publish();
   });
 
@@ -371,7 +376,7 @@ class LifeController extends ChangeNotifier {
     if (giant != null) return _giantRequest((v) => giant!.runner.restart(v));
     final t = timeline;
     if (t == null || atBeginning) return;
-    await engine.load(t.origin, generation: t.originGeneration);
+    await engine.load(t.origin, generation: t.originGeneration, rule: t.rule);
     _due = 0;
     _publish();
   });
@@ -470,7 +475,7 @@ class LifeController extends ChangeNotifier {
     await _whileIdle(() async {
       final grid = await engine.snapshot();
       final next = _create(kind);
-      await next.load(grid, generation: engine.generation);
+      await next.load(grid, generation: engine.generation, rule: engine.rule);
       engine.dispose();
       engine = next;
       _publish();
@@ -500,8 +505,8 @@ class LifeController extends ChangeNotifier {
     _cancelExperiments();
     _leaveSharedColorsFor(grid);
     boardTitle = null; // callers that know the seed's name set it after loading
-    await engine.load(grid);
-    timeline = Timeline(grid);
+    await engine.load(grid, rule: rule);
+    timeline = Timeline(grid, rule: rule);
     pipeline.clearTrail();
     _publish();
   });
@@ -534,7 +539,7 @@ class LifeController extends ChangeNotifier {
       cells[i * 2 + 1] = pattern.cells[i].$2;
     }
     pipeline.clearTrail();
-    await _giantRequest((v) => g.runner.load(cells, v));
+    await _giantRequest((v) => g.runner.load(cells, v, rule: rule));
     boardTitle = g.name;
     running = true;
     _due = 0;
@@ -712,8 +717,8 @@ class LifeController extends ChangeNotifier {
       // Coalesce a whole drag's worth of points into one upload per frame.
       SchedulerBinding.instance.addPostFrameCallback((_) async {
         _flushQueued = false;
-        await engine.load(g, generation: engine.generation);
-        timeline = Timeline(g, generation: engine.generation); // an edit is a new beginning
+        await engine.load(g, generation: engine.generation, rule: engine.rule);
+        timeline = Timeline(g, generation: engine.generation, rule: engine.rule); // an edit is a new beginning
         _publish();
       });
       SchedulerBinding.instance.ensureVisualUpdate();
@@ -756,10 +761,11 @@ class LifeController extends ChangeNotifier {
 }
 
 /// Steps a board forward in a background isolate (inline on the web).
-Uint8List _advance(({Uint8List cells, int width, int height, int steps}) r) {
+Uint8List _advance(({Uint8List cells, int width, int height, int steps, int birth, int survival}) r) {
+  final rule = LifeRule(r.birth, r.survival);
   var a = Grid.fromCells(r.width, r.height, Uint8List.fromList(r.cells)), b = Grid(r.width, r.height);
   for (var i = 0; i < r.steps; i++) {
-    a.stepInto(b);
+    a.stepInto(b, rule);
     final t = a;
     a = b;
     b = t;

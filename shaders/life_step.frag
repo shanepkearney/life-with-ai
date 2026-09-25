@@ -8,6 +8,8 @@
 precision highp float;
 
 uniform vec2 uGrid;
+uniform float uBirth;    // LifeRule.birth: bit n set means born with n neighbors
+uniform float uSurvival; // LifeRule.survival: bit n set means survives with n
 uniform sampler2D uState;
 
 out vec4 fragColor;
@@ -22,7 +24,9 @@ void main() {
           + cell(p + vec2(-1.0,  0.0))                              + cell(p + vec2(1.0,  0.0))
           + cell(p + vec2(-1.0,  1.0)) + cell(p + vec2(0.0,  1.0)) + cell(p + vec2(1.0,  1.0));
   float alive = cell(p);
-  // Born with exactly 3 neighbors; survives with 2 or 3. Sums of 0/1 floats are exact.
-  float next = (abs(n - 3.0) < 0.5 || (abs(n - 2.0) < 0.5 && alive > 0.5)) ? 1.0 : 0.0;
+  // Bit n of the rule's mask, for n live neighbors: floor(mask / 2^n) is odd.
+  // Masks are at most 511 and n a whole number, so this float arithmetic is exact.
+  float mask = alive > 0.5 ? uSurvival : uBirth;
+  float next = mod(floor(mask / exp2(floor(n + 0.5)) + 0.5 / 1024.0), 2.0) > 0.5 ? 1.0 : 0.0;
   fragColor = vec4(next);
 }

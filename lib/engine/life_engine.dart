@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 
 import '../core/grid.dart';
+import '../core/life_rule.dart';
 
 enum EngineKind {
   cpu('CPU · isolate', 'CPU', 'Plain Conway rules, a background isolate'),
@@ -34,8 +35,12 @@ abstract class LifeEngine {
   /// Current generation as an image, or null before the first [load].
   ui.Image? get frame;
 
-  /// Replaces the board. [generation] lets an edit or engine swap keep counting.
-  Future<void> load(Grid grid, {int generation = 0});
+  /// The rule [step] follows, set by [load].
+  LifeRule get rule;
+
+  /// Replaces the board, and the [rule] it runs by. [generation] lets an edit
+  /// or engine swap keep counting.
+  Future<void> load(Grid grid, {int generation = 0, LifeRule rule = LifeRule.conway});
 
   /// Advances [generations] steps.
   Future<void> step([int generations = 1]);

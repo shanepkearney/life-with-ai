@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'life_rule.dart';
+
 /// A toroidal Game of Life board: one byte per cell (0 = dead, 1 = alive),
 /// row-major, edges wrapping — the same topology as the original Java version.
 ///
@@ -34,9 +36,11 @@ class Grid {
   }
 
   /// Advances one generation into [out] (which must be a different grid of
-  /// the same size) and returns it. Double-buffering avoids allocating per step.
-  Grid stepInto(Grid out) {
+  /// the same size) and returns it, by [rule]. Double-buffering avoids
+  /// allocating per step.
+  Grid stepInto(Grid out, [LifeRule rule = LifeRule.conway]) {
     assert(out.width == width && out.height == height && !identical(out, this));
+    if (!rule.isConway) return _stepByTable(out, rule.table);
     final src = cells;
     final dst = out.cells;
     final w = width;
@@ -56,8 +60,28 @@ class Grid {
     return out;
   }
 
+  /// Any rule: the next state is looked up by `alive * 9 + neighbors`.
+  /// Conway keeps its own loop above, unchanged, as the fast path.
+  Grid _stepByTable(Grid out, Uint8List table) {
+    final src = cells;
+    final dst = out.cells;
+    final w = width;
+    for (var y = 0; y < height; y++) {
+      final up = ((y - 1 + height) % height) * w;
+      final mid = y * w;
+      final down = ((y + 1) % height) * w;
+      for (var x = 0; x < w; x++) {
+        final l = x == 0 ? w - 1 : x - 1;
+        final r = x == w - 1 ? 0 : x + 1;
+        final n = src[up + l] + src[up + x] + src[up + r] + src[mid + l] + src[mid + r] + src[down + l] + src[down + x] + src[down + r];
+        dst[mid + x] = table[src[mid + x] * 9 + n];
+      }
+    }
+    return out;
+  }
+
   /// Convenience for callers that don't care about allocation.
-  Grid step() => stepInto(Grid(width, height));
+  Grid step([LifeRule rule = LifeRule.conway]) => stepInto(Grid(width, height), rule);
 
   /// Smallest rectangle containing every live cell, or null when empty.
   /// Not wrap-aware: a pattern straddling an edge reports the full span.

@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import '../core/hashlife.dart';
+import '../core/life_rule.dart';
 import 'giant_runner_inline.dart' if (dart.library.io) 'giant_runner_isolate.dart' as impl;
 
 /// Which part of the plane to draw: [width] x [height] pixels whose top-left
@@ -23,8 +24,8 @@ abstract class GiantRunner {
   /// True when it shares the UI thread (the web), so big jumps are rationed.
   bool get inline;
 
-  /// Loads [cells], (x, y) pairs flattened, and draws [view].
-  Future<GiantFrame> load(Int32List cells, GiantView view);
+  /// Loads [cells], (x, y) pairs flattened, to run by [rule], and draws [view].
+  Future<GiantFrame> load(Int32List cells, GiantView view, {LifeRule rule = LifeRule.conway});
 
   /// Moves on 2^[j] generations, then draws [view].
   Future<GiantFrame> advance(int j, GiantView view);
@@ -40,8 +41,8 @@ abstract class GiantRunner {
 
 /// The work itself, shared by both runners.
 class GiantWorld {
-  GiantWorld(Int32List cells, {int maxNodes = 1 << 22})
-    : plane = HashPlane.fromCells(HashLife(maxNodes: maxNodes), [for (var i = 0; i + 1 < cells.length; i += 2) (cells[i], cells[i + 1])]);
+  GiantWorld(Int32List cells, {int maxNodes = 1 << 22, LifeRule rule = LifeRule.conway})
+    : plane = HashPlane.fromCells(HashLife(maxNodes: maxNodes, rule: rule), [for (var i = 0; i + 1 < cells.length; i += 2) (cells[i], cells[i + 1])]);
 
   final HashPlane plane;
 
@@ -71,8 +72,8 @@ class InlineGiantRunner implements GiantRunner {
   bool get inline => true;
 
   @override
-  Future<GiantFrame> load(Int32List cells, GiantView view) async {
-    _world = GiantWorld(cells, maxNodes: 1 << 20);
+  Future<GiantFrame> load(Int32List cells, GiantView view, {LifeRule rule = LifeRule.conway}) async {
+    _world = GiantWorld(cells, maxNodes: 1 << 20, rule: rule);
     return _world!.draw(view);
   }
 

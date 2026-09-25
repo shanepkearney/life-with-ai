@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import '../core/grid.dart';
 import '../core/hashlife.dart';
+import '../core/life_rule.dart';
 import 'cpu_stepper_inline.dart' if (dart.library.io) 'cpu_stepper_isolate.dart' as impl;
 
 typedef StepResult = ({Uint8List rgba, int population});
@@ -13,7 +14,7 @@ abstract class CpuStepper {
   /// [hashLife] steps with [HashLife] instead of the plain rules.
   factory CpuStepper({bool hashLife = false}) => impl.create(hashLife: hashLife);
 
-  Future<void> load(Grid grid);
+  Future<void> load(Grid grid, LifeRule rule);
   Future<StepResult> step(int generations);
   Future<Grid> snapshot();
   void dispose();
@@ -21,7 +22,7 @@ abstract class CpuStepper {
 
 /// Shared by both implementations: a board and how it advances.
 abstract class Stepping {
-  factory Stepping(Grid g, {bool hashLife = false}) => hashLife ? HashLifeState(g) : StepperState(g);
+  factory Stepping(Grid g, {bool hashLife = false, LifeRule rule = LifeRule.conway}) => hashLife ? HashLifeState(g, rule) : StepperState(g, rule);
 
   Grid get board;
   StepResult advance(int generations);
@@ -29,8 +30,9 @@ abstract class Stepping {
 
 /// Double-buffered stepping by the plain rules.
 class StepperState implements Stepping {
-  StepperState(Grid g) : a = g.copy(), b = Grid(g.width, g.height), rgba = Uint8List(g.width * g.height * 4);
+  StepperState(Grid g, [this.rule = LifeRule.conway]) : a = g.copy(), b = Grid(g.width, g.height), rgba = Uint8List(g.width * g.height * 4);
 
+  final LifeRule rule;
   Grid a, b;
   final Uint8List rgba;
 
@@ -40,7 +42,7 @@ class StepperState implements Stepping {
   @override
   StepResult advance(int generations) {
     for (var i = 0; i < generations; i++) {
-      a.stepInto(b);
+      a.stepInto(b, rule);
       final t = a;
       a = b;
       b = t;
@@ -51,9 +53,9 @@ class StepperState implements Stepping {
 
 /// Stepping by [HashLife], cell-for-cell the same as [StepperState].
 class HashLifeState implements Stepping {
-  HashLifeState(Grid g) : board = g.copy(), _rgba = Uint8List(g.width * g.height * 4);
+  HashLifeState(Grid g, [LifeRule rule = LifeRule.conway]) : board = g.copy(), _rgba = Uint8List(g.width * g.height * 4), _life = HashLife(rule: rule);
 
-  final _life = HashLife();
+  final HashLife _life;
   final Uint8List _rgba;
 
   @override

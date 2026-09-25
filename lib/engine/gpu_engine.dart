@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 
 import '../core/grid.dart';
+import '../core/life_rule.dart';
 import '../render/shaders.dart';
 import 'life_engine.dart';
 
@@ -32,8 +33,12 @@ class GpuEngine implements LifeEngine {
   ui.Image? frame;
 
   @override
-  Future<void> load(Grid grid, {int generation = 0}) async {
+  LifeRule rule = LifeRule.conway;
+
+  @override
+  Future<void> load(Grid grid, {int generation = 0, LifeRule rule = LifeRule.conway}) async {
     if (_disposed) return;
+    this.rule = rule;
     width = grid.width;
     height = grid.height;
     this.generation = generation;
@@ -55,6 +60,8 @@ class GpuEngine implements LifeEngine {
       final shader = _program.fragmentShader()
         ..setFloat(0, width.toDouble())
         ..setFloat(1, height.toDouble())
+        ..setFloat(2, rule.birth.toDouble())
+        ..setFloat(3, rule.survival.toDouble())
         ..setImageSampler(0, frame!, filterQuality: ui.FilterQuality.none);
       final next = renderPass(shader, width, height);
       frame!.dispose(); // safe: the pending picture holds its own reference
