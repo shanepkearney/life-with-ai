@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'grid.dart';
+import 'life_rule.dart';
 
 /// Lets the board step backwards, although Game of Life can't run in reverse:
 /// many boards lead to the same next generation, so the previous one can't be
@@ -16,13 +17,16 @@ import 'grid.dart';
 /// so a long run gets gradually slower to rewind rather than using ever more
 /// memory. The origin is always kept.
 class Timeline {
-  Timeline(Grid origin, {int generation = 0, this.budgetBytes = 16 * 1024 * 1024, this.baseInterval = 64})
+  Timeline(Grid origin, {int generation = 0, this.budgetBytes = 16 * 1024 * 1024, this.baseInterval = 64, this.rule = LifeRule.conway})
     : width = origin.width,
       height = origin.height,
       originGeneration = generation,
       interval = baseInterval {
     _snapshots[generation] = _pack(origin);
   }
+
+  /// The rule the run follows, for rebuilding the boards between snapshots.
+  final LifeRule rule;
 
   final int width;
   final int height;
@@ -87,7 +91,7 @@ class Timeline {
     final from = nearest.generation;
     var a = nearest.board, b = Grid(width, height);
     for (var i = from; i < generation; i++) {
-      a.stepInto(b);
+      a.stepInto(b, rule);
       final t = a;
       a = b;
       b = t;

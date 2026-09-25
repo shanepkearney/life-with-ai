@@ -325,7 +325,10 @@ also copy one, and giant patterns play on HashLife's endless plane.
 A seed made in the app keeps its exact board and place on it, recorded the way Golly does: the board as a
 torus in the rule (`B3/S23:T512,384`) and the position in a `#CXRLE Pos=` line. The four original seeds were
 converted from the earlier JSON format this way, and a test proves each one matches cell for cell. A pattern
-from elsewhere plays centered on the medium board, or the smallest larger one that holds it.
+from elsewhere plays centered on the medium board, or the smallest larger one that holds it. One that sends
+things out, like the Gosper gun's gliders or Primer's spaceships, says `#C Plays on: endless plane`: on a
+wrap-around board they would come back around and wreck it, so it runs on HashLife's endless plane instead.
+Primer, Dean Hickerson's 1991 prime number sieve, comes from the LifeWiki with its `#C License: GFDL 1.2` line.
 
 To submit one, heart it, then press 🌐 on its card in Favorites. That opens GitHub's new-file page with the
 `.rle` file filled in: the contributor adds their username and proposes the file, and GitHub forks the repo

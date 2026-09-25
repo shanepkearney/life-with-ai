@@ -3,6 +3,7 @@ import 'dart:isolate';
 import 'dart:typed_data';
 
 import '../core/grid.dart';
+import '../core/life_rule.dart';
 import 'cpu_stepper.dart';
 
 CpuStepper create({bool hashLife = false}) => _IsolateStepper(hashLife);
@@ -43,7 +44,8 @@ class _IsolateStepper implements CpuStepper {
   }
 
   @override
-  Future<void> load(Grid grid) => _call(('load', grid.width, grid.height, _hashLife, TransferableTypedData.fromList([grid.cells])));
+  Future<void> load(Grid grid, LifeRule rule) =>
+      _call(('load', grid.width, grid.height, _hashLife, rule.birth, rule.survival, TransferableTypedData.fromList([grid.cells])));
 
   @override
   Future<StepResult> step(int generations) async {
@@ -70,9 +72,9 @@ void _worker(SendPort out) {
   Stepping? state;
   inbox.listen((msg) {
     switch (msg) {
-      case ('load', int w, int h, bool hashLife, TransferableTypedData t):
+      case ('load', int w, int h, bool hashLife, int birth, int survival, TransferableTypedData t):
         // HashLife keeps its table of squares between loads only within one board.
-        state = Stepping(Grid.fromCells(w, h, t.materialize().asUint8List()), hashLife: hashLife);
+        state = Stepping(Grid.fromCells(w, h, t.materialize().asUint8List()), hashLife: hashLife, rule: LifeRule(birth, survival));
         out.send(null);
       case ('step', int n):
         final r = state!.advance(n);

@@ -15,6 +15,8 @@ import 'share_link.dart';
 ///     #C The Neon Frame packed with …      what it does (one or more lines)
 ///     #C Prompt: …                         the prompt, when Claude made it
 ///     #C Source: https://…                 where it came from, if elsewhere
+///     #C License: GFDL 1.2, from the LifeWiki   its license, if not CC BY 4.0
+///     #C Plays on: endless plane           no board: it needs room to run
 ///     #C Added: 2026-09-23 by @shanepkearney
 ///     #CXRLE Pos=120,150                   where it sits on its board
 ///     x = 200, y = 150, rule = B3/S23:T512,384
@@ -34,6 +36,8 @@ class CommunitySeed {
     required this.source,
     required this.pattern,
     required this.rle,
+    required this.license,
+    required this.endless,
     required Grid? board,
   }) : _board = board;
 
@@ -54,6 +58,14 @@ class CommunitySeed {
   /// Where a pattern from elsewhere came from.
   final Uri? source;
 
+  /// The license, when it isn't the community's CC BY 4.0 (e.g. the
+  /// LifeWiki's GFDL 1.2).
+  final String? license;
+
+  /// Asks for HashLife's endless plane: on a wrap-around board what it sends
+  /// out (Primer's spaceships, a gun's gliders) would come back and wreck it.
+  final bool endless;
+
   final RlePattern pattern;
 
   /// The file as committed: what Download saves.
@@ -68,6 +80,9 @@ class CommunitySeed {
   /// Too big for any board: it plays on HashLife's endless plane.
   bool get giant => _board == null;
 
+  /// Plays on the endless plane, because it asks to or because it must.
+  bool get playsOnPlane => endless || giant;
+
   Uri get authorUrl => Uri.https('github.com', '/$author');
 
   /// Whether the discoverer is someone other than the person who added it.
@@ -76,8 +91,9 @@ class CommunitySeed {
   /// `boxed-chaos`, from `boxed-chaos.rle`: the name in file names and routes.
   String get slug => slugFor(name);
 
-  /// A seed link, for seeds small enough to travel in one; null for giants.
-  String? get shareLink => _board == null ? null : ShareLink.forSeed(_board, title: name, note: description);
+  /// A seed link, for seeds played on a board; null on the plane, which a
+  /// link can't describe.
+  String? get shareLink => playsOnPlane ? null : ShareLink.forSeed(_board!, title: name, note: description);
 
   static const maxName = 40, maxDescription = 400, maxPrompt = ShareLink.maxTitleLength, maxDiscoverer = 80;
 
@@ -99,7 +115,7 @@ class CommunitySeed {
   /// message is what a contributor sees when the CI check fails their PR.
   static CommunitySeed parse(String text) {
     if (text.length > maxFileBytes) throw FormatException('The file is ${text.length} bytes; the most is $maxFileBytes.');
-    String? name, discoverer, prompt, source, addedLine;
+    String? name, discoverer, prompt, source, addedLine, license, playsOn;
     final description = <String>[];
     for (final raw in text.split(RegExp(r'\r?\n'))) {
       final line = raw.trim();
@@ -114,6 +130,10 @@ class CommunitySeed {
         source = _once(source, rest.substring(7).trim(), '#C Source:');
       } else if (rest.startsWith('Added:')) {
         addedLine = _once(addedLine, rest, '#C Added:');
+      } else if (rest.startsWith('License:')) {
+        license = _once(license, rest.substring(8).trim(), '#C License:');
+      } else if (rest.startsWith('Plays on:')) {
+        playsOn = _once(playsOn, rest.substring(9).trim(), '#C Plays on:');
       } else if (rest.isNotEmpty) {
         description.add(rest);
       }
@@ -143,6 +163,9 @@ class CommunitySeed {
       throw FormatException('It was found by "$o", not @$author: add a "#C Source: https://…" line saying where it came from.');
     }
 
+    if (license != null && (license.isEmpty || license.length > 80)) throw const FormatException('"#C License:" names the license in up to 80 characters.');
+    if (playsOn != null && playsOn != 'endless plane') throw FormatException('"#C Plays on: $playsOn" isn\'t known; the only choice is "endless plane".');
+
     final RlePattern pattern;
     try {
       pattern = Rle.decode(text, unbounded: true);
@@ -153,6 +176,7 @@ class CommunitySeed {
     final pos = RegExp(r'^#CXRLE.*\bPos=(-?\d+),(-?\d+)', multiLine: true).firstMatch(text);
     final Grid? board;
     final t = pattern.torus;
+    if (t != null && playsOn != null) throw const FormatException('A pattern with its own board (a torus in its rule) can\'t also ask for the endless plane.');
     if (t != null) {
       // Made here: its own board, and its place on it.
       final x = pos == null ? (t.width - pattern.width) ~/ 2 : int.parse(pos[1]!);
@@ -180,6 +204,8 @@ class CommunitySeed {
       source: src,
       pattern: pattern,
       rle: text,
+      license: license,
+      endless: playsOn != null,
       board: board,
     );
   }

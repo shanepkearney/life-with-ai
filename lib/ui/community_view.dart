@@ -37,10 +37,9 @@ class _CommunityViewState extends State<CommunityView> {
 
   Future<void> _play(CommunitySeed s) async {
     setState(() => _playing = s);
-    final seed = s.seed;
-    // Too big for any board: HashLife's endless plane.
-    if (seed == null) return widget.life.openGiant(s.pattern);
-    await widget.life.playSeed(seed.copy(), title: s.name, source: SeedSource.community, communityName: s.name);
+    // Too big for any board, or sending things out that would wrap around and wreck it: the endless plane.
+    if (s.playsOnPlane) return widget.life.openGiant(s.pattern);
+    await widget.life.playSeed(s.seed!.copy(), title: s.name, source: SeedSource.community, communityName: s.name);
   }
 
   Future<void> _copyLink(CommunitySeed s) async {
@@ -97,7 +96,9 @@ class _CommunityViewState extends State<CommunityView> {
   Widget _card(CommunitySeed s) {
     final playing = identical(_playing, s);
     final seed = s.seed;
-    final saved = seed != null && widget.favorites.contains(SeedCodec.encode(seed));
+    // A favorite is a board: only patterns that play on one can be kept as one.
+    final board = s.playsOnPlane ? null : seed;
+    final saved = board != null && widget.favorites.contains(SeedCodec.encode(board));
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
@@ -129,6 +130,8 @@ class _CommunityViewState extends State<CommunityView> {
                           padding: const EdgeInsets.only(top: 3),
                           child: Text('Found by ${s.discoverer}', style: Neon.mono.copyWith(fontSize: 10.5, color: Neon.text)),
                         ),
+                      if (s.playsOnPlane)
+                        Text('∞ Plays on the endless plane', style: Neon.mono.copyWith(fontSize: 10, color: Neon.cyan)),
                       Semantics(
                         link: true,
                         label: '${s.discoveredElsewhere ? 'Added by' : 'By'} ${s.author}, on GitHub',
@@ -167,16 +170,16 @@ class _CommunityViewState extends State<CommunityView> {
                             child: Text(playing ? '▶ Playing on the board' : '', style: Neon.mono.copyWith(fontSize: 10, color: Neon.magenta)),
                           ),
                           // A giant is too big to keep as a favorite or send as a link; the file travels instead.
-                          if (seed != null)
+                          if (board != null)
                             IconButton(
                               tooltip: saved ? 'Remove from favorites' : 'Add to favorites',
                               visualDensity: VisualDensity.compact,
-                              onPressed: () => widget.favorites.toggle(seed, title: s.name, summary: s.description),
+                              onPressed: () => widget.favorites.toggle(board, title: s.name, summary: s.description),
                               icon: Icon(saved ? Icons.favorite_rounded : Icons.favorite_border_rounded, size: 16, color: Neon.magenta),
                             ),
                           if (s.source case final source?)
                             IconButton(
-                              tooltip: 'Where it came from: ${source.host}',
+                              tooltip: 'Where it came from: ${source.host}${s.license != null ? ' · ${s.license}' : ''}',
                               visualDensity: VisualDensity.compact,
                               onPressed: () => widget.openUrl(source),
                               icon: const Icon(Icons.menu_book_rounded, size: 16),

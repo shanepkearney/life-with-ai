@@ -4,6 +4,7 @@
 #C whether a pattern can grow forever: it fires a glider every 30
 #C generations, a stream that never stops.
 #C Source: https://conwaylife.com/wiki/Gosper_glider_gun
+#C Plays on: endless plane
 #C Added: 2026-09-25 by @shanepkearney
 x = 36, y = 9, rule = B3/S23
 24bo$22bobo$12b2o6b2o12b2o$11bo3bo4b2o12b2o$2o8bo5bo3b2o$2o8bo3bob2o4b
