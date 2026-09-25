@@ -60,10 +60,15 @@ void main() {
     addTearDown(tester.view.reset);
     await setUp(tester);
     final opened = <Uri>[];
-    await tester.pumpWidget(host(CommunityView(seeds: seeds, favorites: favorites, life: life, openUrl: (u) async => opened.add(u))));
+    // Four long-standing patterns, not the whole folder: new contributions come first in the list
+    // and would push these out of view. community_seeds_test checks every file on its own.
+    const names = ['Neon Frame', 'Boxed Chaos', 'Tool Concert', 'Oscillator Garden'];
+    final shown = seeds.where((s) => names.contains(s.name)).toList();
+    expect(shown, hasLength(names.length));
+    await tester.pumpWidget(host(CommunityView(seeds: shown, favorites: favorites, life: life, openUrl: (u) async => opened.add(u))));
     await tester.pump();
 
-    for (final name in ['Neon Frame', 'Boxed Chaos', 'Tool Concert', 'Oscillator Garden']) {
+    for (final name in names) {
       expect(find.text(name), findsOneWidget);
     }
     expect(find.text('“A symmetrical bloom you would see at a tool concert.”'), findsOneWidget);
@@ -81,9 +86,9 @@ void main() {
     expect(find.text('▶ Playing on the board'), findsOneWidget);
 
     // Heart it: it's saved with its description.
-    final garden = seeds.firstWhere((s) => s.name == 'Oscillator Garden');
+    final garden = shown.firstWhere((s) => s.name == 'Oscillator Garden');
     // Patterns that play on the plane have no heart: only boards are favorites.
-    await tester.tap(find.byTooltip('Add to favorites').at(seeds.where((s) => !s.playsOnPlane).toList().indexOf(garden)));
+    await tester.tap(find.byTooltip('Add to favorites').at(shown.where((s) => !s.playsOnPlane).toList().indexOf(garden)));
     await settle(tester);
     expect(favorites.items.single.title, 'Oscillator Garden');
     expect(favorites.items.single.summary, garden.description);

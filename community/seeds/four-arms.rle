@@ -2,12 +2,10 @@
 #O shanepkearney
 #C A four-armed "X" of glider streams (from corner guns) converges on a
 #C dense central mandala built from a pulsar, four pentadecathlons, and a
-#C ring of eight different methuselahs (r-pentomino, acorn, diehard,
-#C pi-heptomino, thunderbird). The core churns chaotically and keeps
-#C growing/reshaping indefinitely while the four glider trails streak
-#C diagonally across the whole board — a hybrid of calm symmetric
-#C oscillators, methuselah chaos, and gun-fed spaceship traffic that
-#C never settles into a repeat.
+#C ring of eight methuselahs (r-pentomino, acorn, diehard, pi-heptomino,
+#C thunderbird). The core churns chaotically and keeps reshaping while
+#C the four glider trails streak diagonally across the whole board, never
+#C settling into a repeat.
 #C Prompt: build something new that we have never known before.
 #C Added: 2026-09-25 by @shanepkearney
 #CXRLE Pos=30,30
