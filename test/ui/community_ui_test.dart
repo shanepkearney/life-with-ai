@@ -60,10 +60,15 @@ void main() {
     addTearDown(tester.view.reset);
     await setUp(tester);
     final opened = <Uri>[];
-    await tester.pumpWidget(host(CommunityView(seeds: seeds, favorites: favorites, life: life, openUrl: (u) async => opened.add(u))));
+    // Four long-standing patterns, not the whole folder: new contributions come first in the list
+    // and would push these out of view. community_seeds_test checks every file on its own.
+    const names = ['Neon Frame', 'Boxed Chaos', 'Tool Concert', 'Oscillator Garden'];
+    final shown = seeds.where((s) => names.contains(s.name)).toList();
+    expect(shown, hasLength(names.length));
+    await tester.pumpWidget(host(CommunityView(seeds: shown, favorites: favorites, life: life, openUrl: (u) async => opened.add(u))));
     await tester.pump();
 
-    for (final name in ['Neon Frame', 'Boxed Chaos', 'Tool Concert', 'Oscillator Garden']) {
+    for (final name in names) {
       expect(find.text(name), findsOneWidget);
     }
     expect(find.text('“A symmetrical bloom you would see at a tool concert.”'), findsOneWidget);
@@ -81,9 +86,9 @@ void main() {
     expect(find.text('▶ Playing on the board'), findsOneWidget);
 
     // Heart it: it's saved with its description.
-    final garden = seeds.firstWhere((s) => s.name == 'Oscillator Garden');
+    final garden = shown.firstWhere((s) => s.name == 'Oscillator Garden');
     // Patterns that play on the plane have no heart: only boards are favorites.
-    await tester.tap(find.byTooltip('Add to favorites').at(seeds.where((s) => !s.playsOnPlane).toList().indexOf(garden)));
+    await tester.tap(find.byTooltip('Add to favorites').at(shown.where((s) => !s.playsOnPlane).toList().indexOf(garden)));
     await settle(tester);
     expect(favorites.items.single.title, 'Oscillator Garden');
     expect(favorites.items.single.summary, garden.description);
@@ -217,6 +222,47 @@ void main() {
           if (next.get(x, y)) (x - 3, y - 3),
     ];
     expect(cells.toSet(), phases[0].toSet());
+  });
+
+  testWidgets('a long prompt and a long description still make an entry that passes the checks', (tester) async {
+    await setUp(tester);
+    final glider = Grid(512, 384)
+      ..set(11, 10, true)
+      ..set(12, 11, true)
+      ..set(10, 12, true)
+      ..set(11, 12, true)
+      ..set(12, 12, true);
+    // As in the first real submission: the title is the prompt, too long for a name, and Claude's description runs to ~500.
+    const prompt = 'build something new that we have never known before.';
+    final summary = [for (var i = 1; i <= 8; i++) 'Sentence $i of the description tells what the pattern does as it plays out.'].join(' ');
+    expect(summary.length, greaterThan(CommunitySeed.maxDescription));
+    await tester.runAsync(() => favorites.add(glider, title: prompt, summary: summary));
+    final opened = <Uri>[];
+    await tester.pumpWidget(host(FavoritesView(favorites: favorites, life: life, openUrl: (u) async => opened.add(u))));
+    await tester.pump();
+    await tester.tap(find.byTooltip('Submit to the community'));
+    await settle(tester);
+
+    final url = opened.single;
+    final entry = url.queryParameters['value']!;
+    expect(entry, startsWith('#N Name your seed\n'), reason: 'the prompt is too long to be the name');
+    expect(url.queryParameters['filename'], 'name-your-seed.rle', reason: "the file matches the #N line it's given");
+    final ready = CommunitySeed.parse(entry.replaceAll(CommunitySubmit.authorPlaceholder, 'octocat'));
+    expect(ready.description.length, lessThanOrEqualTo(CommunitySeed.maxDescription));
+    expect(ready.description, endsWith('plays out.'), reason: 'cut at a whole sentence');
+    expect(ready.prompt, prompt);
+    expect(url.queryParameters['filename'], CommunitySeed.fileNameFor(ready.name));
+  });
+
+  test('clip keeps whole sentences, else whole words', () {
+    expect(CommunitySubmit.clip('Short.', 400), 'Short.');
+    // A sentence end that keeps more than half the room: cut there.
+    expect(CommunitySubmit.clip('One two three four. Five six seven.', 25), 'One two three four.');
+    // One that keeps too little: cut at a word instead, and say so.
+    expect(CommunitySubmit.clip('One two. Three four five six.', 20), 'One two. Three…');
+    final words = CommunitySubmit.clip('word ' * 100, 50);
+    expect(words.length, lessThanOrEqualTo(50));
+    expect(words, endsWith('word…'));
   });
 
   testWidgets('Submit opens GitHub with the entry filled in, or copies it when it is too long', (tester) async {

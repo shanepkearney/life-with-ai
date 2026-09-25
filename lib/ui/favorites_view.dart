@@ -85,7 +85,7 @@ class _FavoritesViewState extends State<FavoritesView> {
     Toasts.show(
       context,
       prefilled
-          ? 'Opened GitHub. Put your username in "author", check the name, then propose the file.'
+          ? 'Opened GitHub. Put your username in "author" and name the seed; the file name must match it (Four Arms is four-arms.rle). Then propose the file.'
           : 'This seed is too long for GitHub\'s link, so its entry is copied. Paste it into the new file on GitHub.',
     );
   }
