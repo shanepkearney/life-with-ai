@@ -27,10 +27,12 @@ class ControlBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: Neon.panelDecoration(),
-      // The controls, and ⛶ apart at the far right, however they wrap.
+      // The controls, then ⛶ at the right end. As wide as they need (the bar isn't
+      // stretched to the window), and they wrap when the window is narrower.
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
+          Flexible(
             child: Wrap(
               spacing: 4,
               runSpacing: 6,
