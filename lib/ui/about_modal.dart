@@ -77,7 +77,8 @@ class _AboutPanel extends StatelessWidget {
         style: TextButton.styleFrom(
           foregroundColor: Neon.magenta,
           visualDensity: VisualDensity.compact,
-          padding: const EdgeInsets.symmetric(horizontal: 8),
+          // Flush left, in line with the text above, like the Community tab's links.
+          padding: const EdgeInsets.only(right: 8),
         ),
         icon: const Icon(Icons.open_in_new_rounded, size: 14),
         label: Text(label, style: Neon.mono.copyWith(fontSize: 12, color: Neon.magenta)),
@@ -199,7 +200,7 @@ class _AboutPanel extends StatelessWidget {
                               style: TextButton.styleFrom(
                                 foregroundColor: Neon.magenta,
                                 visualDensity: VisualDensity.compact,
-                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                padding: const EdgeInsets.only(right: 8), // flush left, like the links
                               ),
                               icon: const Icon(Icons.download_rounded, size: 15),
                               label: Text('Get the macOS app', style: Neon.mono.copyWith(fontSize: 12, color: Neon.magenta)),
