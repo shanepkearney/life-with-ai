@@ -7,7 +7,7 @@ import 'package:life_with_ai/core/patterns.dart';
 import 'package:life_with_ai/engine/giant_runner.dart';
 import 'package:life_with_ai/engine/life_engine.dart';
 import 'package:life_with_ai/render/shaders.dart';
-import 'package:life_with_ai/ui/control_bar.dart';
+import 'package:life_with_ai/ui/bar_popup.dart';
 import 'package:life_with_ai/ui/home_page.dart';
 import 'package:life_with_ai/ui/theme.dart';
 

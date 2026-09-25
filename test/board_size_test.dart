@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:life_with_ai/app/life_controller.dart';
 import 'package:life_with_ai/core/grid.dart';
 import 'package:life_with_ai/render/shaders.dart';
-import 'package:life_with_ai/ui/control_bar.dart';
+import 'package:life_with_ai/ui/bar_popup.dart';
 import 'package:life_with_ai/ui/theme.dart';
 
 void main() {
@@ -76,7 +76,7 @@ void main() {
       expect(life.boardSize, BoardSize.medium);
     });
 
-    testWidgets("the size icon's popup offers Fit screen for this display, and applies it", (tester) async {
+    testWidgets("the top bar's size icon offers Fit screen for this display, and applies it", (tester) async {
       tester.view.physicalSize = const Size(1600, 400);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
@@ -84,13 +84,10 @@ void main() {
         MaterialApp(
           theme: Neon.theme(),
           home: Scaffold(
-            // Along the bottom, as in the app: the popup opens above it.
+            // At the top, as in the app's top bar: the popup opens below it.
             body: Align(
-              alignment: Alignment.bottomCenter,
-              child: ListenableBuilder(
-                listenable: life,
-                builder: (_, _) => ControlBar(controller: life, erase: false, onEraseChanged: (_) {}),
-              ),
+              alignment: Alignment.topLeft,
+              child: ListenableBuilder(listenable: life, builder: (_, _) => SizeMenu(controller: life)),
             ),
           ),
         ),

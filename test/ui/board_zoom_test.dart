@@ -31,14 +31,14 @@ void main() {
 
   Rect boardRect(WidgetTester tester) => tester.getRect(find.descendant(of: find.byType(LifeCanvas), matching: find.byType(RepaintBoundary)).first);
 
-  testWidgets("a board zooms from the bar's magnifying glass and the mouse wheel, and drawing lands under the pointer", (tester) async {
+  testWidgets("a board zooms from the top bar's magnifying glass and the mouse wheel, and drawing lands under the pointer", (tester) async {
     await start(tester);
     expect(life.boardView.zoom, 1);
-    // The zoom controls live in the bar, behind the magnifying glass.
+    // The zoom controls live in the top bar, behind the magnifying glass.
     expect(find.byTooltip('Zoom out (−)'), findsNothing);
     await tester.tap(find.byIcon(Icons.zoom_in_rounded));
     await tester.pump();
-    expect(tester.getRect(find.text('Fit')).bottom, lessThan(tester.getRect(find.byIcon(Icons.zoom_in_rounded)).top), reason: 'it opens above the bar, not below');
+    expect(tester.getRect(find.text('Fit')).top, greaterThan(tester.getRect(find.byIcon(Icons.zoom_in_rounded)).bottom), reason: 'it opens below the top bar');
     expect(tester.widget<TextButton>(find.widgetWithText(TextButton, 'Fit')).onPressed, isNull, reason: 'nothing to fit at ×1');
 
     await tester.tap(find.byTooltip('Zoom in (+)'));

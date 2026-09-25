@@ -51,7 +51,7 @@ void main() {
     final before = (await tester.runAsync(() => life.captureMoment()))!.seed;
     final generation = life.generation;
     expect(find.text('Conway'), findsOneWidget);
-    expect(find.textContaining('RULE'), findsNothing, reason: "the HUD names the rule only when it isn't Conway's");
+    expect(find.text('RULE Conway', findRichText: true), findsOneWidget, reason: "the HUD always names the rule, Conway's too");
 
     await tester.tap(find.text('Conway'));
     await settle(tester);

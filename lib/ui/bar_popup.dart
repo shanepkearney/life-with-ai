@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app/life_controller.dart';
+import 'screen_board.dart';
 import 'theme.dart';
 
 /// − Fit +, for a board or the endless plane alike: in the bar's zoom menu,
@@ -41,7 +42,7 @@ class ZoomControls extends StatelessWidget {
   }
 }
 
-/// The bar's magnifying glass: opens [ZoomControls] above itself, and keeps
+/// The top bar's magnifying glass: opens [ZoomControls] below itself, and keeps
 /// them open while you press − and + so you can zoom a few steps in a row.
 class ZoomMenu extends StatelessWidget {
   const ZoomMenu({super.key, required this.controller});
@@ -56,10 +57,45 @@ class ZoomMenu extends StatelessWidget {
   );
 }
 
-/// An icon in the control bar that opens a panel just above itself (the bar
-/// sits along the bottom). The icon is lit while it's open; a click anywhere
-/// else, or the icon again, closes it, and so can the panel ([builder]'s
-/// `close`).
+/// The board's size as an icon in the top bar: its choices open below it, the current one lit.
+class SizeMenu extends StatelessWidget {
+  const SizeMenu({super.key, required this.controller});
+
+  final LifeController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final sizes = boardSizeChoices(context, controller.boardSize, phone: false);
+    return BarPopup(
+    icon: Icons.aspect_ratio_rounded,
+    tooltip: 'Board size · ${controller.boardSize.label}',
+    builder: (close) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: IntrinsicWidth(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final s in sizes)
+              TextButton(
+                onPressed: () {
+                  close();
+                  if (s != controller.boardSize) controller.setBoardSize(s);
+                },
+                style: TextButton.styleFrom(alignment: Alignment.centerLeft, padding: const EdgeInsets.symmetric(horizontal: 16)),
+                child: Text(s.label, style: Neon.mono.copyWith(color: s == controller.boardSize ? Neon.cyan : Neon.text)),
+              ),
+          ],
+        ),
+      ),
+    ),
+  );
+  }
+}
+
+/// An icon in the top bar, styled like its neighbours, that opens a panel
+/// just below itself. The icon is lit while it's open; a click anywhere else,
+/// or the icon again, closes it, and so can the panel ([builder]'s `close`).
 class BarPopup extends StatefulWidget {
   const BarPopup({super.key, required this.icon, required this.tooltip, required this.builder});
 
@@ -112,10 +148,10 @@ class _BarPopupState extends State<BarPopup> {
           top: 0,
           child: CompositedTransformFollower(
             link: _link,
-            // Its bottom edge on the icon's top edge, centred on it.
-            targetAnchor: Alignment.topCenter,
-            followerAnchor: Alignment.bottomCenter,
-            offset: const Offset(0, -2),
+            // Its top edge on the icon's bottom edge, centred on it.
+            targetAnchor: Alignment.bottomCenter,
+            followerAnchor: Alignment.topCenter,
+            offset: const Offset(0, 2),
             child: TapRegion(
               groupId: _region,
               child: Material(
@@ -123,6 +159,8 @@ class _BarPopupState extends State<BarPopup> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // A pointer up to the icon it came from.
+                    const CustomPaint(size: Size(16, 7), painter: _Pointer()),
                     // Solid, with a bright edge and a shadow: over a busy board a see-through panel disappears.
                     Container(
                       decoration: BoxDecoration(
@@ -136,8 +174,6 @@ class _BarPopupState extends State<BarPopup> {
                       ),
                       child: widget.builder(_close),
                     ),
-                    // A pointer down to the icon it came from.
-                    const CustomPaint(size: Size(16, 7), painter: _Pointer()),
                   ],
                 ),
               ),
@@ -150,8 +186,10 @@ class _BarPopupState extends State<BarPopup> {
           builder: (_, _) => IconButton(
             tooltip: widget.tooltip,
             onPressed: _toggle,
-            icon: Icon(widget.icon, shadows: _open.value ? const [Shadow(color: Neon.cyan, blurRadius: 12)] : null),
-            color: _open.value ? Neon.cyan : Neon.text,
+            // Compact, 18px and muted, like the top bar's other icons.
+            visualDensity: VisualDensity.compact,
+            icon: Icon(widget.icon, size: 18, shadows: _open.value ? const [Shadow(color: Neon.cyan, blurRadius: 12)] : null),
+            color: _open.value ? Neon.cyan : Neon.muted,
           ),
         ),
       ),
@@ -159,12 +197,15 @@ class _BarPopupState extends State<BarPopup> {
   );
 }
 
-/// A small triangle pointing down, the popup's own fill with its edge.
+/// A small triangle pointing up, the popup's own fill with its edge.
 class _Pointer extends CustomPainter {
   const _Pointer();
 
   @override
   void paint(Canvas canvas, Size size) {
+    canvas
+      ..translate(0, size.height)
+      ..scale(1, -1);
     final path = Path()
       ..moveTo(0, 0)
       ..lineTo(size.width / 2, size.height)

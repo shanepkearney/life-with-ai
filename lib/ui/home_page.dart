@@ -12,6 +12,7 @@ import '../app/screenshot/screenshot.dart';
 import '../core/seed_codec.dart';
 import 'about_modal.dart';
 import 'assistant_panel.dart';
+import 'bar_popup.dart';
 import 'board_only.dart';
 import 'breakpoints.dart';
 import 'broken_link_dialog.dart';
@@ -319,8 +320,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   ?_macDownloadButton(),
                   _screenshotButton(),
                   _rleButton(),
-                  _boardOnlyButton(),
-                  ?_fullScreenButton(),
                   const SizedBox(width: 12),
                   // Scale the stats down rather than overflow on narrow windows.
                   Expanded(
@@ -332,6 +331,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       ),
                     ),
                   ),
+                  const SizedBox(width: 8),
+                  // Right of the stats, the view of the board: its size (the plane has none),
+                  // Board only, zoom and full screen.
+                  if (c.giant == null) SizeMenu(controller: c),
+                  _boardOnlyButton(),
+                  ZoomMenu(controller: c),
+                  ?_fullScreenButton(),
                 ],
               ),
               const SizedBox(height: 12),

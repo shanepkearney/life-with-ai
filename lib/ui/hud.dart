@@ -52,8 +52,8 @@ class Hud extends StatelessWidget {
               stat('ZOOM', g.zoomShort, Neon.cyan)
             else if (c.boardView.zoomed)
               stat('ZOOM', c.boardView.label, Neon.cyan),
-            // Only when it isn't Conway's: a reminder that this isn't standard Life.
-            if (!c.rule.isConway) stat('RULE', c.rule.label, Neon.amber),
+            // Always shown; amber when it isn't Conway's, a reminder that this isn't standard Life.
+            stat('RULE', c.rule.label, c.rule.isConway ? Neon.text : Neon.amber),
           ],
         ],
       ),
