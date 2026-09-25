@@ -18,6 +18,7 @@ import 'package:life_with_ai/render/board_palette.dart';
 import 'package:life_with_ai/ui/board_only.dart';
 import 'package:life_with_ai/ui/control_bar.dart';
 import 'package:life_with_ai/ui/life_canvas.dart';
+import 'package:life_with_ai/ui/section_wrap.dart';
 import 'package:life_with_ai/ui/hud.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -160,14 +161,9 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     await start(tester);
     await tester.pump();
-    // Every control sits on the same row: with centered wrapping, one row means one center line.
-    final wrap = tester.renderObject<RenderWrap>(find.descendant(of: find.byType(ControlBar), matching: find.byType(Wrap)));
-    final rows = <double>{};
-    wrap.visitChildren((c) {
-      final b = c as RenderBox;
-      rows.add(((b.parentData! as WrapParentData).offset.dy + b.size.height / 2).roundToDouble());
-    });
-    expect(rows, hasLength(1), reason: 'the control bar wraps onto ${rows.length} rows');
+    // Every section on one line.
+    final rows = tester.renderObject<RenderSectionWrap>(find.descendant(of: find.byType(ControlBar), matching: find.byType(SectionWrap))).lineCount;
+    expect(rows, 1, reason: 'the control bar wraps onto $rows rows');
     final hud = tester.renderObject<RenderBox>(find.byType(Hud));
     expect(hud.getMaxIntrinsicWidth(double.infinity), lessThanOrEqualTo(hud.size.width), reason: 'Hud would wrap');
     // Real fonts: all three tab labels fit whole, none cut short with an ellipsis.
@@ -182,13 +178,8 @@ void main() {
     tester.view.physicalSize = const Size(900, 900) * tester.view.devicePixelRatio;
     addTearDown(tester.view.resetPhysicalSize);
     await start(tester);
-    final wrap = tester.renderObject<RenderWrap>(find.descendant(of: find.byType(ControlBar), matching: find.byType(Wrap)));
-    final rows = <double>{};
-    wrap.visitChildren((c) {
-      final b = c as RenderBox;
-      rows.add(((b.parentData! as WrapParentData).offset.dy + b.size.height / 2).roundToDouble());
-    });
-    expect(rows.length, greaterThan(1), reason: 'precondition: controls wrap');
+    final rows = tester.renderObject<RenderSectionWrap>(find.descendant(of: find.byType(ControlBar), matching: find.byType(SectionWrap))).lineCount;
+    expect(rows, greaterThan(1), reason: 'precondition: controls wrap');
 
     await tester.tap(find.byTooltip('Save this moment to favorites'));
     await pumpUntil(tester, () => find.textContaining('to favorites').evaluate().isNotEmpty, reason: 'toast shown');

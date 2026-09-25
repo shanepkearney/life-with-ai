@@ -4,6 +4,7 @@ import '../app/giant_mode.dart';
 import '../app/life_controller.dart';
 import '../core/life_rule.dart';
 import 'colors_dialog.dart';
+import 'section_wrap.dart';
 import 'theme.dart';
 import 'zoom_controls.dart';
 
@@ -71,32 +72,25 @@ class ControlBar extends StatelessWidget {
       ],
       // The speed; engine, rule and size are chosen from the HUD at the top.
       [SpeedControl(controller: c)],
-      // Zoom out, Fit, zoom in, on a board or the plane; the HUD shows how far in.
-      [ZoomControls(controller: c)],
-      if (onFullScreen != null)
-        [
+      // How the board is shown: zoom out, Fit, zoom in (the HUD shows how far in), then ⛶.
+      [
+        ZoomControls(controller: c),
+        if (onFullScreen != null)
           fullScreen
               ? _Icon(icon: Icons.fullscreen_exit_rounded, tip: 'Exit full screen (Esc)', onTap: onFullScreen)
               : _Icon(icon: Icons.fullscreen_rounded, tip: 'Full screen (F)', onTap: onFullScreen),
-        ],
+      ],
     ];
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: Neon.panelDecoration(),
       // As wide as the controls need (the bar isn't stretched to the window). On a
-      // narrower window it wraps between sections, never inside one: each keeps its
-      // controls and the divider after it together, and ⛶ comes last.
-      child: Wrap(
-        spacing: 4,
-        runSpacing: 6,
-        crossAxisAlignment: WrapCrossAlignment.center,
+      // narrower window it wraps between sections, never inside one, with a divider
+      // only between sections that share a line.
+      child: SectionWrap(
+        dividerColor: Neon.border,
         children: [
-          for (final (i, section) in sections.indexed)
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              spacing: 4,
-              children: [...section, if (i < sections.length - 1) const _Divider()],
-            ),
+          for (final section in sections) Row(mainAxisSize: MainAxisSize.min, spacing: 4, children: section),
         ],
       ),
     );
@@ -188,15 +182,6 @@ class _Labeled extends StatelessWidget {
       child,
     ],
   );
-}
-
-class _Divider extends StatelessWidget {
-  const _Divider();
-
-  @override
-  // Its own margin: icon buttons carry built-in padding, but the labels and the
-  // engine toggle beside a divider don't, so the Wrap's gap alone looks cramped.
-  Widget build(BuildContext context) => Container(width: 1, height: 24, margin: const EdgeInsets.symmetric(horizontal: 6), color: Neon.border);
 }
 
 /// The board's colors as a small swatch; opens the colors dialog.
