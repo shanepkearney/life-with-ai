@@ -90,6 +90,19 @@ flutter:
   # For details regarding adding assets from package dependencies, see
   # https://flutter.dev/to/asset-from-package
 
+  # Roboto, bundled so the web app never has to fetch it from Google's font
+  # server (some in-app browsers block that, and all text went missing).
+  # Subset to the characters the interface uses, without hinting: ~49 KB each.
+  # Apache 2.0: assets/fonts/Roboto-LICENSE.txt.
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto-Regular.ttf
+        - asset: assets/fonts/Roboto-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Roboto-Bold.ttf
+          weight: 700
+
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a
   # "family" key with the font family name, and a "fonts" key with a

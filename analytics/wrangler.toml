@@ -8,3 +8,10 @@ compatibility_date = "2026-09-01"
 [[analytics_engine_datasets]]
 binding = "EVENTS"
 dataset = "life_with_ai_events"
+
+# App errors from the web page, apart from the seed counts. Columns: index1 = kind;
+# blob1..4 = kind (load, webgl, timeout, flutter), browser (facebook, instagram,
+# other), version, message (at most 200 characters, no URLs).
+[[analytics_engine_datasets]]
+binding = "ERRORS"
+dataset = "life_with_ai_errors"

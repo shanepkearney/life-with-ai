@@ -155,8 +155,11 @@ jobs:
           cache: true
       - run: flutter pub get
       # Pages serves the site from /<repo>/, so assets must resolve under that path.
+      # --no-web-resources-cdn: the rendering engine (CanvasKit) comes from this site, not
+      # gstatic.com, so a network or in-app browser that blocks Google can't stop the app
+      # (the fonts are bundled too; see pubspec.yaml).
       - run: >-
-          flutter build web --release --base-href /life-with-ai/
+          flutter build web --release --base-href /life-with-ai/ --no-web-resources-cdn
           --build-name=${{ needs.version.outputs.version }}
           --build-number=${{ github.run_number }}
           --dart-define=APP_VERSION=${{ needs.version.outputs.version }}
@@ -186,6 +189,28 @@ jobs:
           open(path, 'w').write(new)
           PY
           grep -c cloudflareinsights build/web/index.html
+      # The page's error notices count what goes wrong (web/index.html, analytics/): tell it
+      # where to send them, and which version this is. Without TELEMETRY_URL they only show.
+      - env:
+          TELEMETRY_URL: ${{ vars.TELEMETRY_URL }}
+          APP_VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          if [ -z "$TELEMETRY_URL" ]; then
+            echo "::warning::TELEMETRY_URL is not set; the page's error notices won't be counted."
+            exit 0
+          fi
+          case "$TELEMETRY_URL" in https://*) ;; *) echo "::error::TELEMETRY_URL should be an https:// address."; exit 1;; esac
+          case "$APP_VERSION" in *[!0-9.]*|'') echo "::error::unexpected version: $APP_VERSION"; exit 1;; esac
+          python3 - "$TELEMETRY_URL" "$APP_VERSION" <<'PY'
+          import json, re, sys
+          path = 'build/web/index.html'
+          html = open(path).read()
+          line = '  <script>window.lifeTelemetry = ' + json.dumps({'url': sys.argv[1], 'version': sys.argv[2]}) + ';</script>'
+          new, n = re.subn(r'  <!-- TELEMETRY:.*?-->', lambda m: line, html, flags=re.S)
+          assert n == 1, 'the TELEMETRY placeholder is missing from web/index.html'
+          open(path, 'w').write(new)
+          PY
+          grep -c lifeTelemetry build/web/index.html
       - uses: actions/upload-pages-artifact@v3
         with:
           path: build/web
