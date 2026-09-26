@@ -15,6 +15,7 @@ import 'engine/life_engine.dart';
 import 'render/shaders.dart';
 import 'ui/breakpoints.dart';
 import 'ui/home_page.dart';
+import 'ui/text_spacing.dart';
 import 'ui/theme.dart';
 
 Future<void> main() async {
@@ -120,6 +121,8 @@ class LifeApp extends StatelessWidget {
     title: 'Life with AI',
     debugShowCheckedModeBanner: false,
     theme: Neon.theme(),
+    // Android's in-app browsers can hand Flutter absurd text spacing (see saneTextSpacing).
+    builder: (context, child) => MediaQuery(data: saneTextSpacing(MediaQuery.of(context)), child: child!),
     // There is one screen. The web URL's fragment holds share-link data
     // (#seed=…), not a route, so every route name, including the initial
     // one the web engine derives from the URL, resolves to it. (A route
