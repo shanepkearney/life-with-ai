@@ -91,7 +91,8 @@ class _AssistantPanelState extends State<AssistantPanel> {
           child: Column(
             children: [
               _tabsHeader(a),
-              const Divider(height: 1, color: Neon.border),
+              // At rest there is nothing below the tabs, so the line would sit alone across the sheet.
+              if (widget.showActions) const Divider(height: 1, color: Neon.border),
               if (widget.showActions && _onAssistant) _assistantToolbar(a),
               Expanded(
                 child: _tab == _Tab.favorites
