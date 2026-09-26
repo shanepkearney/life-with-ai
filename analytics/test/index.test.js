@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import worker, { parseEvent } from '../src/index.js';
+import worker, { parseEvent, parseError } from '../src/index.js';
 
 const good = { event: 'seed_opened', seed: '0123456789ab', source: 'community', name: 'Oscillator Garden', version: '1.1.1', platform: 'web' };
 const body = (e) => JSON.stringify(e);
@@ -52,4 +52,35 @@ test('the worker stores good events from the site or the app, and nothing else',
   assert.equal((await worker.fetch(request('POST', '/elsewhere', { text: body(good) }), env)).status, 404);
   assert.equal((await worker.fetch(request('OPTIONS', '/v1/event', { origin: 'https://shanepkearney.github.io' }), env)).status, 204);
   assert.equal(points.length, 2, 'nothing else was stored');
+});
+
+const error = { event: 'app_error', kind: 'load', message: 'Failed to fetch dynamically imported module', browser: 'facebook', version: '1.14.0', platform: 'web' };
+
+test('a good app error parses to exactly the stored fields', () => {
+  assert.deepEqual(parseError(body(error)), { kind: 'load', message: 'Failed to fetch dynamically imported module', browser: 'facebook', version: '1.14.0' });
+  assert.equal(parseEvent(body(error)), null, 'an error is not a seed event');
+  assert.equal(parseError(body(good)), null, 'nor a seed event an error');
+});
+
+test('app errors are refused unless every field is as expected', () => {
+  const bad = [
+    body({ ...error, kind: 'crash' }),
+    body({ ...error, browser: 'Mozilla/5.0 (Linux; Android 14)' }), // never a user agent
+    body({ ...error, platform: 'macos' }),
+    body({ ...error, version: 'dev' }),
+    body({ ...error, message: 'x'.repeat(201) }),
+    body({ ...error, message: 'at https://shanepkearney.github.io/life-with-ai/#seed=1_512x384' }), // a URL could carry a seed
+    body({ ...error, message: 'two\nlines' }),
+    body({ ...error, stack: 'at foo' }), // unknown field
+  ];
+  for (const b of bad) assert.equal(parseError(b), null, b.slice(0, 80));
+});
+
+test('an app error is stored in its own dataset', async () => {
+  const events = [], errors = [];
+  const env = { EVENTS: { writeDataPoint: (p) => events.push(p) }, ERRORS: { writeDataPoint: (p) => errors.push(p) } };
+  const res = await worker.fetch(new Request('https://x/v1/event', { method: 'POST', body: body(error), headers: { Origin: 'https://shanepkearney.github.io' } }), env);
+  assert.equal(res.status, 204);
+  assert.equal(events.length, 0);
+  assert.deepEqual(errors[0].blobs, ['load', 'facebook', '1.14.0', 'Failed to fetch dynamically imported module']);
 });

@@ -1,3 +1,5 @@
+import 'dart:ui' show PlatformDispatcher;
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -5,6 +7,7 @@ import 'app/assistant_controller.dart';
 import 'app/favorites.dart';
 import 'app/life_controller.dart';
 import 'app/palette_store.dart';
+import 'app/platform/error_report.dart';
 import 'app/platform/full_screen.dart';
 import 'app/share_link.dart';
 import 'app/telemetry.dart';
@@ -16,16 +19,34 @@ import 'ui/theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(
-    await bootstrap(
+  // On the web, errors reach the page (web/index.html): a framework error (building, laying out,
+  // drawing) shows its friendly notice, since the screen is likely broken; any other is only
+  // counted. Both are still printed as usual.
+  final present = FlutterError.onError;
+  FlutterError.onError = (details) {
+    present?.call(details);
+    reportAppError('flutter', details.exceptionAsString(), visible: true);
+  };
+  PlatformDispatcher.instance.onError = (error, stack) {
+    reportAppError('flutter', '$error', visible: false);
+    return false; // not handled: the default reporting still happens
+  };
+  final LifeApp app;
+  try {
+    app = await bootstrap(
       launchUri: Uri.base,
       engine: EngineKind.values.asNameMap()[const String.fromEnvironment('ENGINE')] ?? EngineKind.gpu,
       // The board plays on load: a still board reads as broken, a moving one sells the glow.
       // --dart-define=NO_AUTOPLAY=true starts paused. (bootstrap() itself defaults to paused,
       // so tests stay deterministic.)
       autoplay: !const bool.fromEnvironment('NO_AUTOPLAY'),
-    ),
-  );
+    );
+  } catch (e) {
+    // It never starts (shaders that won't load, say): say so now, not after the page's 25-second wait.
+    reportAppError('load', '$e', visible: true);
+    rethrow;
+  }
+  runApp(app);
 }
 
 /// Builds the whole app. Integration tests call this directly with a fake

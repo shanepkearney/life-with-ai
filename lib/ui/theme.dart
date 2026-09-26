@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 /// Neon-on-black palette, matched to the composite shader's heat ramp.
@@ -14,6 +15,8 @@ abstract final class Neon {
   static ThemeData theme() {
     final base = ThemeData(
       brightness: Brightness.dark,
+      // The web gets the bundled Roboto by name, so nothing is fetched from Google; macOS keeps its own font.
+      fontFamily: kIsWeb ? 'Roboto' : null,
       scaffoldBackgroundColor: background,
       colorScheme: const ColorScheme.dark(primary: cyan, secondary: magenta, surface: Color(0xFF0B0E17)),
       useMaterial3: true,
@@ -57,5 +60,6 @@ abstract final class Neon {
     boxShadow: [BoxShadow(color: cyan.withValues(alpha: 0.06), blurRadius: 24)],
   );
 
-  static const mono = TextStyle(fontFamily: 'Menlo', fontFamilyFallback: ['monospace'], fontSize: 12, color: text);
+  // Menlo on macOS; everywhere else (the web) the bundled Roboto, never a font fetched from Google.
+  static const mono = TextStyle(fontFamily: 'Menlo', fontFamilyFallback: ['Roboto'], fontSize: 12, color: text);
 }

@@ -1,4 +1,4 @@
-# Seed-open events
+# Seed-open events and app errors
 
 A small Cloudflare Worker (`src/index.js`) that the released app tells whenever
 a seed is opened, so we can see which seeds people play. It writes one row per
@@ -17,6 +17,26 @@ event to Workers Analytics Engine (dataset `life_with_ai_events`).
 Nothing else: no IP address, no cookie, no visitor ID. The Worker accepts events
 only from the live site (or the macOS app, which sends no `Origin`), and refuses
 anything that doesn't match the fields above exactly (see `test/`).
+
+## App errors
+
+The web page also reports when the app fails to load or draw (graphics turned off, a file
+that won't download, a start that never comes, a drawing error): `web/index.html` shows the
+visitor a friendly notice and sends one `app_error` event, at most three a visit. They go to
+their own dataset, `life_with_ai_errors`, apart from the seed counts:
+
+| Column | What | Example |
+|---|---|---|
+| `blob1` (also `index1`) | kind of failure | `load`, `webgl`, `timeout`, `flutter` |
+| `blob2` | browser: a social app's own, or any other (never the user agent) | `facebook`, `instagram`, `other` |
+| `blob3` | app version | `1.14.0` |
+| `blob4` | the error's message: one line, at most 200 characters, no URLs | `Failed to execute 'compile' on 'WebAssembly'…` |
+
+The page strips URLs from the message (a share link's seed rides in one), and the Worker
+refuses any message that still has one. To see what's failing, query the dataset in the
+Analytics Engine SQL API, e.g.
+`SELECT blob1 AS kind, blob2 AS browser, blob4 AS message, count() AS n FROM life_with_ai_errors
+WHERE timestamp > NOW() - INTERVAL '7' DAY GROUP BY kind, browser, message ORDER BY n DESC`.
 
 ## Deploy
 

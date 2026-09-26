@@ -55,6 +55,8 @@
 
   <!-- ANALYTICS: the Pages build replaces this line with the Cloudflare Web
        Analytics beacon (cookieless). Local builds leave it as a comment. -->
+  <!-- TELEMETRY: the Pages build replaces this line with the error collector's address and the
+       version (window.lifeTelemetry). Local builds leave it: notices still show, nothing is sent. -->
 
   <!-- The splash: the app's own glider loader (lib/ui/glider_loader.dart), drawn here
        in plain JS so it shows from the first paint, before any Flutter code arrives.
@@ -69,11 +71,48 @@
       transition: opacity 1000ms ease;
     }
     #splash.gone { opacity: 0; pointer-events: none; }
+    #splash { flex-direction: column; }
     #splash canvas { width: 64px; height: 64px; }
+    /* When something is off (graphics turned off, a file that won't download, a start that
+       never comes, or a drawing error), a friendly notice, above everything. */
+    #notice { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center;
+      padding: 16px; background: rgba(5, 6, 10, 0.86);
+      font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #E6F1FF; }
+    #notice[hidden] { display: none; }
+    #notice .card { max-width: 360px; width: 100%; box-sizing: border-box; padding: 22px 20px 12px; text-align: center;
+      background: #0B0E17; border: 1px solid rgba(0, 229, 255, 0.35); border-radius: 16px; }
+    #notice h1 { font-size: 19px; margin: 0 0 8px; color: #00E5FF; font-weight: 600; }
+    #notice p { margin: 0 0 14px; color: #A9B6CC; }
+    #notice p[hidden], #notice a[hidden], #notice button[hidden], #notice details[hidden] { display: none; }
+    #notice .steps { color: #E6F1FF; }
+    #notice details { margin: 0 0 14px; text-align: left; font-size: 12px; color: #7D8BA6; }
+    #notice summary { cursor: pointer; }
+    #notice code { display: block; margin-top: 6px; padding: 8px; white-space: pre-wrap; word-break: break-word;
+      background: #05060A; border-radius: 8px; color: #A9B6CC; font: 12px/1.4 Menlo, Consolas, monospace; }
+    #notice a, #notice button { display: block; width: 100%; box-sizing: border-box; margin: 0 0 10px; padding: 12px 16px;
+      border-radius: 12px; font-family: inherit; font-size: 15px; font-weight: 600; line-height: 1.2; cursor: pointer;
+      text-decoration: none; border: 1px solid rgba(0, 229, 255, 0.45); background: transparent; color: #00E5FF; }
+    #notice .primary { background: #00E5FF; color: #05060A; border-color: #00E5FF; }
+    #notice .quiet { border-color: transparent; color: #7D8BA6; font-weight: 400; }
   </style>
 </head>
 <body>
-  <div id="splash" role="status" aria-label="Loading Life with AI"><canvas width="64" height="64"></canvas></div>
+  <div id="splash" role="status" aria-label="Loading Life with AI">
+    <canvas width="64" height="64"></canvas>
+  </div>
+  <div id="notice" role="alertdialog" aria-labelledby="notice-title" aria-describedby="notice-text" hidden>
+    <div class="card">
+      <h1 id="notice-title"></h1>
+      <p id="notice-text"></p>
+      <p id="notice-advice"></p>
+      <a id="notice-chrome" class="primary" href="#" hidden>Open in Chrome</a>
+      <p id="notice-steps" class="steps" hidden>Tap <b>⋯</b> (or <b>⋮</b>) at the top, then <b>Open in browser</b>.</p>
+      <details id="notice-details"><summary>What went wrong</summary><code id="notice-error"></code></details>
+      <button id="notice-action" type="button"></button>
+      <button id="notice-copy" type="button">Copy link</button>
+      <button id="notice-other" class="quiet" type="button" hidden></button>
+    </div>
+  </div>
   <script>
     (function () {
       var splash = document.getElementById('splash');
@@ -181,6 +220,137 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
-  <script src="flutter_bootstrap.js" async></script>
+  <script>
+    (function () {
+      // Back from "Open in Chrome": an Android intent link can't carry the #fragment (a share
+      // link's seed lives there), so it travelled in ?open-hash=; put it back before Flutter reads it.
+      var query = new URLSearchParams(location.search);
+      if (query.has('open-hash')) {
+        var hash = query.get('open-hash');
+        query.delete('open-hash');
+        var rest = query.toString();
+        history.replaceState(null, '', location.pathname + (rest ? '?' + rest : '') + hash);
+      }
+
+      // Inside a social app's own browser (Facebook, Messenger, Instagram), the advice is to
+      // open the page in a real browser: those in-app browsers can block what the app needs.
+      var ua = navigator.userAgent;
+      var social = /Instagram/i.test(ua) ? 'Instagram' : /FBAN|FBAV|FB_IAB|FB4A|FBIOS|Messenger/i.test(ua) ? 'Facebook' : null;
+      var started = false, shown = null, reports = 0;
+
+      // What each kind of failure says, and what its main button does.
+      var kinds = {
+        webgl: { title: 'Graphics are turned off', text: "This browser has WebGL (graphics) turned off, so the board can't be drawn.", action: 'Continue anyway' },
+        load: { title: "Life with AI couldn't finish loading", text: "Part of the app didn't download.", action: 'Reload' },
+        timeout: { title: 'Still loading…', text: 'This is taking longer than it should: a slow connection, or something in this browser blocking the app.', action: 'Reload', other: 'Keep waiting' },
+        flutter: { title: 'Something went wrong', text: "Part of the app couldn't be drawn in this browser.", action: 'Reload', other: 'Dismiss' },
+      };
+
+      // Short and safe to send: one line, no URLs (a share link's seed rides in one), at most 200 characters.
+      function clean(message) {
+        return String(message || '').replace(/https?:\/\/\S+/gi, '<url>').replace(/[\u0000-\u001f]+/g, ' ').trim().slice(0, 200);
+      }
+
+      // Counts the failure (released builds only; see analytics/), at most three a visit.
+      function report(kind, message) {
+        var t = window.lifeTelemetry;
+        if (!t || !t.url || !t.version || reports >= 3) return;
+        reports++;
+        var body = JSON.stringify({ event: 'app_error', kind: kind, message: clean(message), browser: social ? social.toLowerCase() : 'other', version: t.version, platform: 'web' });
+        try {
+          fetch(t.url, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: body, keepalive: true }).catch(function () {});
+        } catch (e) { /* nothing to do: never get in the way */ }
+      }
+
+      var box = document.getElementById('notice');
+      function hide() { box.hidden = true; shown = null; }
+
+      // Shows the notice for [kind], once a visit (a start that finally comes takes back "still loading").
+      function show(kind, message) {
+        if (shown && shown !== 'timeout') return;
+        var k = kinds[kind];
+        shown = kind;
+        document.getElementById('notice-title').textContent = k.title;
+        document.getElementById('notice-text').textContent = k.text;
+        document.getElementById('notice-advice').textContent = social
+          ? "You're in " + social + "'s own browser, which can block what the app needs. Open it in your browser for the full experience."
+          : 'Try reloading, or another browser such as Chrome, Safari, Firefox or Edge.';
+        var chrome = document.getElementById('notice-chrome'), steps = document.getElementById('notice-steps');
+        chrome.hidden = steps.hidden = true;
+        if (social && /Android/i.test(ua)) {
+          var params = Object.fromEntries(new URLSearchParams(location.search));
+          if (location.hash) params['open-hash'] = location.hash;
+          chrome.href = 'intent://' + location.host + location.pathname + '?' + new URLSearchParams(params).toString() +
+            '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + encodeURIComponent(location.href) + ';end';
+          chrome.hidden = false;
+        } else if (social) {
+          steps.hidden = false; // iOS in-app browsers can't hand a page to Safari
+        }
+        var detail = clean(message);
+        document.getElementById('notice-details').hidden = !detail;
+        document.getElementById('notice-error').textContent = detail;
+        var action = document.getElementById('notice-action');
+        action.textContent = k.action;
+        action.className = chrome.hidden ? 'primary' : '';
+        action.onclick = k.action === 'Reload' ? function () { location.reload(); } : hide;
+        var other = document.getElementById('notice-other');
+        other.hidden = !k.other;
+        other.textContent = k.other || '';
+        other.onclick = hide;
+        box.hidden = false;
+        report(kind, message);
+      }
+
+      document.getElementById('notice-copy').addEventListener('click', function () {
+        var button = this;
+        var fallback = function () { prompt('Copy this link:', location.href); };
+        if (navigator.clipboard) navigator.clipboard.writeText(location.href).then(function () { button.textContent = 'Link copied'; }, fallback);
+        else fallback();
+      });
+
+      // For the app: a drawing error it caught (see lib/app/platform/error_report_web.dart).
+      window.lifeReportError = function (kind, message, visible) {
+        if (visible) show(kind, message);
+        else report(kind, message);
+      };
+
+      // A file of ours that won't download (the engine, the app), or an error of ours before the
+      // first frame. Other sites' scripts are ignored: an ad blocker stopping the analytics beacon
+      // is no reason to worry anyone.
+      function ours(url) {
+        try { return new URL(url, location.href).origin === location.origin; } catch (e) { return false; }
+      }
+      window.addEventListener('error', function (e) {
+        if (started) return;
+        var t = e.target;
+        if (t && (t.tagName === 'SCRIPT' || t.tagName === 'LINK')) {
+          var url = t.src || t.href;
+          if (url && ours(url)) show('load', "Couldn't download " + url.split('/').pop());
+        } else if (e.filename && ours(e.filename)) {
+          show('load', e.message || String(e.error));
+        }
+      }, true);
+      window.addEventListener('unhandledrejection', function (e) {
+        if (!started) show('load', e.reason && (e.reason.message || String(e.reason)));
+      });
+
+      // Flutter's first frame: it's running. A "still loading" notice goes away.
+      window.addEventListener('flutter-first-frame', function () {
+        started = true;
+        if (shown === 'timeout') hide();
+      }, { once: true });
+      setTimeout(function () { if (!started) show('timeout', 'No first frame after 25 seconds'); }, 25000);
+
+      // No WebGL at all: the app would start, but the board would stay blank. Say so up front.
+      var probe = document.createElement('canvas');
+      var gl = probe.getContext('webgl2') || probe.getContext('webgl');
+      if (!gl) show('webgl', 'Neither WebGL 2 nor WebGL is available');
+
+      var s = document.createElement('script');
+      s.src = 'flutter_bootstrap.js';
+      s.async = true;
+      document.body.appendChild(s);
+    })();
+  </script>
 </body>
 </html>
