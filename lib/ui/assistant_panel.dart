@@ -47,6 +47,42 @@ class _AssistantPanelState extends State<AssistantPanel> {
   late int _communityRequests = widget.assistant.communityRequests;
   bool get _onAssistant => _tab == _Tab.assistant;
 
+  /// Chat rows (entries, plus the working row) when the chat last followed
+  /// them down; null to follow on the next build (a fresh list starts at the top).
+  int? _rows;
+
+  /// Set when the user sends: their own message is always brought into view.
+  bool _follow = false;
+
+  /// Keeps the newest row in view as rows arrive, but only for a reader already
+  /// at the bottom. This build runs far more often than rows arrive (the page
+  /// around it rebuilds while the board plays), so jumping on every build pulled
+  /// anyone scrolling up to read the history straight back down.
+  void _followNewRows(AssistantController a) {
+    final rows = a.entries.length + (a.busy ? 1 : 0);
+    if (rows == _rows) return;
+    final fresh = _rows == null;
+    _rows = rows;
+    final nearBottom = !_scroll.hasClients || _scroll.position.maxScrollExtent - _scroll.position.pixels < 80;
+    if (!(fresh || _follow || nearBottom)) return;
+    _follow = false;
+    _toBottom();
+  }
+
+  /// Jumps to the end after this frame. The list only estimates its length
+  /// until its last rows are laid out, so a jump can land short; it tries again
+  /// on the next frames, unless the reader has scrolled away in the meantime.
+  void _toBottom({int tries = 5, double? landed}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scroll.hasClients) return;
+      final p = _scroll.position;
+      if (landed != null && p.pixels != landed) return; // the reader moved: leave them be
+      if (p.pixels >= p.maxScrollExtent) return;
+      p.jumpTo(p.maxScrollExtent); // lays out more rows, which may lengthen the list
+      if (tries > 1) _toBottom(tries: tries - 1, landed: p.pixels);
+    });
+  }
+
   @override
   void dispose() {
     _input.dispose();
@@ -60,6 +96,7 @@ class _AssistantPanelState extends State<AssistantPanel> {
       showApiKeyDialog(context, a);
       return;
     }
+    _follow = true;
     a.send(text ?? _input.text);
     _input.clear();
   }
@@ -75,15 +112,14 @@ class _AssistantPanelState extends State<AssistantPanel> {
           // After this frame: switching tabs and opening the phone sheet both rebuild.
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!mounted) return;
-            setState(() => _tab = _Tab.community);
+            setState(() {
+              _tab = _Tab.community;
+              _rows = null;
+            });
             widget.onOpen?.call();
           });
         }
-        if (_onAssistant) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (_scroll.hasClients) _scroll.jumpTo(_scroll.position.maxScrollExtent);
-          });
-        }
+        if (_onAssistant) _followNewRows(a);
         return Container(
           width: widget.embedded ? null : 380,
           margin: widget.embedded ? null : const EdgeInsets.fromLTRB(0, 16, 16, 16),
@@ -160,7 +196,10 @@ class _AssistantPanelState extends State<AssistantPanel> {
     final n = a.favorites.items.length;
     void select(_Tab tab) {
       if (tab == _Tab.community) a.loadCommunity(); // first open only; later calls share the load
-      setState(() => _tab = tab);
+      setState(() {
+        _tab = tab;
+        _rows = null; // back on the chat, start at its newest row
+      });
       widget.onOpen?.call();
     }
 

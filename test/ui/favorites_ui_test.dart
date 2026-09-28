@@ -29,6 +29,12 @@ void main() {
           'name': 'place_pattern',
           'input': {'name': 'glider', 'x': 20, 'y': 20},
         },
+        {
+          'type': 'tool_use',
+          'id': 't1s',
+          'name': 'simulate',
+          'input': {'generations': 4},
+        },
       ]),
       reply([
         {

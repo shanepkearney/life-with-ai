@@ -1,8 +1,10 @@
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:image/image.dart' as img;
 
 import '../core/grid.dart';
+import 'census.dart';
 
 /// Upper bound per simulate call: 1500 generations of a 1024x768 board is a
 /// couple of seconds of CPU, which is as long as a tool call should block.
@@ -14,7 +16,16 @@ typedef SimulationRequest = ({int width, int height, Uint8List cells, int genera
 
 /// What the agent learns from running a candidate seed forward.
 class SimulationReport {
-  SimulationReport({required this.generations, required this.fate, required this.populationSamples, required this.checkpoints, this.png});
+  SimulationReport({
+    required this.generations,
+    required this.fate,
+    required this.populationSamples,
+    required this.checkpoints,
+    this.activity = const [],
+    this.settledAt,
+    this.census,
+    this.png,
+  });
 
   final int generations;
 
@@ -23,6 +34,18 @@ class SimulationReport {
   final String fate;
   final List<(int gen, int pop)> populationSamples;
   final List<Checkpoint> checkpoints;
+
+  /// (generation, cells that differ from [activityLag] generations earlier).
+  /// Still lifes and period-1/2/3/6 oscillators come out as 0; anything
+  /// moving or evolving doesn't.
+  final List<(int gen, int changed)> activity;
+
+  /// The sampled generation from which activity held steady (see [settledFrom]),
+  /// or null if it was still evolving at the end.
+  final int? settledAt;
+
+  /// The objects on the final board.
+  final Census? census;
 
   /// Board at the final generation as a PNG, when requested.
   final Uint8List? png;
@@ -34,6 +57,20 @@ class SimulationReport {
       ..writeln('Simulated $generations generations.')
       ..writeln('Fate: $fate')
       ..writeln('Population over time (gen:pop): ${populationSamples.map((s) => '${s.$1}:${s.$2}').join(' ')}');
+    if (activity.isNotEmpty) {
+      b
+        ..writeln(
+          'Activity (cells that differ from $activityLag generations earlier; still lifes and period-2/3 oscillators '
+          'count 0, anything moving or evolving counts): ${activity.map((s) => '${s.$1}:${s.$2}').join(' ')}',
+        )
+        ..writeln(
+          settledAt != null
+              ? 'Settled: activity held steady from about generation $settledAt; what still counts is objects in motion '
+                    'or longer-period oscillators.'
+              : 'Not settled: still changing at generation $generations.',
+        );
+    }
+    if (census != null) b.writeln('Final board: ${census!.toText()}.');
     for (final c in checkpoints) {
       b
         ..writeln()
@@ -78,6 +115,31 @@ int countHotspots(Grid g, {int block = 16, double threshold = 0.25}) {
   return n;
 }
 
+/// Activity compares each board with the one this many generations earlier:
+/// 6 is a multiple of the periods of blinkers, toads, beacons and pulsars.
+const activityLag = 6;
+
+/// The first sampled generation from which activity held steady: what is left
+/// is still lifes, short oscillators (which count 0) and objects in steady
+/// motion (escaping gliders change the same number of cells every sample).
+/// Null when the last few samples still vary, i.e. it is still evolving.
+int? settledFrom(List<(int gen, int changed)> activity) {
+  if (activity.length < 3) return null;
+  int? from;
+  var lo = activity.last.$2, hi = lo;
+  for (var i = activity.length - 1; i >= 0; i--) {
+    final c = activity[i].$2;
+    final newLo = min(lo, c), newHi = max(hi, c);
+    if (newHi - newLo > max(6, newHi * 0.1)) break;
+    lo = newLo;
+    hi = newHi;
+    from = activity[i].$1;
+  }
+  // A steady tail of one or two samples could be chance.
+  final steadySamples = activity.where((s) => from != null && s.$1 >= from).length;
+  return steadySamples >= 3 ? from : null;
+}
+
 /// Pure function: runs the seed forward and classifies what happens.
 SimulationReport runSimulation(SimulationRequest r) {
   final gens = r.generations.clamp(1, maxSimulatedGenerations);
@@ -91,6 +153,17 @@ SimulationReport runSimulation(SimulationRequest r) {
   final sampleEvery = (gens / 12).ceil();
   String? fate;
 
+  // Activity: sampled about 24 times, each against a copy taken activityLag generations before.
+  final activityEvery = max(activityLag, (gens / 24).ceil());
+  final activityAt = {for (var g = activityEvery; g <= gens; g += activityEvery) g, if (gens >= activityLag) gens};
+  final earlier = <int, Uint8List>{}; // sample generation -> the board activityLag generations before it
+  final activity = <(int, int)>[];
+  void snapshot(int gen) {
+    if (activityAt.contains(gen + activityLag)) earlier[gen + activityLag] = Uint8List.fromList(a.cells);
+  }
+
+  snapshot(0);
+
   void checkpoint(int gen) =>
       checkpoints.add(Checkpoint(gen, a.population, a.boundingBox, countHotspots(a), a.toAscii(maxCols: 64, maxRows: 24)));
 
@@ -103,6 +176,15 @@ SimulationReport runSimulation(SimulationRequest r) {
     a = b;
     b = t;
     if (gen % sampleEvery == 0 || gen == gens) samples.add((gen, a.population));
+    final before = earlier.remove(gen);
+    if (before != null) {
+      var changed = 0;
+      for (var i = 0; i < before.length; i++) {
+        if (before[i] != a.cells[i]) changed++;
+      }
+      activity.add((gen, changed));
+    }
+    snapshot(gen);
     if (wanted.contains(gen)) checkpoint(gen);
     if (fate != null) continue;
     final pop = a.population;
@@ -140,6 +222,9 @@ SimulationReport runSimulation(SimulationRequest r) {
     fate: fate,
     populationSamples: samples,
     checkpoints: checkpoints,
+    activity: activity,
+    settledAt: settledFrom(activity),
+    census: takeCensus(a),
     png: r.png ? encodeBoardPng(a) : null,
   );
 }
