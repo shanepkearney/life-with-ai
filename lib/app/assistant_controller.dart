@@ -48,12 +48,14 @@ class AssistantController extends ChangeNotifier {
 
   String? apiKey;
   ClaudeModel model = ClaudeModel.opus5;
+  int maxTokens = SeedAgent.defaultMaxTokens;
   bool rememberKey = false;
   bool busy = false;
   SeedAgent? _agent;
 
   static const _keyPref = 'anthropic_api_key';
   static const _modelPref = 'anthropic_model';
+  static const _maxTokensPref = 'anthropic_max_tokens';
 
   bool get hasKey => (apiKey ?? '').isNotEmpty;
   Usage? get usage => _agent?.usage;
@@ -66,24 +68,35 @@ class AssistantController extends ChangeNotifier {
       apiKey = prefs.getString(_keyPref);
       rememberKey = apiKey != null;
       model = ClaudeModel.byId(prefs.getString(_modelPref));
+      final saved = prefs.getInt(_maxTokensPref);
+      maxTokens = SeedAgent.maxTokenChoices.contains(saved) ? saved! : SeedAgent.defaultMaxTokens;
     } catch (_) {
       // Storage can be unavailable (private browsing); the key then lives in memory only.
     }
     notifyListeners();
   }
 
-  Future<void> saveSettings({required String key, required ClaudeModel model, required bool remember}) async {
+  Future<void> saveSettings({required String key, required ClaudeModel model, required bool remember, int? maxTokens}) async {
+    final keyChanged = key.trim() != apiKey;
     apiKey = key.trim();
     rememberKey = remember;
+    if (maxTokens != null) {
+      this.maxTokens = maxTokens;
+      _agent?.maxTokens = maxTokens; // the conversation carries on under the new limit
+    }
+    // A new model or key needs a new client, and so a new conversation. Anything
+    // else keeps the one on screen: dropping it would leave Claude answering the
+    // next message without the history the user can still see.
     if (model != this.model) {
       this.model = model;
       _resetAgent();
-    } else {
-      _agent = null; // pick up the new key
+    } else if (keyChanged) {
+      _resetAgent();
     }
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_modelPref, model.id);
+      await prefs.setInt(_maxTokensPref, this.maxTokens);
       remember ? await prefs.setString(_keyPref, apiKey!) : await prefs.remove(_keyPref);
     } catch (_) {}
     notifyListeners();
@@ -112,6 +125,7 @@ class AssistantController extends ChangeNotifier {
       client: AnthropicClient(apiKey: apiKey!, model: model, httpClient: _httpClient),
       workbench: SeedWorkbench(_life.width, _life.height),
       maxTurns: maxTurns,
+      maxTokens: maxTokens,
     );
 
     busy = true;
