@@ -205,6 +205,209 @@ Design choices:
 results are batched in order, thinking blocks are echoed back unchanged, roles still alternate
 on follow-ups, the turn cap holds, and the required headers and cache settings are present.
 
+## The agent harness
+
+Everything around the model: the loop, the tools, the conversation it remembers, how it fails, and
+what it costs. The model itself is swappable (Opus 5 or Sonnet 5); the harness is the part that
+makes it useful and safe to hand a user's own API key. `lib/ai/` is four files and about 800 lines.
+
+```mermaid
+flowchart TD
+    User(["User: prompt, Stop"]) --> AC
+    AC["AssistantController (lib/app)<br/>chat log · cost meter · Stop · replay queue"]
+    AC -- "send(prompt) / cancel()" --> SA
+    SA -- "AgentEvent stream" --> AC
+    SA["SeedAgent (seed_agent.dart)<br/>the loop · conversation history · turn cap"]
+    SA -- "createMessage" --> CL
+    CL["AnthropicClient<br/>raw HTTP · retries · readable errors"] -- "HTTPS" --> API[("Anthropic Messages API")]
+    SA -- "run(tool, input)" --> WB
+    WB["SeedWorkbench (seed_tools.dart)<br/>sandboxed seed · validation · tool dispatch"]
+    WB -- "simulate" --> SIM["runSimulation (simulation.dart)<br/>pure Dart · off the UI thread via compute()"]
+    AC -- "replay experiments, play the final seed" --> Board["LifeController + engines<br/>the live board"]
+```
+
+The model only ever reaches the sandboxed seed; the live board changes only when the controller
+replays an experiment or plays the finished seed.
+
+### The execution loop
+
+A plain tool-use loop, ReAct-style: ask the model, run the tools it calls, send the results back,
+repeat. One run:
+
+```mermaid
+sequenceDiagram
+    actor U as User
+    participant AC as AssistantController
+    participant SA as SeedAgent
+    participant CL as AnthropicClient
+    participant API as Messages API
+    participant WB as SeedWorkbench
+    participant B as Board
+
+    U->>AC: "two glider fleets collide"
+    AC->>SA: send(prompt)
+    loop at most 10 turns
+        SA->>CL: createMessage(system + tools + history)
+        CL->>API: POST /v1/messages (cached prefix)
+        opt 408 / 409 / 429 / 5xx, timeout or network error
+            CL->>API: retry, backoff 0.8s then 1.6s (at most 2)
+        end
+        API-->>CL: content + stop_reason
+        CL-->>SA: response
+        SA-->>AC: thinking, text, usage (cost meter)
+        alt stop_reason = tool_use
+            loop each tool call, in order
+                SA->>WB: run(name, input)
+                WB-->>SA: result, or is_error with how to fix it
+                SA-->>AC: tool call + result
+            end
+            opt the model called simulate
+                SA-->>AC: experiment
+                AC->>B: replay it (about 8s) while the next call is in flight
+            end
+            opt the model called finish
+                SA-->>AC: done(summary)
+                AC->>B: play the seed
+            end
+        else end_turn (usually a question for the user)
+            SA-->>AC: done, nothing plays
+        else refusal, max_tokens or API error
+            SA-->>AC: error in the chat
+        end
+    end
+    Note over U,SA: Stop at any point: remaining tool calls answer "Canceled by the user."<br/>and a late response is discarded, so the history stays valid
+```
+
+It ends on exactly one of these, each with its own message to the user:
+
+| Ends because | What the user sees |
+|---|---|
+| the model calls `finish` | the seed starts playing, with the model's summary |
+| `end_turn` without `finish` | nothing plays; this is usually a clarifying question, which the prompt allows when a request is ambiguous |
+| the 10-turn cap | "here is the best seed so far", and it plays |
+| Stop | "Stopped."; the unanswered response is dropped so the history stays valid for the next message |
+| `refusal`, `max_tokens`, an API error or an unknown stop reason | an error in the chat, and nothing plays |
+
+Tools in one turn run **sequentially, in the order the model asked for them**, because they share
+one mutable seed: `clear_board` then `place_pattern` must not race. Their results go back in a
+single user message, as the API requires.
+
+**Why a single loop and not a planner/executor or a multi-agent graph:** the task is one artifact
+(a seed) with a fast, deterministic check (`simulate`). A tight build → simulate → read → adjust
+loop is the whole method, and the simulator is the critic, so a second model reviewing the first
+would add latency and cost without adding information. The seam is there if that changes:
+`SeedAgent` only knows the client and the workbench.
+
+### Tools
+
+- **The model never touches the live board.** It edits a sandboxed seed in `SeedWorkbench`; the
+  board only takes it on `finish`. A bad run can't wreck what the user is watching.
+- **Every input is validated before it runs** (schema limits, then checks in code: pattern names,
+  rotations in 90° steps, shapes no bigger than the board, at most 4,000 cells per call, 1 to 1,500
+  simulated generations). A failure returns a `tool_result` with `is_error: true` and a message
+  that says how to fix it (`No pattern "glidr". Available: …`), so the model corrects itself on the
+  next turn instead of the loop crashing.
+- **Tool claims are tested facts.** The descriptions the model plans from (glider headings, gun
+  cadence, oscillator periods) are asserted in `test/core`; see the seed assistant above.
+- **Reports are sized for the model.** `simulate` returns a verdict (dies, still life, period-N,
+  growing), a population curve, hotspot counts and ASCII thumbnails as text, and a PNG only when
+  asked, because an image costs about 260 tokens at 512×384 and most decisions don't need one.
+
+### Memory and context
+
+- **The conversation is the memory.** `SeedAgent.messages` persists across prompts, so a follow-up
+  ("now make it symmetric") sees the previous seed and everything that led to it. It is resent in
+  full on every turn, with thinking blocks echoed back unchanged, as the API requires.
+- **Prompt caching keeps that affordable.** The system prompt and tool definitions are a stable
+  prefix (the system prompt depends only on the board size), and a top-level `cache_control`
+  places the breakpoint on the latest turn, so each refine re-reads the prefix and prior turns
+  at 0.1× input cost.
+- **Durable state lives outside the chat:** favorites, saved moments and share links (the seed and
+  its title encoded in the URL fragment) are stored or shared independently of any conversation,
+  so a result survives a new chat, a reload or another device.
+
+### Errors and retries
+
+- **Transient API failures are retried** inside `AnthropicClient`: 408, 409, 429 and 5xx responses,
+  timeouts (5 minutes per request) and network errors, up to 2 retries with exponential backoff
+  (0.8s, then 1.6s). Anything else surfaces at once.
+- **Errors are written for the person who has to fix them.** A spend limit says it is a limit on
+  their Anthropic workspace and where to raise it; no credit, a rejected key (401) and a model the
+  key can't use (403) each get their own message, rather than a raw status code.
+- **Nothing is swallowed.** Tool errors go back to the model; API errors end the run with a
+  message in the chat. There is no path where a failure is silently counted as success.
+
+### Guardrails and safety
+
+- **Bounded work:** at most 10 model turns per request, 16,000 output tokens per turn, and the
+  simulation limits above.
+- **Bounded spend:** a live, cache-aware cost meter on every turn, and Stop. Stop takes effect
+  between steps: tool calls the model has not reached yet answer "Canceled by the user.", and a
+  response that arrives after Stop is discarded.
+- **Model-side safety:** refusals end the run cleanly, and Opus 5 runs with server-side
+  fallbacks, so a request its safety classifiers decline is rerouted within the same call rather
+  than failing.
+- **The user's key:** sent only to `api.anthropic.com`, held in memory unless "remember" is ticked.
+  See the seed assistant above.
+
+### Cost and latency
+
+- **Cost:** cached prefixes (0.1× on re-reads), text reports before images, and a turn cap that
+  bounds the worst case. The prompt tells the model to batch several edits per turn and to stop
+  refining once the result is good, which cuts turns more than any other change.
+- **Latency is hidden, not removed:** `simulate` answers instantly, and while the next API call is
+  in flight the board replays that experiment, fast-forwarded to about 8 seconds. The user
+  watches the agent's work instead of a spinner.
+- **Simulations never block the UI:** they run in a background isolate on native (inline on web,
+  which has none) and are independent of which engine draws the board.
+
+### Observability
+
+- **Every step is a typed event.** The loop emits a sealed `AgentEvent` stream (thinking, text,
+  tool call, tool result, seed changed, experiment, usage, done, error), and the chat renders it,
+  so the user sees each tool call, its result and the running cost as they happen. The chat is the
+  trace.
+- **The same stream is what the tests assert on**, so the events the UI shows and the behavior
+  under test can't drift apart.
+- **In production:** the app runs entirely in the browser or on the Mac with the user's own key, so
+  there is no server to log to. Usage analytics are limited to anonymous `seed_opened` counts
+  (see Analytics); prompts and seeds never leave the device except to Anthropic.
+
+### Testing and tooling
+
+- **The loop is tested without the network.** `test/ai/seed_agent_test.dart` scripts the API
+  responses, and the macOS integration suite runs a full assistant session end to end in the real
+  app with only the Anthropic API scripted (see Testing).
+- **Deterministic core:** tools and the simulator are pure Dart with no Flutter, so they are unit
+  tested directly, and the GPU engines are held to the CPU rules by a bit-for-bit parity test.
+- **Types and lint:** Dart with sound null safety, a sealed event hierarchy (so the UI's `switch`
+  over events is exhaustive), `flutter analyze` with `flutter_lints`, and CI that gates every
+  deploy on the unit, integration and web suites.
+
+### Assumptions
+
+- The user brings their own Anthropic key, and accepts it being used from the browser.
+- One user and one conversation per window; nothing is shared between users.
+- A run is a few turns and a few minutes, so a conversation fits comfortably in the context
+  window without trimming.
+- The simulator is the ground truth. If it says a seed dies at generation 400, it does.
+
+### Things to improve
+
+- **Context management for long chats:** the history is resent in full, which is fine for a
+  handful of requests but grows without bound. Next: compact older turns into a summary of the
+  seed and the decisions behind it, keeping the latest turns verbatim.
+- **Streaming:** requests are non-streaming, so text and thinking appear per turn rather than as
+  they are generated.
+- **Honor `retry-after`** on 429s instead of a fixed backoff.
+- **An eval suite for the agent itself:** a fixed set of prompts, each run several times and
+  scored by the simulator (did the seed survive, grow, collide, reach the requested period?),
+  to compare models, prompts and tool changes on numbers rather than impressions.
+- **Parallel candidates:** build several seeds for one prompt, simulate them all, and keep the
+  best, trading tokens for quality where it matters.
+- **A server-side mode** (a small proxy holding the key) for a hosted version where users don't
+  bring their own.
+
 ## Phones and small windows
 
 The layout follows the space the app has, never the device type: below 900px wide (or 500px tall,
