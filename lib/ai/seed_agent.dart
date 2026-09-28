@@ -68,11 +68,20 @@ class AgentError extends AgentEvent {
 /// The conversation persists across [send] calls so follow-ups ("now make it
 /// symmetric") build on the same seed.
 class SeedAgent {
-  SeedAgent({required this.client, required this.workbench, this.maxTurns = 10});
+  SeedAgent({required this.client, required this.workbench, this.maxTurns = 10, this.maxTokens = defaultMaxTokens});
 
   final AnthropicClient client;
   final SeedWorkbench workbench;
   final int maxTurns;
+
+  /// The most Claude may write in one step, thinking included. Settable
+  /// mid-conversation: the next step uses it.
+  int maxTokens;
+
+  static const defaultMaxTokens = 16000;
+
+  /// What Assistant settings offers.
+  static const maxTokenChoices = [4000, 8000, 16000, 32000, 64000];
   final usage = Usage();
   final List<Map<String, dynamic>> messages = [];
   bool _cancelled = false;
@@ -151,7 +160,9 @@ class SeedAgent {
           yield AgentError('Claude declined that request. Try rephrasing it.');
           return;
         case 'max_tokens':
-          yield AgentError('The response was cut off (max_tokens). Try a simpler request.');
+          yield AgentError(
+            'The response was cut off at the $maxTokens-token limit. Raise it in Assistant settings, or try a simpler request.',
+          );
           return;
         default:
           yield AgentError('Unexpected stop reason: ${response['stop_reason']}');
@@ -162,7 +173,7 @@ class SeedAgent {
   }
 
   Map<String, dynamic> _requestBody() => {
-    'max_tokens': 16000,
+    'max_tokens': maxTokens,
     'thinking': {'type': 'adaptive', 'display': 'summarized'},
     // Auto-places a cache breakpoint on the last cacheable block, so the
     // system prompt, tools and prior turns are re-read at 0.1x cost.
