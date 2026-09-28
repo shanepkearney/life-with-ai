@@ -100,6 +100,21 @@ void main() {
     expect(body['fallbacks'], 'default');
     expect(body['cache_control'], {'type': 'ephemeral'});
     expect(body['thinking'], {'type': 'adaptive', 'display': 'summarized'});
+    expect(body['max_tokens'], SeedAgent.defaultMaxTokens);
+  });
+
+  test('the token limit is a setting: sent on the next step, and named when a reply is cut off', () async {
+    final api = ScriptedApi([
+      reply('max_tokens', [
+        {'type': 'text', 'text': 'Let me think about thi'},
+      ]),
+    ]);
+    final agent = agentFor(api)..maxTokens = 32000;
+    final events = await agent.send('something pretty').toList();
+    expect(api.requests.single['max_tokens'], 32000);
+    final error = events.whereType<AgentError>().single.message;
+    expect(error, contains('32000-token limit'));
+    expect(error, contains('Assistant settings'));
   });
 
   test('Sonnet requests carry no fallback parameters', () async {

@@ -476,6 +476,72 @@ void main() {
     expect(favorites.items, hasLength(1));
   });
 
+  testWidgets('the token limit is set in Assistant settings, sent with each step, and changes mid-chat', (tester) async {
+    final requests = <Map<String, dynamic>>[];
+    final responses = [
+      // The first step runs out of room.
+      {
+        'content': [
+          {'type': 'text', 'text': 'Let me plan a glider gun whose'},
+        ],
+        'stop_reason': 'max_tokens',
+        'usage': {'input_tokens': 100, 'output_tokens': 32000},
+      },
+      {
+        'content': [
+          {'type': 'text', 'text': 'Which way should the gliders fly?'},
+        ],
+        'stop_reason': 'end_turn',
+        'usage': {'input_tokens': 100, 'output_tokens': 20},
+      },
+    ];
+    final api = MockClient((req) async {
+      requests.add(jsonDecode(req.body) as Map<String, dynamic>);
+      return http.Response(jsonEncode(responses.removeAt(0)), 200);
+    });
+    final app = await start(tester, api: api);
+
+    Future<void> chooseLimit(String option) async {
+      await tester.tap(find.byTooltip('Settings'));
+      await frames(tester, 400);
+      await tester.tap(find.byKey(const Key('max-tokens')));
+      await frames(tester, 400);
+      await tester.tap(find.text(option).last);
+      await frames(tester, 400);
+      await tester.tap(find.text('Save'));
+      await frames(tester, 400);
+    }
+
+    // Sets the prompt box directly: after the first reply, the chat's selectable
+    // text can hold the test keyboard's focus, and enterText then goes nowhere.
+    Future<void> send(String prompt) async {
+      tester.widget<TextField>(find.byType(TextField)).controller!.text = prompt;
+      await tester.pump();
+      await tester.tap(find.byTooltip('Send'));
+    }
+
+    // Opus 5 writes at $25 per million tokens: 32,000 of them cost at most $0.80.
+    await chooseLimit(r'32,000  ·  up to $0.80 a step');
+    expect(app.assistant.maxTokens, 32000);
+
+    await send('Make a glider gun');
+    await pumpUntil(tester, () => find.textContaining('32000-token limit').evaluate().isNotEmpty, reason: 'the cut-off message');
+    expect(requests.single['max_tokens'], 32000);
+    expect(find.textContaining('Raise it in Assistant settings'), findsOneWidget);
+
+    // Raising it applies to the next step, and the conversation carries on.
+    await chooseLimit(r'64,000  ·  up to $1.60 a step');
+    await send('Try again with more room');
+    await pumpUntil(tester, () => find.text('Which way should the gliders fly?').evaluate().isNotEmpty, reason: 'the second reply');
+    expect(requests, hasLength(2));
+    expect(requests.last['max_tokens'], 64000);
+    expect(jsonEncode(requests.last['messages']), contains('Make a glider gun'), reason: 'the same chat, not a new one');
+
+    // And it's remembered for next time.
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getInt('anthropic_max_tokens'), 64000);
+  });
+
   testWidgets('assistant run: experiment replays, then heart, recall and share the seed', (tester) async {
     Map<String, dynamic> reply(List<Map<String, dynamic>> content) => {
       'content': content,
