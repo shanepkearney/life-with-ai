@@ -171,10 +171,12 @@ void main() {
     final api = ScriptedApi([
       reply('tool_use', [
         toolUse('t1', 'place_pattern', {'name': 'glider', 'x': 3, 'y': 3}),
+        toolUse('t1s', 'simulate', {'generations': 4}),
       ]),
       reply('tool_use', [
         toolUse('t2', 'finish', {'summary': 'one'}),
       ]),
+      // The seed is unchanged since it was simulated, so a follow-up can finish straight away.
       reply('tool_use', [
         toolUse('t3', 'finish', {'summary': 'two'}),
       ]),
@@ -210,5 +212,30 @@ void main() {
   test('cost meter prices cache reads at a tenth of input', () {
     final u = Usage()..add({'input_tokens': 1000000, 'cache_read_input_tokens': 1000000, 'output_tokens': 0});
     expect(u.costUsd(ClaudeModel.opus5), closeTo(5.5, 1e-9));
+  });
+
+  test('finish is refused until the seed as it stands has been simulated', () async {
+    final api = ScriptedApi([
+      reply('tool_use', [
+        toolUse('t1', 'place_pattern', {'name': 'glider', 'x': 3, 'y': 3}),
+        toolUse('t2', 'finish', {'summary': 'A glider, forever.'}),
+      ]),
+      reply('tool_use', [
+        toolUse('t3', 'simulate', {'generations': 20}),
+        // Changed after simulating: needs simulating again.
+        toolUse('t4', 'place_pattern', {'name': 'block', 'x': 40, 'y': 30}),
+        toolUse('t5', 'finish', {'summary': 'still unchecked'}),
+      ]),
+      reply('tool_use', [
+        toolUse('t6', 'simulate', {'generations': 20}),
+        toolUse('t7', 'finish', {'summary': 'A glider drifts past a block.'}),
+      ]),
+    ]);
+    final events = await agentFor(api).send('a glider').toList();
+    final refusals = events.whereType<AgentToolResult>().where((r) => r.name == 'finish' && r.outcome.isError).toList();
+    expect(refusals, hasLength(2));
+    expect(refusals.first.outcome.text, contains('Simulate the seed as it stands'));
+    expect((events.last as AgentDone).summary, 'A glider drifts past a block.');
+    expect(api.requests, hasLength(3));
   });
 }

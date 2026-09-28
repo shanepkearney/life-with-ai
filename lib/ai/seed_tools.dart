@@ -146,7 +146,10 @@ final List<Map<String, Object>> seedToolDefinitions = [
     'description':
         'Hand the seed to the user: it is loaded onto the live board and starts playing. '
         'Call this once you are satisfied (or out of ideas), with a one- or two-sentence summary of '
-        'what the user will see.',
+        'what the user will see. Simulate the seed as it stands first: the summary may only describe what that '
+        'report shows (its fate, when it settled, what is on the final board), with its numbers where they help. '
+        'Never claim anything past the generations you simulated, such as "forever" or "never settles", unless '
+        'the fate is periodic.',
     'input_schema': {
       'type': 'object',
       'properties': {
@@ -168,18 +171,28 @@ class SeedWorkbench {
   final Simulator _simulate;
   final Random _random;
 
+  /// Whether the seed as it stands has been simulated: finish needs a report
+  /// to base its summary on.
+  bool _simulated = false;
+
   Future<ToolOutcome> run(String name, Map<String, dynamic> input) async {
     try {
-      return switch (name) {
+      final outcome = switch (name) {
         'clear_board' => _clear(),
         'place_pattern' => _place(input),
         'draw_shape' => _draw(input),
         'set_cells' => _setCells(input),
         'view_board' => _view(input),
         'simulate' => await _simulateTool(input),
+        'finish' when !_simulated => ToolOutcome(
+          'Simulate the seed as it stands before finishing, so the summary describes what it really does.',
+          isError: true,
+        ),
         'finish' => ToolOutcome('Seed handed to the user.', finished: true),
         _ => ToolOutcome('Unknown tool "$name".', isError: true),
       };
+      if (outcome.seedChanged) _simulated = false;
+      return outcome;
     } on ToolInputError catch (e) {
       return ToolOutcome(e.message, isError: true);
     }
@@ -293,6 +306,7 @@ class SeedWorkbench {
       checkpoints: cps,
       png: input['include_image'] == true,
     ));
+    _simulated = true;
     return ToolOutcome(report.toText(), png: report.png);
   }
 
