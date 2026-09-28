@@ -219,7 +219,7 @@ flowchart TD
     SA -- "AgentEvent stream" --> AC
     SA["SeedAgent (seed_agent.dart)<br/>the loop · conversation history · turn cap"]
     SA -- "createMessage" --> CL
-    CL["AnthropicClient<br/>raw HTTP · retries · readable errors"] -- "HTTPS" --> API[("Anthropic Messages API")]
+    CL["AnthropicClient<br/>raw HTTP · retries · readable errors"] -- "HTTPS" --> API[("Claude API (Messages)")]
     SA -- "run(tool, input)" --> WB
     WB["SeedWorkbench (seed_tools.dart)<br/>sandboxed seed · validation · tool dispatch"]
     WB -- "simulate" --> SIM["runSimulation (simulation.dart)<br/>pure Dart · off the UI thread via compute()"]
@@ -240,7 +240,7 @@ sequenceDiagram
     participant AC as AssistantController
     participant SA as SeedAgent
     participant CL as AnthropicClient
-    participant API as Messages API
+    participant API as Claude API (Messages)
     participant WB as SeedWorkbench
     participant B as Board
 
